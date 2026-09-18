@@ -225,6 +225,26 @@ const MedicationHandle = () => {
     }
   };
 
+  const closeAttachment = () => {
+    if (imageModal.url) URL.revokeObjectURL(imageModal.url);
+    setImageModal({ open: false, url: "" });
+  };
+
+  const openAttachment = async (requestID) => {
+    try {
+      const response = await axios.get(
+        `http://127.0.0.1:5080/api/MedicationRequest/${requestID}/attachment`,
+        { responseType: "blob" }
+      );
+      if (imageModal.url) URL.revokeObjectURL(imageModal.url);
+      const url = URL.createObjectURL(response.data);
+      setImageModal({ open: true, url });
+    } catch (error) {
+      console.error("無法載入用藥附件：", error);
+      notifyError("無法載入用藥附件。");
+    }
+  };
+
   // Card đơn thuốc
   const MedicationCard = ({ req, tableType }) => (
     <div className={style.medCard}>
@@ -248,18 +268,13 @@ const MedicationHandle = () => {
         <div>
           <b></b>{" "}
           {req.imagePath ? (
-            <img
-              src={`http://127.0.0.1:5080${req.imagePath}`}
-              alt="藥袋／藥品照片"
-              className={style.miniImage}
-              onClick={() =>
-                setImageModal({
-                  open: true,
-                  url: `http://127.0.0.1:5080${req.imagePath}`,
-                })
-              }
-              style={{ cursor: "pointer" }}
-            />
+            <button
+              type="button"
+              className={style.confirmBtn}
+              onClick={() => openAttachment(req.requestID)}
+            >
+              <Paperclip size={16} /> 查看附件
+            </button>
           ) : (
             <span>-</span>
           )}
@@ -476,7 +491,7 @@ const MedicationHandle = () => {
       {imageModal.open && (
         <div
           className={style.imageModalOverlay}
-          onClick={() => setImageModal({ open: false, url: "" })}
+          onClick={closeAttachment}
         >
           <div
             className={style.imageModalContent}
@@ -489,7 +504,7 @@ const MedicationHandle = () => {
             />
             <button
               className={style.closeModalBtn}
-              onClick={() => setImageModal({ open: false, url: "" })}
+              onClick={closeAttachment}
             >
               關閉
             </button>
