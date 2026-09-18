@@ -7,7 +7,7 @@ import Notification from "../../components/Notification";
 import { notifySuccess, notifyError } from "../../utils/notification";
 import LoadingOverlay from "../../components/LoadingOverlay";
 
-const API_BASE = "https://swp-school-medical-management.onrender.com/api";
+const API_BASE = "http://127.0.0.1:5080/api";
 
 // --- Child Component for Basic Info ---
 const StudentInfoSection = ({ student, onSave }) => {
