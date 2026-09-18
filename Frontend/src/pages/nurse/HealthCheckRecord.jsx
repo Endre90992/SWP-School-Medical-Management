@@ -75,11 +75,11 @@ const HealthCheckRecord = () => {
           bmi: Number(newRecord.bmi),
         }
       );
-      notifySuccess("Ghi nhận thành công!");
+      notifySuccess("健康檢查資料登錄成功。");
       navigate(-1);
     } catch (error) {
       notifyError(
-        "Lỗi ghi nhận! " + (error.response?.data?.message || error.message)
+        "登錄失敗：" + (error.response?.data?.message || error.message)
       );
     }
   };
@@ -97,7 +97,7 @@ const HealthCheckRecord = () => {
         if (res.data.status === "200") {
           console.log("Setting record data:", res.data.data);
           setRecord(res.data.data);
-          if (res.data.data.campaignStatus === "Đang diễn ra" && isEditMode) {
+          if (res.data.data.campaignStatus === "進行中" && isEditMode) {
             setIsEditing(true);
           }
         } else {
@@ -131,14 +131,14 @@ const HealthCheckRecord = () => {
     // eslint-disable-next-line
   }, [isEditing, record?.height, record?.weight]);
 
-  if (loading) return <LoadingOverlay text="Đang tải dữ liệu khám sức khỏe..." />;
+  if (loading) return <LoadingOverlay text="健康檢查資料載入中..." />;
 
 
   if (!record)
     return (
       <div>
-        <p>Không tìm thấy thông tin khám sức khỏe.</p>
-        <button onClick={() => navigate(-1)}>⬅ Quay lại</button>
+        <p>找不到健康檢查資料。</p>
+        <button onClick={() => navigate(-1)}>⬅ 返回</button>
       </div>
     );
 
@@ -163,7 +163,7 @@ const HealthCheckRecord = () => {
             bmi: Number(record.bmi),
           }
         );
-        notifySuccess("Ghi nhận thành công!");
+        notifySuccess("健康檢查資料登錄成功。");
         navigate(-1);
       } else {
         // Cập nhật
@@ -183,15 +183,15 @@ const HealthCheckRecord = () => {
           }
         );
         if (res.status === 200) {
-          notifySuccess("Cập nhật thành công!");
+          notifySuccess("更新成功。");
           setIsEditing(false);
         } else {
-          notifyError("Lỗi cập nhật! " + (res.data?.message || ""));
+          notifyError("更新失敗：" + (res.data?.message || ""));
         }
       }
     } catch (error) {
       notifyError(
-        "Lỗi khi gửi dữ liệu: " +
+        "送出資料失敗：" +
           (error.response?.data?.message || error.message)
       );
       console.error("Error while submitting the data", error);
@@ -201,15 +201,15 @@ const HealthCheckRecord = () => {
   if (isNewRecord) {
     return (
       <div className={styles.container}>
-        <h2>Ghi nhận khám sức khỏe</h2>
+        <h2>登錄健康檢查</h2>
         <button className={styles.backButton} onClick={() => navigate(-1)}>
-          ⬅ Quay lại
+          ⬅ 返回
         </button>
         <form onSubmit={handleNewSubmit} className={styles.form}>
           <table className={styles.table}>
             <tbody>
               <tr>
-                <td>Huyết áp</td>
+                <td>血壓</td>
                 <td>
                   <input
                     name="bloodPressure"
@@ -220,7 +220,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Nhịp tim</td>
+                <td>心率</td>
                 <td>
                   <input
                     name="heartRate"
@@ -231,7 +231,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Chiều cao</td>
+                <td>身高</td>
                 <td>
                   <input
                     name="height"
@@ -243,7 +243,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Cân nặng</td>
+                <td>體重</td>
                 <td>
                   <input
                     name="weight"
@@ -261,7 +261,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Mắt</td>
+                <td>視力／眼睛</td>
                 <td>
                   <input
                     name="visionSummary"
@@ -272,7 +272,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Tai-Mũi-Họng</td>
+                <td>耳鼻喉</td>
                 <td>
                   <input
                     name="ent"
@@ -283,7 +283,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Ghi chú TMH</td>
+                <td>耳鼻喉備註</td>
                 <td>
                   <input
                     name="entNotes"
@@ -293,7 +293,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Miệng</td>
+                <td>口腔</td>
                 <td>
                   <input
                     name="mouth"
@@ -304,7 +304,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Sâu răng</td>
+                <td>齲齒</td>
                 <td>
                   <input
                     name="toothDecay"
@@ -315,7 +315,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Ghi chú răng</td>
+                <td>牙齒備註</td>
                 <td>
                   <input
                     name="toothNotes"
@@ -325,7 +325,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Họng</td>
+                <td>咽喉</td>
                 <td>
                   <input
                     name="throat"
@@ -335,7 +335,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Sức khỏe chung</td>
+                <td>整體健康</td>
                 <td>
                   <input
                     name="generalNote"
@@ -346,7 +346,7 @@ const HealthCheckRecord = () => {
                 </td>
               </tr>
               <tr>
-                <td>Khuyến nghị</td>
+                <td>後續建議</td>
                 <td>
                   <input
                     name="followUpNote"
@@ -357,7 +357,7 @@ const HealthCheckRecord = () => {
               </tr>
             </tbody>
           </table>
-          <button type="submit">Lưu ghi nhận</button>
+          <button type="submit">儲存紀錄</button>
         </form>
       </div>
     );
@@ -372,33 +372,33 @@ const HealthCheckRecord = () => {
       const parentId = studentRes.data?.data?.parentId;
 
       if (!parentId) {
-        notifyError("Không tìm thấy phụ huynh của học sinh này.");
+        notifyError("找不到此學生的家長／聯絡人。");
         return;
       }
 
       // 2. Soạn nội dung thông báo
       const message = `
-Kính gửi phụ huynh,
+家長您好：
 
-Dưới đây là kết quả khám sức khỏe của học sinh ${
+以下為學生健康檢查結果：${
         record.studentName
       } trong chiến dịch "${record.campaignTitle}":
 
-• Huyết áp: ${record.bloodPressure}
-• Nhịp tim: ${record.heartRate}
-• Chiều cao: ${record.height} cm
-• Cân nặng: ${record.weight} kg
+• 血壓: ${record.bloodPressure}
+• 心率: ${record.heartRate}
+• 身高: ${record.height} cm
+• 體重: ${record.weight} kg
 • BMI: ${record.bmi}
-• Mắt: ${record.visionSummary}
-• Tai-Mũi-Họng: ${record.ent} (${record.entNotes || "Không ghi chú"})
-• Miệng: ${record.mouth}
-• Sâu răng: ${record.toothDecay} (${record.toothNotes || "Không ghi chú"})
-• Họng: ${record.throat || "Không ghi chú"}
-• Sức khỏe chung: ${record.generalNote}
-• Khuyến nghị: ${record.followUpNote || "Không có"}
+• 視力／眼睛: ${record.visionSummary}
+• 耳鼻喉: ${record.ent} (${record.entNotes || "無備註"})
+• 口腔: ${record.mouth}
+• 齲齒: ${record.toothDecay} (${record.toothNotes || "無備註"})
+• 咽喉: ${record.throat || "無備註"}
+• 整體健康: ${record.generalNote}
+• 後續建議: ${record.followUpNote || "無"}
 
-Trân trọng,
-Trường Mầm Non
+
+學校健康中心
     `.trim();
 
       // 3. Gửi thông báo qua Notification
@@ -411,7 +411,7 @@ Trường Mầm Non
           "http://127.0.0.1:5080/api/Notification/send",
           {
             receiverId: parentId, // ✅ đúng theo VaccineResult
-            title: "Kết quả khám sức khỏe",
+            title: "健康檢查結果",
             message: message,
             typeId: 7, // Loại thông báo khám sức khỏe
             isRead: false,
@@ -423,7 +423,7 @@ Trường Mầm Non
         if (response.status === 200 || response.status === 201) {
           notificationSuccess = true;
         } else {
-          notificationError = response.data?.message || "Không rõ lỗi";
+          notificationError = response.data?.message || "未知錯誤";
         }
       } catch (error) {
         notificationError = error.response?.data?.message || error.message;
@@ -435,7 +435,7 @@ Trường Mầm Non
           "http://127.0.0.1:5080/api/Email/send-by-userid",
           {
             userId: parentId,
-            subject: "Kết quả khám sức khỏe cho học sinh " + record.studentName,
+            subject: "健康檢查結果 cho học sinh " + record.studentName,
             body: message,
           },
           {
@@ -445,7 +445,7 @@ Trường Mầm Non
         if (emailRes.status === 200) {
           emailSuccess = true;
         } else {
-          emailError = emailRes.data?.message || "Không rõ lỗi";
+          emailError = emailRes.data?.message || "未知錯誤";
         }
       } catch (error) {
         emailError = error.response?.data?.message || error.message;
@@ -453,22 +453,22 @@ Trường Mầm Non
 
       // 5. Thông báo kết quả
       if (notificationSuccess && emailSuccess) {
-        notifySuccess("Đã gửi kết quả khám sức khỏe cho phụ huynh qua hệ thống và email!");
+        notifySuccess("已建立家長本機結果通知。");
       } else if (!notificationSuccess && !emailSuccess) {
         notifyError(
-          `Gửi thất bại cả notification và email.\nNotification: ${notificationError}\nEmail: ${emailError}`
+          `建立通知失敗。\nNotification: ${notificationError}\nEmail: ${emailError}`
         );
       } else if (!notificationSuccess) {
-        notifyError(`Notification thất bại: ${notificationError}`);
-        notifySuccess("Đã gửi email cho phụ huynh!");
+        notifyError(`本機通知失敗：${notificationError}`);
+        notifySuccess("離線模式已略過電子郵件。");
       } else if (!emailSuccess) {
-        notifyError(`Email thất bại: ${emailError}`);
-        notifySuccess("Đã gửi notification cho phụ huynh!");
+        notifyError(`電子郵件已停用：${emailError}`);
+        notifySuccess("已建立家長本機通知。");
       }
     } catch (error) {
-      console.error("Lỗi khi gửi kết quả:", error);
+      console.error("建立結果通知失敗：", error);
       notifyError(
-        "Đã xảy ra lỗi khi gửi kết quả: " +
+        "建立結果通知時發生錯誤：" +
           (error.response?.data?.message || error.message)
       );
     }
@@ -477,9 +477,9 @@ Trường Mầm Non
   return (
     <div className={styles.container}>
       <Notification />
-      <h2>Thông tin khám sức khỏe: {record.studentName}</h2>
+      <h2>健康檢查資料： {record.studentName}</h2>
       <button className={styles.backButton} onClick={() => navigate(-1)}>
-        ⬅ Quay lại
+        ⬅ 返回
       </button>
       <button
         onClick={handleSendResultToParent}
@@ -494,15 +494,15 @@ Trường Mầm Non
           cursor: "pointer",
         }}
       >
-        Gửi kết quả
+        建立結果通知
       </button>
 
-      {!isEditing && record.campaignStatus === "Đang diễn ra" && isEditMode && (
+      {!isEditing && record.campaignStatus === "進行中" && isEditMode && (
         <button
           onClick={() => setIsEditing(true)}
           style={{ marginBottom: "10px" }}
         >
-          Ghi nhận
+          登錄
         </button>
       )}
 
@@ -511,11 +511,11 @@ Trường Mầm Non
           <table className={styles.table}>
             <tbody>
               <tr>
-                <td>Chiến dịch</td>
+                <td>健康檢查活動</td>
                 <td>{record.campaignTitle}</td>
               </tr>
               <tr>
-                <td>Huyết áp</td>
+                <td>血壓</td>
                 <td>
                   <input
                     type="text"
@@ -527,7 +527,7 @@ Trường Mầm Non
                 </td>
               </tr>
               <tr>
-                <td>Nhịp tim</td>
+                <td>心率</td>
                 <td>
                   <input
                     type="text"
@@ -539,7 +539,7 @@ Trường Mầm Non
                 </td>
               </tr>
               <tr>
-                <td>Chiều cao</td>
+                <td>身高</td>
                 <td>
                   <input
                     type="number"
@@ -552,7 +552,7 @@ Trường Mầm Non
                 </td>
               </tr>
               <tr>
-                <td>Cân nặng</td>
+                <td>體重</td>
                 <td>
                   <input
                     type="number"
@@ -569,7 +569,7 @@ Trường Mầm Non
                 <td>{record.bmi}</td>
               </tr>
               <tr>
-                <td>Mắt</td>
+                <td>視力／眼睛</td>
                 <td>
                   <input
                     type="text"
@@ -581,7 +581,7 @@ Trường Mầm Non
                 </td>
               </tr>
               <tr>
-                <td>Tai-Mũi-Họng</td>
+                <td>耳鼻喉</td>
                 <td>
                   <input
                     type="text"
@@ -593,7 +593,7 @@ Trường Mầm Non
                 </td>
               </tr>
               <tr>
-                <td>Ghi chú TMH</td>
+                <td>耳鼻喉備註</td>
                 <td>
                   <input
                     type="text"
@@ -605,7 +605,7 @@ Trường Mầm Non
                 </td>
               </tr>
               <tr>
-                <td>Miệng</td>
+                <td>口腔</td>
                 <td>
                   <input
                     type="text"
@@ -617,7 +617,7 @@ Trường Mầm Non
                 </td>
               </tr>
               <tr>
-                <td>Sâu răng</td>
+                <td>齲齒</td>
                 <td>
                   <input
                     type="text"
@@ -629,7 +629,7 @@ Trường Mầm Non
                 </td>
               </tr>
               <tr>
-                <td>Ghi chú răng</td>
+                <td>牙齒備註</td>
                 <td>
                   <input
                     type="text"
@@ -641,7 +641,7 @@ Trường Mầm Non
                 </td>
               </tr>
               <tr>
-                <td>Họng</td>
+                <td>咽喉</td>
                 <td>
                   <input
                     type="text"
@@ -653,7 +653,7 @@ Trường Mầm Non
                 </td>
               </tr>
               <tr>
-                <td>Sức khỏe chung</td>
+                <td>整體健康</td>
                 <td>
                   <input
                     type="text"
@@ -665,7 +665,7 @@ Trường Mầm Non
                 </td>
               </tr>
               <tr>
-                <td>Khuyến nghị</td>
+                <td>後續建議</td>
                 <td>
                   <input
                     type="text"
@@ -678,29 +678,29 @@ Trường Mầm Non
               </tr>
             </tbody>
           </table>
-          <button type="submit">Lưu thông tin</button>
+          <button type="submit">儲存資料</button>
         </form>
       ) : (
         <table className={styles.table}>
           <tbody>
             <tr>
-              <td>Chiến dịch</td>
+              <td>健康檢查活動</td>
               <td>{record.campaignTitle}</td>
             </tr>
             <tr>
-              <td>Huyết áp</td>
+              <td>血壓</td>
               <td>{record.bloodPressure}</td>
             </tr>
             <tr>
-              <td>Nhịp tim</td>
+              <td>心率</td>
               <td>{record.heartRate}</td>
             </tr>
             <tr>
-              <td>Chiều cao</td>
+              <td>身高</td>
               <td>{record.height} cm</td>
             </tr>
             <tr>
-              <td>Cân nặng</td>
+              <td>體重</td>
               <td>{record.weight} kg</td>
             </tr>
             <tr>
@@ -708,39 +708,39 @@ Trường Mầm Non
               <td>{record.bmi}</td>
             </tr>
             <tr>
-              <td>Mắt</td>
+              <td>視力／眼睛</td>
               <td>{record.visionSummary}</td>
             </tr>
             <tr>
-              <td>Tai-Mũi-Họng</td>
+              <td>耳鼻喉</td>
               <td>{record.ent}</td>
             </tr>
             <tr>
-              <td>Ghi chú TMH</td>
+              <td>耳鼻喉備註</td>
               <td>{record.entNotes}</td>
             </tr>
             <tr>
-              <td>Miệng</td>
+              <td>口腔</td>
               <td>{record.mouth}</td>
             </tr>
             <tr>
-              <td>Sâu răng</td>
+              <td>齲齒</td>
               <td>{record.toothDecay}</td>
             </tr>
             <tr>
-              <td>Ghi chú răng</td>
+              <td>牙齒備註</td>
               <td>{record.toothNotes}</td>
             </tr>
             <tr>
-              <td>Họng</td>
+              <td>咽喉</td>
               <td>{record.throat || ""}</td>
             </tr>
             <tr>
-              <td>Sức khỏe chung</td>
+              <td>整體健康</td>
               <td>{record.generalNote}</td>
             </tr>
             <tr>
-              <td>Khuyến nghị</td>
+              <td>後續建議</td>
               <td>{record.followUpNote}</td>
             </tr>
           </tbody>
