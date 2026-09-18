@@ -276,6 +276,8 @@ const ParentDashboard = () => {
               </h1>
             </div>
             <UserMenu />
+          </div>
+        </header>
 
         {dataError ? (
           <div style={{
@@ -472,7 +474,7 @@ const ParentDashboard = () => {
       {
         value: myStudents.length,
         label: "已連結學生",
-        unit: "con",
+        unit: "位",
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         ),
@@ -560,7 +562,7 @@ const ParentDashboard = () => {
   const renderMedicalEvents = () => (
     <div className={styles.contentCard}>
       <h3 className={styles.cardTitle}>近期傷病紀錄</h3>
-      <p className={styles.cardSubtitle}>5 筆 y tế mới nhất của con em</p>
+      <p className={styles.cardSubtitle}>最近 5 筆學生傷病紀錄</p>
       <div className={styles.eventList}>
         {myMedicalEvents.slice(0, 5).map((event, index) => {
           const visuals = getEventVisuals(event.eventType);
@@ -586,7 +588,7 @@ const ParentDashboard = () => {
     switch (status) {
       case "已核准": return { text: "已核准", className: styles.statusApproved };
       case "待審核": return { text: "待審核", className: styles.statusPending };
-      case "已拒絕": return { text: "Từ chối", className: styles.statusRejected };
+      case "已拒絕": return { text: "已拒絕", className: styles.statusRejected };
       case "已完成": return { text: "已完成", className: styles.statusCompleted };
       default: return { text: status, className: styles.statusNormal };
     }
@@ -621,10 +623,10 @@ const ParentDashboard = () => {
   
   const getNotificationVisuals = (notification) => {
     const title = notification.title?.toLowerCase();
-    if (title.includes('nghỉ')) {
+    if (title?.includes('nghỉ') || title?.includes('請假') || title?.includes('休息')) {
         return { icon: '⚠️', tag: '重要', color: 'red' };
     }
-    if (title.includes('họp')) {
+    if (title?.includes('họp') || title?.includes('會議') || title?.includes('通知')) {
         return { icon: 'ℹ️', tag: '資訊', color: 'blue' };
     }
     return { icon: '🔔', tag: '通知', color: 'gray' };
