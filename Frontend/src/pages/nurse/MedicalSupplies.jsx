@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import { FileSpreadsheet } from "lucide-react";
 import {
   Bar,
@@ -93,11 +91,34 @@ const MedicalSupplies = () => {
       單位: item.unit,
       有效期限: item.expiryDate,
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "醫療物資");
-    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "醫療物資清單.xlsx");
+    const headers = ["名稱", "數量", "單位", "有效期限", "狀態"];
+    const values = rows.map((row) => [
+      row["名稱"] ?? row.name ?? "",
+      row["數量"] ?? row.quantity ?? "",
+      row["單位"] ?? row.unit ?? "",
+      row["有效期限"] ?? row.expiryDate ?? "",
+      row["狀態"] ?? row.status ?? "",
+    ]);
+    const escapeCsv = (value) => {
+      const text = String(value ?? "");
+      return /[",\r\n]/.test(text)
+        ? `"${text.replaceAll('"', '""')}"`
+        : text;
+    };
+    const csv =
+      "\uFEFF" +
+      [headers, ...values]
+        .map((row) => row.map(escapeCsv).join(","))
+        .join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "醫療物資清單.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   };
 
   return (
