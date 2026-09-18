@@ -25,7 +25,7 @@ const StudentList = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        "https://swp-school-medical-management.onrender.com/api/Student"
+        "http://127.0.0.1:5080/api/Student"
       );
       let studentArray = response.data?.data || [];
       setStudents(studentArray);
