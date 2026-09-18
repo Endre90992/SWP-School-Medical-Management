@@ -11,7 +11,7 @@ import UserMenu from "../../components/UserMenu";
 import { jwtDecode } from "jwt-decode";
 
 
-const apiUrl = "https://swp-school-medical-management.onrender.com/api/BlogPost";
+const apiUrl = "http://127.0.0.1:5080/api/BlogPost";
 
 const BlogPublic = () => {
   const [blogs, setBlogs] = useState([]);
