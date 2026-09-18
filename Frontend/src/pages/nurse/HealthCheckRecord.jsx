@@ -59,7 +59,7 @@ const HealthCheckRecord = () => {
     e.preventDefault();
     try {
       await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/health-checks/summaries",
+        "http://127.0.0.1:5080/api/health-checks/summaries",
         {
           ...newRecord,
           studentId: state.studentId,
@@ -89,7 +89,7 @@ const HealthCheckRecord = () => {
       console.log("Fetching record with ID:", recordId);
       try {
         const res = await axios.get(
-          `https://swp-school-medical-management.onrender.com/api/health-checks/summaries/${recordId}`
+          `http://127.0.0.1:5080/api/health-checks/summaries/${recordId}`
         );
         console.log("Full API Response:", res);
         console.log("Response data:", res.data);
@@ -149,7 +149,7 @@ const HealthCheckRecord = () => {
       if (isNewRecord) {
         // Tạo mới
         await axios.post(
-          "https://swp-school-medical-management.onrender.com/api/health-checks/summaries",
+          "http://127.0.0.1:5080/api/health-checks/summaries",
           {
             ...record,
             throat: record.throat || "",
@@ -168,7 +168,7 @@ const HealthCheckRecord = () => {
       } else {
         // Cập nhật
         const res = await axios.put(
-          `https://swp-school-medical-management.onrender.com/api/health-checks/summaries/${recordId}`,
+          `http://127.0.0.1:5080/api/health-checks/summaries/${recordId}`,
           {
             ...record,
             throat: record.throat || "",
@@ -367,7 +367,7 @@ const HealthCheckRecord = () => {
     try {
       // 1. Lấy thông tin học sinh để truy xuất parentId
       const studentRes = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/Student/${record.studentId}`
+        `http://127.0.0.1:5080/api/Student/${record.studentId}`
       );
       const parentId = studentRes.data?.data?.parentId;
 
@@ -408,7 +408,7 @@ Trường Mầm Non
       let emailError = null;
       try {
         const response = await axios.post(
-          "https://swp-school-medical-management.onrender.com/api/Notification/send",
+          "http://127.0.0.1:5080/api/Notification/send",
           {
             receiverId: parentId, // ✅ đúng theo VaccineResult
             title: "Kết quả khám sức khỏe",
@@ -432,7 +432,7 @@ Trường Mầm Non
       // 4. Gửi email qua API
       try {
         const emailRes = await axios.post(
-          "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+          "http://127.0.0.1:5080/api/Email/send-by-userid",
           {
             userId: parentId,
             subject: "Kết quả khám sức khỏe cho học sinh " + record.studentName,
