@@ -194,6 +194,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SwpEduHealV5Context>();
     await db.Database.EnsureCreatedAsync();
+    await LocalDatabaseOptimizer.OptimizeAsync(db);
     await LocalDbSeeder.SeedAsync(db, builder.Configuration);
 }
 
