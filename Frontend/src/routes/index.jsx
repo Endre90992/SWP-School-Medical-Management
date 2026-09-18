@@ -1,10 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import Homepage from "../pages/homepage/Homepage";
 import Login from "../pages/auth/Login";
 import FirstLogin from "../pages/auth/FirstLogin";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import ResetPassword from "../pages/auth/ResetPassword";
-import BlogPublic from "../pages/homepage/BlogPublic";
 
 import ManagerDashboard from "../pages/manager/ManagerDashboard";
 import UsersList from "../pages/manager/UsersList";
@@ -52,9 +50,8 @@ function ProtectedRoute({ children, roles }) {
 
 const AppRouter = () => (
   <Routes>
-    <Route path="/" element={<Homepage />} />
+    <Route path="/" element={<Navigate to="/login" replace />} />
     <Route path="/login" element={<Login />} />
-    <Route path="/blog" element={<BlogPublic />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route
