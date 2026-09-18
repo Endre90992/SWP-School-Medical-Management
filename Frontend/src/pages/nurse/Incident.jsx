@@ -393,23 +393,35 @@ const Incident = () => {
   const currentItems = filteredEvents.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
 
-  const handleExportExcel = async () => {
+  const handleExportExcel = () => {
     if (filteredEvents.length === 0) return;
 
-    const XLSX = await import("xlsx");
-    const ws = XLSX.utils.json_to_sheet(
-      filteredEvents.map((e) => ({
-        "學生": e.studentName,
-        "傷病類型": e.eventType,
-        "時間": new Date(e.eventDate).toLocaleString("zh-TW"),
-        "嚴重程度": e.severityLevelName,
-        "處理人員": e.handledByName || "",
-      }))
-    );
+    const rows = [
+      ["學生", "傷病類型", "時間", "嚴重程度", "處理人員"],
+      ...filteredEvents.map((event) => [
+        event.studentName,
+        event.eventType,
+        new Date(event.eventDate).toLocaleString("zh-TW"),
+        event.severityLevelName,
+        event.handledByName || "",
+      ]),
+    ];
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "傷病紀錄");
-    XLSX.writeFile(wb, "學生傷病紀錄.xlsx");
+    const escapeCsv = (value) => {
+      const text = String(value ?? "");
+      return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+    };
+
+    const csv = "\uFEFF" + rows.map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "學生傷病紀錄.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   };
 
   const handleCreate = () => {
