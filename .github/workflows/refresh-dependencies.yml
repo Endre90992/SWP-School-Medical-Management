@@ -1,0 +1,46 @@
+name: Refresh safe frontend dependencies
+
+on:
+  push:
+    branches:
+      - security/exe-package
+    paths:
+      - Frontend/package.json
+      - Frontend/package-lock.json
+      - .github/workflows/refresh-dependencies.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: security/exe-package
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Refresh package lock
+        working-directory: Frontend
+        run: npm install --package-lock-only
+
+      - name: Apply compatible security fixes
+        working-directory: Frontend
+        run: npm audit fix --package-lock-only
+
+      - name: Commit refreshed lock file
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Frontend/package.json Frontend/package-lock.json
+          if (-not (git diff --cached --quiet)) {
+            git commit -m "deps: refresh frontend lock and security patches"
+            git push origin HEAD:security/exe-package
+          }
