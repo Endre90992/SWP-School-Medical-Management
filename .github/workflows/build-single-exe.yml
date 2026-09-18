@@ -3,6 +3,7 @@ name: Build single EXE
 on:
   push:
     branches:
+      - main
       - security/exe-package
   workflow_dispatch:
 
