@@ -56,6 +56,13 @@ namespace SchoolMedicalManagement.Service.Implement
 
             await _userRepository.UpdateAsync(user);
 
+            // 初次密碼修改完成後刪除一次性登入資訊，避免明碼長期留在磁碟。
+            var initialCredentialPath = Path.Combine(AppContext.BaseDirectory, "data", "初始登入資訊.txt");
+            if (File.Exists(initialCredentialPath))
+            {
+                File.Delete(initialCredentialPath);
+            }
+
             return new BaseResponse
             {
                 Status = StatusCodes.Status200OK.ToString(),
