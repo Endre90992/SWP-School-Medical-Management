@@ -827,7 +827,7 @@ const HealthProfile = () => {
                         fontSize: 14,
                         fontWeight: 500,
                         color: '#1e293b'
-                      }}>{mh.diseaseName || '無 thông tin'}</td>
+                      }}>{mh.diseaseName || '無資料'}</td>
                       <td style={{ 
                         padding: '12px 16px', 
                         fontSize: 14,
@@ -838,7 +838,7 @@ const HealthProfile = () => {
                         fontSize: 14,
                         color: '#64748b'
                       }}>
-                        {mh.diagnosedDate ? new Date(mh.diagnosedDate).toLocaleDateString("zh-TW") : '無 thông tin'}
+                        {mh.diagnosedDate ? new Date(mh.diagnosedDate).toLocaleDateString("zh-TW") : '無資料'}
                       </td>
                     </tr>
                   ))}
@@ -854,7 +854,7 @@ const HealthProfile = () => {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M12 5v14m7-7H5"/>
               </svg>
-              Thêm 既往病史
+              新增既往病史
             </button>
           </div>
         </div>
@@ -969,7 +969,7 @@ const HealthProfile = () => {
               />
             </label>
             <label style={{ color: '#20b2aa', fontWeight: 600, marginBottom: 4 }}>
-              Cân nặng (kg):
+              體重（kg）：
               <input name="weight" type="number" min="0" value={formData.weight} onChange={handleFormChange} required
                 style={{ width: '100%', marginTop: 6, padding: '10px', borderRadius: 8, border: '1px solid #cbd5e1', outline: 'none', fontSize: 16, marginBottom: 2 }}
               />
