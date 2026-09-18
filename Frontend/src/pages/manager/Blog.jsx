@@ -11,9 +11,6 @@ import { notifySuccess, notifyError } from "../../utils/notification";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import { useNavigate } from "react-router-dom";
 
-import Notification from "../../components/Notification";
-import { notifySuccess, notifyError } from "../../utils/notification";
-import LoadingOverlay from "../../components/LoadingOverlay";
 
 
 const apiUrl = "http://127.0.0.1:5080/api/BlogPost";
