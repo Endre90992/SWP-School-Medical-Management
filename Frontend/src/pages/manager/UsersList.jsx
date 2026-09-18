@@ -245,7 +245,7 @@ const handleModalSubmit = async (values) => {
       console.log("Sending payload:", JSON.stringify(payload));
       
       // Sử dụng URL tuyệt đối vì đang trên production
-      const apiUrl = "https://swp-school-medical-management.onrender.com/api/Student";
+      const apiUrl = "http://127.0.0.1:5080/api/Student";
       
       const response = await axios.post(
         apiUrl,
