@@ -203,7 +203,7 @@ const Incident = () => {
       }
       // Trong sendNotificationToParent, tạo message với fallback tránh undefined/null/Invalid Date
       const message = `學生: ${studentName}\n傷病類型: ${event.eventType || "未填寫"}\n時間: ${event.eventDate ? new Date(event.eventDate).toLocaleString("zh-TW") : "未填寫"}\n嚴重程度: ${event.severityLevelName || "未填寫"}\n傷病描述: ${event.description || "無"}`;
-      const subject = "Thông báo 筆傷病紀錄 học đường";
+      const subject = "校園傷病紀錄通知";
       await Promise.all([
         axios.post(
           NOTIFICATION_API,
@@ -260,7 +260,7 @@ const Incident = () => {
         }
       )
       .then((res) => {
-        notifySuccess("新增 loại 筆傷病 mới thành công!");
+        notifySuccess("新增傷病類型成功！");
         setShowCreateEventTypeModal(false);
         setNewEventTypeName("");
 
@@ -499,7 +499,7 @@ const Incident = () => {
       eventDate: newEvent.eventDate,
       description: newEvent.description,
       handledByUserId: currentUserId,
-      status: "Đã gửi",
+      status: "已建立",
       location: newEvent.location,
       notes: newEvent.notes,
       suppliesUsed: suppliesUsed
@@ -514,7 +514,7 @@ const Incident = () => {
           quantityUsed: Number(item.quantityUsed),
           note: item.note || "",
         })),
-      request: "無 yêu cầu đặc biệt",
+      request: "無特殊需求",
       parentId: studentObj?.parentId,
       studentName: studentObj?.fullName,
       parentName: studentObj?.parentName,
@@ -531,7 +531,7 @@ const Incident = () => {
         },
       })
       .then((res) => {
-        console.log("✅ 新增 筆傷病 thành công:", res.data);
+        console.log("✅ 新增傷病紀錄成功：", res.data);
         const added = {
           ...res.data,
           handledByName: "目前使用者",
@@ -569,9 +569,9 @@ const Incident = () => {
         };
         sendNotificationToParent(notificationEvent.studentId, notificationEvent).then((ok) => {
           if (ok) {
-            notifySuccess("新增 筆傷病 và gửi thông báo thành công!");
+            notifySuccess("新增傷病紀錄並建立本機通知成功！");
           } else {
-            notifyError("新增 筆傷病 thành công nhưng gửi thông báo/email thất bại!");
+            notifyError("傷病紀錄已新增，但本機通知建立失敗。");
           }
         });
       })
@@ -627,11 +627,11 @@ const Incident = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        console.log("✅ 更新 筆傷病 thành công:", res.data);
+        console.log("✅ 更新傷病紀錄成功：", res.data);
         fetchEvents();
         setShowEditForm(false);
         setEditingEvent(null);
-        notifySuccess("更新 筆傷病 thành công!");
+        notifySuccess("更新傷病紀錄成功！");
       })
       .catch((err) => {
         const errorDetail =
@@ -739,11 +739,11 @@ const Incident = () => {
         eventDate: bulkEvent.eventDate,
         description: bulkEvent.description,
         handledByUserId: currentUserId,
-        status: "Đã gửi",
+        status: "已建立",
         location: bulkEvent.location,
         notes: bulkEvent.notes,
         suppliesUsed: suppliesPayload,
-        request: "無 yêu cầu đặc biệt",
+        request: "無特殊需求",
         parentId: studentObj?.parentId,
         studentName: studentObj?.fullName,
         parentName: studentObj?.parentName,
@@ -793,7 +793,7 @@ const Incident = () => {
         setShowAllStudents(false);
         setSearchStudent("");
         fetchEvents();
-        notifySuccess(`Đã tạo thành công ${responses.length} 筆傷病紀錄!`);
+        notifySuccess(`已成功建立 ${responses.length} 筆傷病紀錄！`);
         // 建立本機通知 週 tự cho từng event, luôn truyền đúng studentId
         let hasError = false;
         for (const event of addedEvents) {
@@ -1228,7 +1228,7 @@ const Incident = () => {
       {showSendOption && (
         <div className={style.modalOverlay}>
           <div className={style.modalContent}>
-            <h4>目前使用者 muốn gửi thông báo?</h4>
+            <h4>是否建立家長通知？</h4>
             <button
               className={style.sendBtn}
               onClick={async () => {
@@ -1246,7 +1246,7 @@ const Incident = () => {
                     return;
                   }
                   const message = `學生: ${selectedEvent.studentName}\n傷病類型: ${selectedEvent.eventType}\n時間: ${selectedEvent.eventDate ? new Date(selectedEvent.eventDate).toLocaleString("zh-TW") : "未填寫"}\n嚴重程度: ${selectedEvent.severityLevelName || "未填寫"}\n傷病描述: ${selectedEvent.description || "無"}`;
-                  const subject = "Thông báo 筆傷病紀錄 học đường";
+                  const subject = "校園傷病紀錄通知";
                   // Gửi notification và email song song
                   await Promise.all([
                     axios.post(
@@ -1965,7 +1965,7 @@ const Incident = () => {
 
             {bulkEvent.selectedStudents.length > 0 && (
               <div className={style.selectedStudents}>
-                <h4>學生 đã chọn ({bulkEvent.selectedStudents.length}):</h4>
+                <h4>已選學生（{bulkEvent.selectedStudents.length}）：</h4>
                 <div className={style.studentList}>
                   {bulkEvent.selectedStudents.map((studentId) => {
                     const studentObj = allStudents.find(
@@ -2010,7 +2010,7 @@ const Incident = () => {
             <h3>新增 loại 筆傷病 mới</h3>
             <input
               type="text"
-              placeholder="Nhập tên loại 筆傷病..."
+              placeholder="請輸入傷病類型名稱..."
               value={newEventTypeName}
               onChange={(e) => setNewEventTypeName(e.target.value)}
               style={{
