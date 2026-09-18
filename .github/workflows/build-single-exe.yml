@@ -27,15 +27,20 @@ jobs:
       - name: Publish self-contained single file
         shell: pwsh
         run: |
-          dotnet publish Backend/SchoolMedicalManagement/School-Medical-Management.API/SchoolMedicalManagement.API.csproj --configuration Release --runtime win-x64 --self-contained true --output exe-publish /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:IncludeAllContentForSelfExtract=true /p:EnableCompressionInSingleFile=true /p:DebugType=None /p:DebugSymbols=false /p:AssemblyName=EduHealth-Local-TW
-          $exe = Get-Item "exe-publish/EduHealth-Local-TW.exe"
-          Write-Host ("EXE_SIZE_BYTES=" + $exe.Length)
+          dotnet publish Backend/SchoolMedicalManagement/School-Medical-Management.API/SchoolMedicalManagement.API.csproj --configuration Release --runtime win-x64 --self-contained true --output exe-publish /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:IncludeAllContentForSelfExtract=true /p:EnableCompressionInSingleFile=true /p:DebugType=None /p:DebugSymbols=false
+          $publishedExe = Get-ChildItem "exe-publish" -Filter "*.exe" | Where-Object { $_.Name -ne "createdump.exe" } | Select-Object -First 1
+          if (-not $publishedExe) {
+            throw "Published single-file EXE was not found."
+          }
+          Write-Host ("PUBLISHED_EXE=" + $publishedExe.FullName)
+          Write-Host ("EXE_SIZE_BYTES=" + $publishedExe.Length)
 
       - name: Test EXE in an empty directory
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path single-test | Out-Null
-          Copy-Item "exe-publish/EduHealth-Local-TW.exe" "single-test/EduHealth-Local-TW.exe"
+          $publishedExe = Get-ChildItem "exe-publish" -Filter "*.exe" | Where-Object { $_.Name -ne "createdump.exe" } | Select-Object -First 1
+          Copy-Item $publishedExe.FullName "single-test/EduHealth-Local-TW.exe"
 
           $before = @(Get-ChildItem single-test -File)
           if ($before.Count -ne 1 -or $before[0].Extension -ne ".exe") {
