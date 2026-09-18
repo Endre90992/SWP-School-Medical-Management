@@ -22,143 +22,54 @@ public class MedicalEventService : IMedicalEventService
     // =============================
     public async Task<BaseResponse?> CreateMedicalEvent(CreateMedicalEventRequest request)
     {
-        // B1: Kiểm tra số lượng tồn kho của từng vật tư y tế yêu cầu sử dụng
-        if (request.SuppliesUsed != null)
+        var supplyRequests = NormalizeSupplyRequests(request.SuppliesUsed);
+        var suppliesById = new Dictionary<int, MedicalSupply>();
+
+        if (supplyRequests.Count > 0)
         {
-            foreach (var item in request.SuppliesUsed)
+            var supplyIds = supplyRequests.Select(x => x.SupplyId).ToList();
+            var supplies = await _medicalEventRepository.GetSuppliesByIdsAsync(supplyIds);
+            suppliesById = supplies.ToDictionary(s => s.SupplyId);
+
+            if (suppliesById.Count != supplyIds.Distinct().Count())
             {
-                var enough = await _medicalEventRepository.IsSupplyEnough(item.SupplyId, item.QuantityUsed);
-                if (!enough)
+                return new BaseResponse
+                {
+                    Status = StatusCodes.Status400BadRequest.ToString(),
+                    Message = "部分醫療物資不存在，請重新整理後再試。",
+                    Data = null
+                };
+            }
+
+            foreach (var item in supplyRequests)
+            {
+                var supply = suppliesById[item.SupplyId];
+                if ((supply.Quantity ?? 0) < item.QuantityUsed)
                 {
                     return new BaseResponse
                     {
                         Status = StatusCodes.Status400BadRequest.ToString(),
-                        Message = $"Không đủ vật tư với ID {item.SupplyId} trong kho.",
+                        Message = $"醫療物資「{supply.Name}」庫存不足。",
                         Data = null
                     };
                 }
             }
-        }
 
-        // B1.5: Kiểm tra tiền sử bệnh (dị ứng) của học sinh với vật tư y tế được chọn
-        if (request.StudentId != 0 && request.SuppliesUsed != null && request.SuppliesUsed.Any())
-        {
-            // Lấy danh sách tiền sử bệnh của học sinh
-            var medicalHistories = await _medicalHistoryRepository.GetAllByStudentIdMedicalHistory(request.StudentId);
-            
-            // Chỉ kiểm tra nếu học sinh có tiền sử bệnh
-            if (medicalHistories != null && medicalHistories.Any())
+            var histories = await _medicalHistoryRepository
+                .GetAllByStudentIdMedicalHistory(request.StudentId);
+
+            var allergies = FindAllergicSupplies(histories, suppliesById.Values);
+            if (allergies.Count > 0)
             {
-                // Lấy thông tin chi tiết của các vật tư y tế được chọn
-                var selectedSupplies = new List<MedicalSupply>();
-                foreach (var item in request.SuppliesUsed)
+                return new BaseResponse
                 {
-                    var supply = await _medicalEventRepository.GetSupplyById(item.SupplyId);
-                    if (supply != null)
-                    {
-                        selectedSupplies.Add(supply);
-                    }
-                }
-
-                // Kiểm tra xem có dị ứng với vật tư nào không
-                var allergies = new List<string>();
-                
-                // Tìm các tiền sử dị ứng
-                var allergyHistories = medicalHistories.Where(h => 
-                    (!string.IsNullOrEmpty(h.DiseaseName) && h.DiseaseName.ToLower().Contains("dị ứng")) || 
-                    (!string.IsNullOrEmpty(h.Note) && h.Note.ToLower().Contains("dị ứng"))
-                ).ToList();
-                
-                if (allergyHistories.Any())
-                {
-                    // Trích xuất tên thuốc/vật tư gây dị ứng từ tiền sử
-                    foreach (var history in allergyHistories)
-                    {
-                        // Trích xuất tên thuốc gây dị ứng từ DiseaseName hoặc Note
-                        string allergyName = "";
-                        
-                        if (!string.IsNullOrEmpty(history.DiseaseName) && history.DiseaseName.ToLower().Contains("dị ứng"))
-                        {
-                            // Lấy phần sau "Dị ứng" nếu có
-                            int index = history.DiseaseName.ToLower().IndexOf("dị ứng");
-                            if (index >= 0 && index + 7 < history.DiseaseName.Length)
-                            {
-                                allergyName = history.DiseaseName.Substring(index + 7).Trim();
-                            }
-                        }
-                        
-                        // Nếu không tìm thấy trong DiseaseName, tìm trong Note
-                        if (string.IsNullOrEmpty(allergyName) && !string.IsNullOrEmpty(history.Note))
-                        {
-                            // Tìm từ khóa trong Note
-                            string[] keywords = { "dị ứng với", "dị ứng", "không dùng", "không được sử dụng" };
-                            foreach (var keyword in keywords)
-                            {
-                                int index = history.Note.ToLower().IndexOf(keyword);
-                                if (index >= 0 && index + keyword.Length < history.Note.Length)
-                                {
-                                    allergyName = history.Note.Substring(index + keyword.Length).Trim().Split(',')[0].Trim();
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        // Nếu tìm được tên thuốc gây dị ứng, kiểm tra với các vật tư được chọn
-                        if (!string.IsNullOrEmpty(allergyName))
-                        {
-                            foreach (var supply in selectedSupplies)
-                            {
-                                if (!string.IsNullOrEmpty(supply.Name) && 
-                                    supply.Name.ToLower().Contains(allergyName.ToLower()))
-                                {
-                                    allergies.Add($"{supply.Name} (ID: {supply.SupplyId})");
-                                    break;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // Nếu không thể trích xuất tên thuốc, kiểm tra trực tiếp với các vật tư phổ biến
-                            string[] commonAllergens = { "paracetamol", "aspirin", "ibuprofen", "penicillin", "amoxicillin" };
-                            foreach (var supply in selectedSupplies)
-                            {
-                                if (!string.IsNullOrEmpty(supply.Name))
-                                {
-                                    foreach (var allergen in commonAllergens)
-                                    {
-                                        if (supply.Name.ToLower().Contains(allergen))
-                                        {
-                                            // Kiểm tra xem allergen này có được đề cập trong tiền sử không
-                                            if ((history.DiseaseName != null && history.DiseaseName.ToLower().Contains(allergen)) ||
-                                                (history.Note != null && history.Note.ToLower().Contains(allergen)))
-                                            {
-                                                allergies.Add($"{supply.Name} (ID: {supply.SupplyId})");
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Nếu có dị ứng với bất kỳ vật tư nào, trả về lỗi
-                if (allergies.Any())
-                {
-                    var allergyList = string.Join(", ", allergies);
-                    return new BaseResponse
-                    {
-                        Status = StatusCodes.Status400BadRequest.ToString(),
-                        Message = $"Học sinh có tiền sử dị ứng với các vật tư y tế sau: {allergyList}",
-                        Data = null
-                    };
-                }
+                    Status = StatusCodes.Status400BadRequest.ToString(),
+                    Message = $"學生可能對下列醫療物資有過敏紀錄：{string.Join(", ", allergies)}",
+                    Data = null
+                };
             }
-            // Nếu không có tiền sử bệnh, bỏ qua việc kiểm tra
         }
 
-        // B2: Tạo entity mới cho sự kiện y tế
         var newEvent = new MedicalEvent
         {
             StudentId = request.StudentId,
@@ -172,45 +83,50 @@ public class MedicalEventService : IMedicalEventService
             IsActive = true
         };
 
-        var createdEvent = await _medicalEventRepository.CreateMedicalEvent(newEvent);
-        if (createdEvent == null)
-        {
-            return new BaseResponse
-            {
-                Status = StatusCodes.Status500InternalServerError.ToString(),
-                Message = "Lỗi tạo sự kiện y tế.",
-                Data = null
-            };
-        }
-
-        // B3: Ghi nhận vật tư nếu có
-        if (request.SuppliesUsed != null && request.SuppliesUsed.Any())
+        MedicalEvent? createdEvent;
+        if (supplyRequests.Count > 0)
         {
             var handleRecords = new List<HandleRecord>();
-            foreach (var item in request.SuppliesUsed)
+
+            foreach (var item in supplyRequests)
             {
-                await _medicalEventRepository.AdjustSupplyQuantity(item.SupplyId, item.QuantityUsed);
+                var supply = suppliesById[item.SupplyId];
+                supply.Quantity = (supply.Quantity ?? 0) - item.QuantityUsed;
+
                 handleRecords.Add(new HandleRecord
                 {
-                    EventId = createdEvent.EventId,
                     SupplyId = item.SupplyId,
                     QuantityUsed = item.QuantityUsed,
                     Note = item.Note
                 });
             }
 
-            await _medicalEventRepository.AddHandleRecordsAsync(handleRecords);
+            createdEvent = await _medicalEventRepository
+                .CreateMedicalEventWithSuppliesAsync(newEvent, handleRecords);
+        }
+        else
+        {
+            createdEvent = await _medicalEventRepository.CreateMedicalEvent(newEvent);
         }
 
-        // B4: Trả về sự kiện mới đã tạo
+        if (createdEvent == null)
+        {
+            return new BaseResponse
+            {
+                Status = StatusCodes.Status500InternalServerError.ToString(),
+                Message = "建立傷病紀錄失敗。",
+                Data = null
+            };
+        }
+
         return new BaseResponse
         {
             Status = StatusCodes.Status200OK.ToString(),
-            Message = "Đã xử lý sự kiện y tế thành công.",
+            Message = "傷病紀錄建立成功。",
             Data = new CreateMedicalEventResponse
             {
-                EventId = createdEvent.EventId, 
-                StudentId = createdEvent.Student.StudentId,
+                EventId = createdEvent.EventId,
+                StudentId = createdEvent.Student?.StudentId ?? request.StudentId,
                 StudentName = createdEvent.Student?.FullName,
                 ParentName = createdEvent.Student?.Parent?.FullName,
                 EventType = createdEvent.EventType?.EventTypeName,
@@ -221,12 +137,13 @@ public class MedicalEventService : IMedicalEventService
                 SeverityLevelName = createdEvent.Severity?.SeverityName,
                 Location = createdEvent.Location,
                 Notes = createdEvent.Notes,
-                SuppliesUsed = request.SuppliesUsed.Select(s => new SupplyUserResponse
+                SuppliesUsed = createdEvent.HandleRecords.Select(hr => new SupplyUserResponse
                 {
-                    SupplyId = s.SupplyId,
-                    SupplyName = "", // frontend tự join nếu cần
-                    QuantityUsed = s.QuantityUsed,
-                    Note = s.Note
+                    SupplyId = hr.SupplyId,
+                    SupplyName = hr.Supply?.Name ?? string.Empty,
+                    QuantityUsed = hr.QuantityUsed,
+                    Unit = hr.Supply?.Unit ?? string.Empty,
+                    Note = hr.Note
                 }).ToList()
             }
         };
@@ -344,131 +261,11 @@ public class MedicalEventService : IMedicalEventService
             return new BaseResponse
             {
                 Status = StatusCodes.Status404NotFound.ToString(),
-                Message = "Không tìm thấy sự kiện y tế.",
+                Message = "找不到傷病紀錄。",
                 Data = null
             };
         }
 
-        // Kiểm tra tiền sử bệnh (dị ứng) của học sinh với vật tư y tế được chọn
-        int studentId = request.StudentId == 0 ? existingEvent.StudentId.GetValueOrDefault() : request.StudentId;
-        if (studentId != 0 && request.SuppliesUsed != null && request.SuppliesUsed.Any())
-        {
-            // Lấy danh sách tiền sử bệnh của học sinh
-            var medicalHistories = await _medicalHistoryRepository.GetAllByStudentIdMedicalHistory(studentId);
-            
-            // Chỉ kiểm tra nếu học sinh có tiền sử bệnh
-            if (medicalHistories != null && medicalHistories.Any())
-            {
-                // Lấy thông tin chi tiết của các vật tư y tế được chọn
-                var selectedSupplies = new List<MedicalSupply>();
-                foreach (var item in request.SuppliesUsed)
-                {
-                    var supply = await _medicalEventRepository.GetSupplyById(item.SupplyId);
-                    if (supply != null)
-                    {
-                        selectedSupplies.Add(supply);
-                    }
-                }
-
-                // Kiểm tra xem có dị ứng với vật tư nào không
-                var allergies = new List<string>();
-                
-                // Tìm các tiền sử dị ứng
-                var allergyHistories = medicalHistories.Where(h => 
-                    (!string.IsNullOrEmpty(h.DiseaseName) && h.DiseaseName.ToLower().Contains("dị ứng")) || 
-                    (!string.IsNullOrEmpty(h.Note) && h.Note.ToLower().Contains("dị ứng"))
-                ).ToList();
-                
-                if (allergyHistories.Any())
-                {
-                    // Trích xuất tên thuốc/vật tư gây dị ứng từ tiền sử
-                    foreach (var history in allergyHistories)
-                    {
-                        // Trích xuất tên thuốc gây dị ứng từ DiseaseName hoặc Note
-                        string allergyName = "";
-                        
-                        if (!string.IsNullOrEmpty(history.DiseaseName) && history.DiseaseName.ToLower().Contains("dị ứng"))
-                        {
-                            // Lấy phần sau "Dị ứng" nếu có
-                            int index = history.DiseaseName.ToLower().IndexOf("dị ứng");
-                            if (index >= 0 && index + 7 < history.DiseaseName.Length)
-                            {
-                                allergyName = history.DiseaseName.Substring(index + 7).Trim();
-                            }
-                        }
-                        
-                        // Nếu không tìm thấy trong DiseaseName, tìm trong Note
-                        if (string.IsNullOrEmpty(allergyName) && !string.IsNullOrEmpty(history.Note))
-                        {
-                            // Tìm từ khóa trong Note
-                            string[] keywords = { "dị ứng với", "dị ứng", "không dùng", "không được sử dụng" };
-                            foreach (var keyword in keywords)
-                            {
-                                int index = history.Note.ToLower().IndexOf(keyword);
-                                if (index >= 0 && index + keyword.Length < history.Note.Length)
-                                {
-                                    allergyName = history.Note.Substring(index + keyword.Length).Trim().Split(',')[0].Trim();
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        // Nếu tìm được tên thuốc gây dị ứng, kiểm tra với các vật tư được chọn
-                        if (!string.IsNullOrEmpty(allergyName))
-                        {
-                            foreach (var supply in selectedSupplies)
-                            {
-                                if (!string.IsNullOrEmpty(supply.Name) && 
-                                    supply.Name.ToLower().Contains(allergyName.ToLower()))
-                                {
-                                    allergies.Add($"{supply.Name} (ID: {supply.SupplyId})");
-                                    break;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // Nếu không thể trích xuất tên thuốc, kiểm tra trực tiếp với các vật tư phổ biến
-                            string[] commonAllergens = { "paracetamol", "aspirin", "ibuprofen", "penicillin", "amoxicillin" };
-                            foreach (var supply in selectedSupplies)
-                            {
-                                if (!string.IsNullOrEmpty(supply.Name))
-                                {
-                                    foreach (var allergen in commonAllergens)
-                                    {
-                                        if (supply.Name.ToLower().Contains(allergen))
-                                        {
-                                            // Kiểm tra xem allergen này có được đề cập trong tiền sử không
-                                            if ((history.DiseaseName != null && history.DiseaseName.ToLower().Contains(allergen)) ||
-                                                (history.Note != null && history.Note.ToLower().Contains(allergen)))
-                                            {
-                                                allergies.Add($"{supply.Name} (ID: {supply.SupplyId})");
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Nếu có dị ứng với bất kỳ vật tư nào, trả về lỗi
-                if (allergies.Any())
-                {
-                    var allergyList = string.Join(", ", allergies);
-                    return new BaseResponse
-                    {
-                        Status = StatusCodes.Status400BadRequest.ToString(),
-                        Message = $"Học sinh có tiền sử dị ứng với các vật tư y tế sau: {allergyList}",
-                        Data = null
-                    };
-                }
-            }
-            // Nếu không có tiền sử bệnh, bỏ qua việc kiểm tra
-        }
-
-        // Cập nhật dữ liệu cơ bản (nếu request gửi lên không null)
         existingEvent.StudentId = request.StudentId == 0 ? existingEvent.StudentId : request.StudentId;
         existingEvent.EventTypeId = request.EventTypeId == 0 ? existingEvent.EventTypeId : request.EventTypeId;
         existingEvent.EventDate = request.EventDate == default ? existingEvent.EventDate : request.EventDate;
@@ -478,40 +275,84 @@ public class MedicalEventService : IMedicalEventService
         existingEvent.Location = string.IsNullOrEmpty(request.Location) ? existingEvent.Location : request.Location;
         existingEvent.SeverityId = request.SeverityId == 0 ? existingEvent.SeverityId : request.SeverityId;
 
-        // Xử lý cập nhật lại danh sách vật tư đã dùng (nếu có)
-        if (request.SuppliesUsed != null && request.SuppliesUsed.Any())
+        MedicalEvent? updatedEvent;
+        var supplyRequests = NormalizeSupplyRequests(request.SuppliesUsed);
+
+        // 與原功能一致：只有 request 有傳入物資時才重建物資使用紀錄；
+        // 空清單不會自動清除既有物資。
+        if (supplyRequests.Count > 0)
         {
             var oldRecords = existingEvent.HandleRecords.ToList();
+            var oldQuantityBySupply = oldRecords
+                .GroupBy(r => r.SupplyId)
+                .ToDictionary(g => g.Key, g => g.Sum(r => r.QuantityUsed ?? 0));
 
-            // Hoàn kho từ các vật tư cũ
-            foreach (var old in oldRecords)
+            var affectedSupplyIds = oldQuantityBySupply.Keys
+                .Concat(supplyRequests.Select(x => x.SupplyId))
+                .Distinct()
+                .ToList();
+
+            var supplies = await _medicalEventRepository.GetSuppliesByIdsAsync(affectedSupplyIds);
+            var suppliesById = supplies.ToDictionary(s => s.SupplyId);
+
+            if (suppliesById.Count != affectedSupplyIds.Count)
             {
-                await _medicalEventRepository.AdjustSupplyQuantity(old.SupplyId, -old.QuantityUsed.GetValueOrDefault());
+                return new BaseResponse
+                {
+                    Status = StatusCodes.Status400BadRequest.ToString(),
+                    Message = "部分醫療物資不存在，請重新整理後再試。",
+                    Data = null
+                };
             }
 
-            // Xoá bản ghi vật tư cũ
-            await _medicalEventRepository.RemoveHandleRecordsAsync(oldRecords);
-
-            // Kiểm tra tồn kho mới
-            foreach (var item in request.SuppliesUsed)
+            // 先在記憶體回補原事件曾使用的庫存，再驗證新的使用量。
+            foreach (var (supplyId, oldQuantity) in oldQuantityBySupply)
             {
-                var enough = await _medicalEventRepository.IsSupplyEnough(item.SupplyId, item.QuantityUsed);
-                if (!enough)
+                var supply = suppliesById[supplyId];
+                supply.Quantity = (supply.Quantity ?? 0) + oldQuantity;
+            }
+
+            foreach (var item in supplyRequests)
+            {
+                var supply = suppliesById[item.SupplyId];
+                if ((supply.Quantity ?? 0) < item.QuantityUsed)
                 {
                     return new BaseResponse
                     {
                         Status = StatusCodes.Status400BadRequest.ToString(),
-                        Message = $"Không đủ vật tư với ID {item.SupplyId}.",
+                        Message = $"醫療物資「{supply.Name}」庫存不足。",
                         Data = null
                     };
                 }
             }
 
-            // Trừ kho mới & thêm record mới
-            var newRecords = new List<HandleRecord>();
-            foreach (var item in request.SuppliesUsed)
+            var studentId = existingEvent.StudentId.GetValueOrDefault();
+            if (studentId != 0)
             {
-                await _medicalEventRepository.AdjustSupplyQuantity(item.SupplyId, item.QuantityUsed);
+                var histories = await _medicalHistoryRepository
+                    .GetAllByStudentIdMedicalHistory(studentId);
+                var selectedSupplies = supplyRequests
+                    .Select(x => suppliesById[x.SupplyId])
+                    .ToList();
+
+                var allergies = FindAllergicSupplies(histories, selectedSupplies);
+                if (allergies.Count > 0)
+                {
+                    return new BaseResponse
+                    {
+                        Status = StatusCodes.Status400BadRequest.ToString(),
+                        Message = $"學生可能對下列醫療物資有過敏紀錄：{string.Join(", ", allergies)}",
+                        Data = null
+                    };
+                }
+            }
+
+            var newRecords = new List<HandleRecord>();
+            foreach (var item in supplyRequests)
+            {
+                var supply = suppliesById[item.SupplyId];
+                supply.Quantity = (supply.Quantity ?? 0) - item.QuantityUsed;
+
                 newRecords.Add(new HandleRecord
                 {
                     EventId = existingEvent.EventId,
@@ -521,28 +362,34 @@ public class MedicalEventService : IMedicalEventService
                 });
             }
 
-            await _medicalEventRepository.AddHandleRecordsAsync(newRecords);
+            updatedEvent = await _medicalEventRepository.UpdateMedicalEventWithSuppliesAsync(
+                existingEvent,
+                oldRecords,
+                newRecords);
+        }
+        else
+        {
+            updatedEvent = await _medicalEventRepository.UpdateMedicalEvent(existingEvent);
         }
 
-        var updatedEvent = await _medicalEventRepository.UpdateMedicalEvent(existingEvent);
         if (updatedEvent == null)
         {
             return new BaseResponse
             {
                 Status = StatusCodes.Status500InternalServerError.ToString(),
-                Message = "Không thể cập nhật sự kiện y tế.",
+                Message = "更新傷病紀錄失敗。",
                 Data = null
             };
         }
 
-        // Trả dữ liệu sau khi cập nhật
         return new BaseResponse
         {
             Status = StatusCodes.Status200OK.ToString(),
-            Message = "Đã cập nhật sự kiện y tế thành công.",
+            Message = "傷病紀錄更新成功。",
             Data = new CreateMedicalEventResponse
             {
-                StudentId = updatedEvent.Student.StudentId,
+                EventId = updatedEvent.EventId,
+                StudentId = updatedEvent.Student?.StudentId ?? 0,
                 StudentName = updatedEvent.Student?.FullName ?? string.Empty,
                 ParentName = updatedEvent.Student?.Parent?.FullName ?? string.Empty,
                 EventType = updatedEvent.EventType?.EventTypeName ?? string.Empty,
@@ -556,13 +403,107 @@ public class MedicalEventService : IMedicalEventService
                 SuppliesUsed = updatedEvent.HandleRecords.Select(r => new SupplyUserResponse
                 {
                     SupplyId = r.SupplyId,
-                    SupplyName = r.Supply?.Name ?? "",
+                    SupplyName = r.Supply?.Name ?? string.Empty,
                     QuantityUsed = r.QuantityUsed,
-                    Unit = r.Supply?.Unit ?? "",
+                    Unit = r.Supply?.Unit ?? string.Empty,
                     Note = r.Note
                 }).ToList()
             }
         };
+    }
+
+    private static List<HandleRecordRequest> NormalizeSupplyRequests(List<HandleRecordRequest>? requests)
+    {
+        if (requests == null || requests.Count == 0)
+            return new List<HandleRecordRequest>();
+
+        return requests
+            .Where(r => r.SupplyId > 0 && r.QuantityUsed > 0)
+            .GroupBy(r => r.SupplyId)
+            .Select(g => new HandleRecordRequest
+            {
+                SupplyId = g.Key,
+                QuantityUsed = g.Sum(x => x.QuantityUsed),
+                Note = string.Join("；", g.Select(x => x.Note).Where(x => !string.IsNullOrWhiteSpace(x)))
+            })
+            .ToList();
+    }
+
+    private static List<string> FindAllergicSupplies(
+        IEnumerable<MedicalHistory> histories,
+        IEnumerable<MedicalSupply> supplies)
+    {
+        var supplyList = supplies.ToList();
+        var matches = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var allergyMarkers = new[] { "dị ứng", "過敏", "过敏" };
+        var noteMarkers = new[] { "dị ứng với", "dị ứng", "過敏於", "過敏", "过敏于", "过敏", "không dùng", "không được sử dụng" };
+        var commonAllergens = new[] { "paracetamol", "aspirin", "ibuprofen", "penicillin", "amoxicillin" };
+
+        foreach (var history in histories)
+        {
+            var disease = history.DiseaseName ?? string.Empty;
+            var note = history.Note ?? string.Empty;
+            var combined = $"{disease} {note}";
+
+            if (!allergyMarkers.Any(marker =>
+                combined.Contains(marker, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            string allergyName = string.Empty;
+
+            foreach (var marker in allergyMarkers)
+            {
+                var index = disease.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+                if (index >= 0 && index + marker.Length < disease.Length)
+                {
+                    allergyName = disease[(index + marker.Length)..].Trim();
+                    break;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(allergyName))
+            {
+                foreach (var marker in noteMarkers)
+                {
+                    var index = note.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+                    if (index >= 0 && index + marker.Length < note.Length)
+                    {
+                        allergyName = note[(index + marker.Length)..]
+                            .Trim()
+                            .Split(',', '，', ';', '；')[0]
+                            .Trim();
+                        break;
+                    }
+                }
+            }
+
+            foreach (var supply in supplyList)
+            {
+                if (string.IsNullOrWhiteSpace(supply.Name))
+                    continue;
+
+                if (!string.IsNullOrWhiteSpace(allergyName) &&
+                    supply.Name.Contains(allergyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    matches.Add($"{supply.Name} (ID: {supply.SupplyId})");
+                    continue;
+                }
+
+                foreach (var allergen in commonAllergens)
+                {
+                    if (supply.Name.Contains(allergen, StringComparison.OrdinalIgnoreCase) &&
+                        combined.Contains(allergen, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matches.Add($"{supply.Name} (ID: {supply.SupplyId})");
+                        break;
+                    }
+                }
+            }
+        }
+
+        return matches.ToList();
     }
 
     // =============================
