@@ -18,12 +18,12 @@ import Guidline from "../../utils/VaccinCampaignTour";
 
 const VaccinCampaign = () => {
   // Bộ lọc thời gian và trạng thái
-  // yearFilter: 0 = năm hiện tại, 1 = 1 năm gần nhất, 2 = 2 năm gần nhất, 3 = 3 năm gần nhất
+  // yearFilter: 0 = năm hiện tại, 1 = 最近 1 年, 2 = 最近 2 年, 3 = 最近 3 年
   const [yearFilter, setYearFilter] = useState(1);
   const [quickFilter, setQuickFilter] = useState("all"); // 'all', 'latest', 'custom'
   const [campaigns, setCampaigns] = useState([]);
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [filterStatus, setFilterStatus] = useState("Tất cả trạng thái");
+  const [filterStatus, setFilterStatus] = useState("全部狀態");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const itemsPerPage = 9;
@@ -51,7 +51,7 @@ const VaccinCampaign = () => {
           setCampaigns(transformed);
         }
       } catch (error) {
-        console.error("Lỗi khi tải dữ liệu chiến dịch:", error);
+        console.error("載入接種活動失敗：", error);
       } finally {
         setLoading(false);
       }
@@ -80,7 +80,7 @@ const VaccinCampaign = () => {
       const matchSearch = c.vaccineName
         .toLowerCase()
         .includes(searchKeyword.toLowerCase());
-      return matchSearch && c.status !== "Đã huỷ";
+      return matchSearch && c.status !== "已取消";
     });
   } else if (quickFilter === "latest") {
     // Find the campaign with the highest id (assume id is numeric)
@@ -97,7 +97,7 @@ const VaccinCampaign = () => {
       const campaignDate = new Date(c.date);
       const matchDate = campaignDate >= fromDate && campaignDate <= toDate;
       const matchStatus =
-        filterStatus === "Tất cả trạng thái" || c.status === filterStatus;
+        filterStatus === "全部狀態" || c.status === filterStatus;
       return matchSearch && matchDate && matchStatus;
     });
   }
@@ -121,12 +121,12 @@ const VaccinCampaign = () => {
 
       <main style={{ flex: 1 }}>
         <div className={style.campaignPage}>
-          {loading && <LoadingOverlay text="Đang tải dữ liệu..." />}
+          {loading && <LoadingOverlay text="資料載入中..." />}
           <div className={style.pageHeader}>
             <div>
               <h1>
-                <span className={style.textBlack}>Quản lý</span>
-                <span className={style.textAccent}> tiêm chủng</span>
+                <span className={style.textBlack}>預防接種</span>
+                <span className={style.textAccent}>管理</span>
               </h1>
             </div>
           </div>
@@ -136,7 +136,7 @@ const VaccinCampaign = () => {
               <Search size={16} />
               <input
                 id="search-campaign"
-                placeholder="Tìm kiếm chiến dịch..."
+                placeholder="搜尋接種活動..."
                 value={searchKeyword}
                 onChange={(e) => {
                   setSearchKeyword(e.target.value);
@@ -157,10 +157,10 @@ const VaccinCampaign = () => {
               }}
               style={{ marginRight: 8 }}
             >
-              <option value={0}>Năm hiện tại</option>
-              <option value={1}>1 năm gần nhất</option>
-              <option value={2}>2 năm gần nhất</option>
-              <option value={3}>3 năm gần nhất</option>
+              <option value={0}>本年度</option>
+              <option value={1}>最近 1 年</option>
+              <option value={2}>最近 2 年</option>
+              <option value={3}>最近 3 年</option>
             </select>
             <select
               id="filter-status"
@@ -173,11 +173,11 @@ const VaccinCampaign = () => {
               }}
               style={{ marginRight: 8 }}
             >
-              <option>Tất cả trạng thái</option>
-              <option>Đang diễn ra</option>
-              <option>Chưa bắt đầu</option>
-              <option>Đã hoàn thành</option>
-              <option>Đã huỷ</option>
+              <option>全部狀態</option>
+              <option>進行中</option>
+              <option>尚未開始</option>
+              <option>已完成</option>
+              <option>已取消</option>
             </select>
             <button
               id="show-all"
@@ -196,7 +196,7 @@ const VaccinCampaign = () => {
                 setCurrentPage(1);
               }}
             >
-              Hiển thị tất cả
+              顯示全部
             </button>
             <button
               id="latest-campaign"
@@ -214,18 +214,18 @@ const VaccinCampaign = () => {
                 setCurrentPage(1);
               }}
             >
-              Chiến dịch vừa tạo
+              最新建立的活動
             </button>
           </div>
           {/* CARD GRID */}
           <div className={style.campaignCardList}>
             {loading ? (
               <div style={{ padding: 32, textAlign: "center", width: "100%" }}>
-                Đang tải dữ liệu...
+                資料載入中...
               </div>
             ) : currentCampaigns.length === 0 ? (
               <div style={{ padding: 32, textAlign: "center", width: "100%" }}>
-                Không có dữ liệu chiến dịch.
+                目前沒有接種活動資料。
               </div>
             ) : (
               currentCampaigns.map((c) => (
@@ -238,40 +238,40 @@ const VaccinCampaign = () => {
                   </div>
                   <div className={style.cardBody}>
                     <div>
-                      <b>Ngày tiêm:</b> {c.date}
+                      <b>接種日期：</b> {c.date}
                     </div>
                     <div>
-                      <b>Mô tả:</b> {c.description}
+                      <b>說明：</b> {c.description}
                     </div>
                     <div>
-                      <b>Người tạo:</b> {c.createdByName}
+                      <b>建立者：</b> {c.createdByName}
                     </div>
                   </div>
                   <div className={style.cardFooter}>
-                    {c.status === "Chưa bắt đầu" ? (
+                    {c.status === "尚未開始" ? (
                       <span className={style.statusBadgeWaiting}>
-                        Chưa bắt đầu
+                        尚未開始
                       </span>
-                    ) : c.status === "Đang diễn ra" ? (
+                    ) : c.status === "進行中" ? (
                       <span className={style.statusBadgeActive}>
-                        Đang diễn ra
+                        進行中
                       </span>
-                    ) : c.status === "Đã hoàn thành" ? (
+                    ) : c.status === "已完成" ? (
                       <span className={style.statusBadgeDone}>
-                        Đã hoàn thành
+                        已完成
                       </span>
                     ) : (
-                      <span className={style.statusBadgeCancel}>Đã huỷ</span>
+                      <span className={style.statusBadgeCancel}>已取消</span>
                     )}
 
-                    {(c.status === "Đang diễn ra" ||
-                      c.status === "Đã hoàn thành" ||
-                      c.status === "Chưa bắt đầu") && (
+                    {(c.status === "進行中" ||
+                      c.status === "已完成" ||
+                      c.status === "尚未開始") && (
                       <Link to={`/vaccines/${c.id}`}>
                         <button
                           className={`${style.btnDetail} btn-detail-tour`}
                         >
-                          Xem chi tiết
+                          查看詳細資料
                         </button>
                       </Link>
                     )}
