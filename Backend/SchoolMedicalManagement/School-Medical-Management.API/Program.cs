@@ -48,8 +48,6 @@ builder.Services.AddScoped<ParentFeedbackRepository>();
 
 // Service
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IOtpService, OtpService>();
-builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<VaccinationCampaignService>();
 builder.Services.AddScoped<IMedicalHistoryService, MedicalHistoryService>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -86,9 +84,6 @@ builder.Services.AddCors(options =>
 // 單機版使用 SQLite 單一檔案資料庫，不需安裝 SQL Server，也不會連外。
 builder.Services.AddDbContext<SwpEduHealV5Context>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// 離線模式使用記憶體快取，不連 Redis Cloud。
-builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSwaggerGen(option =>
 {
@@ -153,6 +148,42 @@ builder.Services.AddHangfireServer(options =>
 });
 
 var app = builder.Build();
+
+// Production 單機版的瀏覽器安全標頭；不載入任何遠端 script / frame。
+if (!app.Environment.IsDevelopment())
+{
+    app.Use(async (context, next) =>
+    {
+        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        context.Response.Headers["X-Frame-Options"] = "DENY";
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+        context.Response.Headers["Content-Security-Policy"] =
+            "default-src 'self'; " +
+            "script-src 'self'; " +
+            "style-src 'self' 'unsafe-inline'; " +
+            "img-src 'self' data: blob:; " +
+            "font-src 'self' data:; " +
+            "connect-src 'self'; " +
+            "object-src 'none'; " +
+            "base-uri 'self'; " +
+            "frame-ancestors 'none'; " +
+            "form-action 'self'";
+        await next();
+    });
+}
+
+// 舊版本曾將用藥附件存入 wwwroot；即使使用者保留舊檔，也禁止直接靜態讀取。
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/uploads/medication"))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    await next();
+});
 
 // 即使日後誤改 Kestrel 綁定位址，也拒絕非本機來源。
 app.Use(async (context, next) =>
