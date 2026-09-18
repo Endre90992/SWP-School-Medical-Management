@@ -595,7 +595,7 @@ const ParentDashboard = () => {
   const renderMedicationRequests = () => (
     <div className={styles.contentCard}>
       <h3 className={styles.cardTitle}>用藥申請</h3>
-      <p className={styles.cardSubtitle}>Các yêu cầu thuốc đang chờ duyệt</p>
+      <p className={styles.cardSubtitle}>待審核的用藥申請</p>
       <div className={styles.medicationList}>
         {myMedicationRequests.slice(0, 5).map((req, index) => {
           const status = getMedicationStatus(req.status);
