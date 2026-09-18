@@ -33,7 +33,7 @@ const VaccinCampaign = () => {
       setLoading(true);
       try {
         const res = await axios.get(
-          "https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns"
+          "http://127.0.0.1:5080/api/VaccinationCampaign/campaigns"
         );
         if (res.data.status === "200") {
           const transformed = res.data.data.map((item) => ({
