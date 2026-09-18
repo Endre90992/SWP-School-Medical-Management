@@ -25,7 +25,7 @@ const NurseDashBoard = () => {
       setLoading(true);
       try {
         const res = await axios.get(
-          "https://swp-school-medical-management.onrender.com/api/Dashboard/overview"
+          "http://127.0.0.1:5080/api/Dashboard/overview"
         );
         if (res.data.status === "200") {
           setDashboardData(res.data.data);
