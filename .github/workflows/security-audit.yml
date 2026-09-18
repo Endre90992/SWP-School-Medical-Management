@@ -1,0 +1,47 @@
+name: Security audit
+
+on:
+  push:
+    branches:
+      - security/exe-package
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Frontend audit
+        shell: pwsh
+        working-directory: Frontend
+        continue-on-error: true
+        run: |
+          npm audit --json | Out-File -Encoding utf8 npm-audit.json
+          $audit = Get-Content npm-audit.json -Raw | ConvertFrom-Json
+          Write-Host ("AUDIT_COUNTS=" + ($audit.metadata.vulnerabilities | ConvertTo-Json -Compress))
+          if ($audit.vulnerabilities) {
+            $audit.vulnerabilities.PSObject.Properties | ForEach-Object {
+              $v = $_.Value
+              Write-Host ("VULN package=" + $_.Name + " severity=" + $v.severity + " direct=" + $v.isDirect + " fixAvailable=" + ($v.fixAvailable | ConvertTo-Json -Compress))
+            }
+          }
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore backend
+        run: dotnet restore Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln
+
+      - name: Backend vulnerable packages
+        shell: pwsh
+        run: dotnet list Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln package --vulnerable --include-transitive
