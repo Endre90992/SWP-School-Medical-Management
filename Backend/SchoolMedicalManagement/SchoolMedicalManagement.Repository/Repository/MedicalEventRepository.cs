@@ -55,6 +55,24 @@ public class MedicalEventRepository : GenericRepository<MedicalEvent>
             .Take(count)
             .ToListAsync();
 
+    public Task<List<RecentMedicalEventResponse>> GetRecentMedicalEventsByStudentIdsAsync(
+        IReadOnlyCollection<int> studentIds,
+        int count)
+        => _context.MedicalEvents
+            .AsNoTracking()
+            .Where(e => e.IsActive != false && e.StudentId.HasValue && studentIds.Contains(e.StudentId.Value))
+            .OrderByDescending(e => e.EventDate)
+            .Select(e => new RecentMedicalEventResponse
+            {
+                EventId = e.EventId.ToString(),
+                StudentName = e.Student != null ? e.Student.FullName ?? string.Empty : string.Empty,
+                EventType = e.EventType != null ? e.EventType.EventTypeName ?? string.Empty : string.Empty,
+                EventDate = e.EventDate,
+                Severity = e.Severity != null ? e.Severity.SeverityName ?? string.Empty : string.Empty
+            })
+            .Take(count)
+            .ToListAsync();
+
     public Task<List<MedicalEvent>> GetMedicalEventsByStudentIdsAsync(IReadOnlyCollection<int> studentIds)
         => _context.MedicalEvents
             .AsNoTracking()
