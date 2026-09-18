@@ -1,162 +1,132 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import { FileDown, FileSpreadsheet, FileText } from "lucide-react";
-
+import { FileSpreadsheet } from "lucide-react";
 import {
-  BarChart,
   Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
+  BarChart,
   CartesianGrid,
   ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 import Sidebar from "../../components/sidebar/Sidebar";
-import style from "../../assets/css/medicalSupplies.module.css";
 import Notification from "../../components/Notification";
-import { notifySuccess, notifyError } from "../../utils/notification";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import { notifyError, notifySuccess } from "../../utils/notification";
+import style from "../../assets/css/medicalSupplies.module.css";
+
+const API_URL = "http://127.0.0.1:5080/api/MedicalSupplies";
 
 const MedicalSupplies = () => {
   const [supplies, setSupplies] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    quantity: "",
-    unit: "",
-    expiryDate: "",
-  });
-
+  const [formData, setFormData] = useState({ name: "", quantity: "", unit: "", expiryDate: "" });
   const [searchText, setSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [modalLoading, setModalLoading] = useState(false);
   const itemsPerPage = 5;
-  const [loading, setLoading] = useState(true); // loading fetch list
-  const [modalLoading, setModalLoading] = useState(false); // loading khi submit modal
 
-  const API_URL =
-    "http://127.0.0.1:5080/api/MedicalSupplies";
+  const authHeaders = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
-  useEffect(() => {
-    fetchSupplies();
-  }, []);
-  const fetchSupplies = () => {
+  const fetchSupplies = async () => {
     setLoading(true);
-    axios
-      .get(API_URL)
-      .then((res) => {
-        console.log("API data:", res.data);
-        setSupplies(Array.isArray(res.data.data) ? res.data.data : []);
-      })
-      .catch((err) => console.error("❌ Lỗi khi tải vật tư:", err))
-      .finally(() => setLoading(false));
-  };
-  const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    try {
+      const res = await axios.get(API_URL, { headers: authHeaders() });
+      setSupplies(Array.isArray(res.data?.data) ? res.data.data : []);
+    } catch (error) {
+      console.error("無法載入醫療物資：", error);
+      notifyError("無法載入醫療物資。");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmit = () => {
-    setModalLoading(true);
-    const url = editingId ? `${API_URL}/${editingId}` : API_URL;
-    const method = editingId ? "put" : "post";
+  useEffect(() => { fetchSupplies(); }, []);
 
-    axios[method](url, formData)
-      .then(() => {
-        fetchSupplies();
-        setShowModal(false);
-        setEditingId(null);
-        setFormData({ name: "", quantity: "", unit: "", expiryDate: "" });
-        notifySuccess(
-          editingId ? "Cập nhật vật tư thành công!" : "Thêm vật tư thành công!"
-        );
-      })
-      .catch((err) => {
-        console.error("❌ Lỗi thêm/cập nhật:", err);
-        notifyError("Lỗi khi lưu vật tư!");
-      })
-      .finally(() => setModalLoading(false));
-  };
-
-  const filteredSupplies = Array.isArray(supplies)
-    ? supplies.filter((s) =>
-        (s.name || "").toLowerCase().includes(searchText.toLowerCase())
-      )
-    : [];
-
-  const paginatedSupplies = filteredSupplies.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+  const filteredSupplies = useMemo(
+    () => supplies.filter((s) => (s.name || "").toLowerCase().includes(searchText.toLowerCase())),
+    [supplies, searchText]
   );
 
-  const totalPages = Math.ceil(filteredSupplies.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredSupplies.length / itemsPerPage));
+  const paginatedSupplies = filteredSupplies.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const top5Supplies = [...supplies].sort((a, b) => Number(b.quantity) - Number(a.quantity)).slice(0, 5);
 
   const isNearExpiry = (dateStr) => {
-    const daysLeft = (new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24);
+    if (!dateStr) return false;
+    const daysLeft = (new Date(dateStr) - new Date()) / 86400000;
     return daysLeft <= 30;
   };
 
-  const handleExportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(filteredSupplies);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Vật tư y tế");
-    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, "Danh_sach_vat_tu.xlsx");
+  const handleSubmit = async () => {
+    setModalLoading(true);
+    try {
+      const url = editingId ? `${API_URL}/${editingId}` : API_URL;
+      const method = editingId ? "put" : "post";
+      const payload = editingId ? { ...formData, supplyId: editingId } : formData;
+      await axios[method](url, payload, { headers: authHeaders() });
+      notifySuccess(editingId ? "醫療物資已更新。" : "醫療物資已新增。");
+      setShowModal(false);
+      setEditingId(null);
+      setFormData({ name: "", quantity: "", unit: "", expiryDate: "" });
+      await fetchSupplies();
+    } catch (error) {
+      console.error("儲存醫療物資失敗：", error);
+      notifyError("儲存醫療物資失敗。");
+    } finally {
+      setModalLoading(false);
+    }
   };
 
-  const top5Supplies = Array.isArray(supplies)
-    ? [...supplies].sort((a, b) => b.quantity - a.quantity).slice(0, 5)
-    : [];
-
-  // Skeleton loading rows
-  const skeletonRows = Array.from({ length: itemsPerPage }, (_, i) => (
-    <tr key={i} className={style.skeletonRow}>
-      <td colSpan={5}>
-        <div className={style.skeletonBox} style={{ height: 32, width: "100%" }} />
-      </td>
-    </tr>
-  ));
+  const handleExportExcel = () => {
+    const rows = filteredSupplies.map((item) => ({
+      物資名稱: item.name,
+      數量: item.quantity,
+      單位: item.unit,
+      有效期限: item.expiryDate,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "醫療物資");
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "醫療物資清單.xlsx");
+  };
 
   return (
     <div className={style.wrapper}>
       <Sidebar />
       <div className={style.content}>
-        {/* LOADING OVERLAY */}
-        {(loading || modalLoading) && <LoadingOverlay text="Đang tải dữ liệu..." />}
+        {(loading || modalLoading) && <LoadingOverlay text="資料處理中..." />}
         <div className={style.header}>
-          <h2 className={style.title}>Danh sách vật tư y tế</h2>
+          <h2 className={style.title}>醫療物資清單</h2>
           <div className={style.actions}>
             <input
               type="text"
-              placeholder="Tìm vật tư..."
+              placeholder="搜尋物資..."
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={(e) => { setSearchText(e.target.value); setCurrentPage(1); }}
               className={style.searchInput}
             />
             <button className={style.exportBtn} onClick={handleExportExcel}>
-              <FileSpreadsheet size={18} style={{ marginRight: "6px" }} />
-              Xuất Excel
+              <FileSpreadsheet size={18} style={{ marginRight: 6 }} />匯出 Excel
             </button>
-
             <button
               className={style.addButton}
               onClick={() => {
-                setFormData({
-                  name: "",
-                  quantity: "",
-                  unit: "",
-                  expiryDate: "",
-                });
                 setEditingId(null);
+                setFormData({ name: "", quantity: "", unit: "", expiryDate: "" });
                 setShowModal(true);
               }}
             >
-              + Thêm vật tư
+              + 新增物資
             </button>
           </div>
         </div>
@@ -164,80 +134,60 @@ const MedicalSupplies = () => {
         <table className={style.table}>
           <thead>
             <tr>
-              <th>Tên vật tư</th>
-              <th>Số lượng</th>
-              <th>Đơn vị</th>
-              <th>Hạn sử dụng</th>
-              <th>Thao tác</th>
+              <th>物資名稱</th>
+              <th>數量</th>
+              <th>單位</th>
+              <th>有效期限</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            {loading
-              ? skeletonRows
-              : paginatedSupplies.length > 0
-              ? paginatedSupplies.map((item) => (
-                  <tr key={item.supplyID} className={style.tableRow}>
-                    <td>{item.name}</td>
-                    <td>{item.quantity}</td>
-                    <td>{item.unit}</td>
-                    <td
-                      style={{
-                        color: isNearExpiry(item.expiryDate) ? "red" : "#333",
-                        fontWeight: isNearExpiry(item.expiryDate)
-                          ? "bold"
-                          : "normal",
+            {!loading && paginatedSupplies.length === 0 ? (
+              <tr><td colSpan="5" style={{ textAlign: "center" }}>目前沒有醫療物資資料</td></tr>
+            ) : (
+              paginatedSupplies.map((item) => (
+                <tr key={item.supplyID ?? item.supplyId} className={style.tableRow}>
+                  <td>{item.name}</td>
+                  <td>{item.quantity}</td>
+                  <td>{item.unit}</td>
+                  <td style={{ color: isNearExpiry(item.expiryDate) ? "red" : "#333", fontWeight: isNearExpiry(item.expiryDate) ? "bold" : "normal" }}>
+                    {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString("zh-TW") : "—"}
+                  </td>
+                  <td>
+                    <button
+                      className={style.editBtn}
+                      onClick={() => {
+                        setFormData({
+                          name: item.name || "",
+                          quantity: item.quantity ?? "",
+                          unit: item.unit || "",
+                          expiryDate: item.expiryDate?.slice?.(0, 10) || item.expiryDate || "",
+                        });
+                        setEditingId(item.supplyID ?? item.supplyId);
+                        setShowModal(true);
                       }}
                     >
-                      {new Date(item.expiryDate).toLocaleDateString("vi-VN")}
-                    </td>
-                    <td>
-                      <button
-                        className={style.editBtn}
-                        onClick={() => {
-                          setFormData(item);
-                          setEditingId(item.supplyID);
-                          setShowModal(true);
-                        }}
-                      >
-                        Sửa
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              : (
-                <tr>
-                  <td
-                    colSpan="5"
-                    style={{
-                      textAlign: "center",
-                      padding: "16px",
-                      color: "#888",
-                    }}
-                  >
-                    Không có dữ liệu vật tư.
+                      編輯
+                    </button>
                   </td>
                 </tr>
-              )}
+              ))
+            )}
           </tbody>
         </table>
 
         {totalPages > 1 && (
           <div className={style.pagination}>
             {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i + 1}
-                onClick={() => setCurrentPage(i + 1)}
-                className={currentPage === i + 1 ? style.activePage : ""}
-              >
+              <button key={i + 1} onClick={() => setCurrentPage(i + 1)} className={currentPage === i + 1 ? style.activePage : ""}>
                 {i + 1}
               </button>
             ))}
           </div>
         )}
 
-        {/* Biểu đồ tồn kho */}
         <div className={style.chartBox}>
-          <h3>Biểu đồ tồn kho (Top 5)</h3>
+          <h3>庫存量較高的前 5 項物資</h3>
           <ResponsiveContainer width="100%" height={270}>
             <BarChart data={top5Supplies}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -249,42 +199,17 @@ const MedicalSupplies = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Modal */}
         {showModal && (
           <div className={style.modalOverlay}>
             <div className={style.modal}>
-              <h3>{editingId ? "Cập nhật vật tư" : "Thêm vật tư mới"}</h3>
-              <input
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Tên vật tư"
-              />
-              <input
-                name="quantity"
-                type="number"
-                value={formData.quantity}
-                onChange={handleChange}
-                placeholder="Số lượng"
-              />
-              <input
-                name="unit"
-                value={formData.unit}
-                onChange={handleChange}
-                placeholder="Đơn vị"
-              />
-              <input
-                name="expiryDate"
-                type="date"
-                value={formData.expiryDate}
-                onChange={handleChange}
-                placeholder="Hạn sử dụng"
-              />
+              <h3>{editingId ? "編輯醫療物資" : "新增醫療物資"}</h3>
+              <input name="name" value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} placeholder="物資名稱" />
+              <input name="quantity" type="number" min="0" value={formData.quantity} onChange={(e) => setFormData((p) => ({ ...p, quantity: e.target.value }))} placeholder="數量" />
+              <input name="unit" value={formData.unit} onChange={(e) => setFormData((p) => ({ ...p, unit: e.target.value }))} placeholder="單位，例如：片、包、瓶" />
+              <input name="expiryDate" type="date" value={formData.expiryDate} onChange={(e) => setFormData((p) => ({ ...p, expiryDate: e.target.value }))} />
               <div className={style.modalActions}>
-                <button onClick={handleSubmit}>
-                  {editingId ? "Cập nhật" : "Thêm"}
-                </button>
-                <button onClick={() => setShowModal(false)}>Huỷ</button>
+                <button onClick={handleSubmit}>{editingId ? "儲存變更" : "新增"}</button>
+                <button onClick={() => setShowModal(false)}>取消</button>
               </div>
             </div>
           </div>
