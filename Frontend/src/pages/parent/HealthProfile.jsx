@@ -12,11 +12,11 @@ const API_BASE = "/api"; // Sử dụng proxy để tránh lỗi CORS
 
 // Error messages
 const ERROR_MESSAGES = {
-  NO_TOKEN_OR_PARENT_ID: "Thiếu token hoặc parentId!",
-  LOAD_PROFILES_FAILED: "Không thể tải dữ liệu hồ sơ sức khỏe.",
-  NO_STUDENTS_LINKED: "Tài khoản của bạn chưa được liên kết với học sinh nào. Vui lòng liên hệ nhà trường để được hỗ trợ liên kết với con em mình.",
-  NO_HEALTH_PROFILE: "Học sinh chưa có hồ sơ sức khỏe. Vui lòng tạo hồ sơ sức khỏe cho con em để theo dõi tình trạng sức khỏe tốt hơn.",
-  NETWORK_ERROR: "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại."
+  NO_TOKEN_OR_PARENT_ID: "缺少登入資訊。",
+  LOAD_PROFILES_FAILED: "無法載入健康資料。",
+  NO_STUDENTS_LINKED: "此帳號尚未連結學生，請聯絡學校協助。",
+  NO_HEALTH_PROFILE: "此學生尚未建立健康資料。",
+  NETWORK_ERROR: "無法連線本機後端，請確認 EduHealth 後端已啟動。"
 };
 
 // API endpoints
@@ -72,7 +72,7 @@ const HealthProfile = () => {
   // Validate authentication on component mount
   useEffect(() => {
     if (!token || !parentId) {
-      toast.error("Vui lòng đăng nhập để truy cập trang này!");
+      toast.error("請先登入。");
       setTimeout(() => {
         localStorage.clear();
         navigate("/login");
@@ -208,7 +208,7 @@ const HealthProfile = () => {
       
       // Xử lý các loại lỗi khác nhau
       if (error.response?.status === 401) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        toast.error("登入已逾時，請重新登入。");
         // Redirect to login page
         setTimeout(() => {
           localStorage.clear();
@@ -220,7 +220,7 @@ const HealthProfile = () => {
         setMedicalHistoryMap({});
         return; // Không hiển thị toast error, sẽ hiển thị thông báo thân thiện
       } else if (error.code === 'ECONNABORTED') {
-        toast.error("Request timeout. Vui lòng thử lại sau!");
+        toast.error("要求逾時，請稍後再試。");
       } else if (!error.response) {
         toast.error(ERROR_MESSAGES.NETWORK_ERROR);
       } else {
@@ -269,7 +269,7 @@ const HealthProfile = () => {
     if (!modalStudent) return;
     setSubmitting(true);
     try {
-      // 1. Tạo hồ sơ sức khỏe
+      // 1. 建立健康資料 sức khỏe
       await axios.post(
         `${API_BASE}/health-profiles`,
         {
@@ -305,7 +305,7 @@ const HealthProfile = () => {
           );
         }));
       }
-      toast.success("Tạo hồ sơ sức khỏe và tiền sử bệnh thành công!");
+      toast.success("健康資料與既往病史建立成功。");
       setShowModal(false);
       setModalStudent(null);
       setMedicalHistories([{ diseaseName: '', note: '', diagnosedDate: '' }]);
@@ -315,15 +315,15 @@ const HealthProfile = () => {
       console.error("Error creating health profile:", error);
       
       if (error.response?.status === 401) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        toast.error("登入已逾時，請重新登入。");
         setTimeout(() => {
           localStorage.clear();
           navigate("/login");
         }, 2000);
       } else if (error.code === 'ECONNABORTED') {
-        toast.error("Request timeout. Vui lòng thử lại sau!");
+        toast.error("要求逾時，請稍後再試。");
       } else {
-        toast.error("Tạo hồ sơ/thêm tiền sử bệnh thất bại! " + (error.response?.data?.message || ""));
+        toast.error("建立健康資料／既往病史失敗：" + (error.response?.data?.message || ""));
       }
     } finally {
       setSubmitting(false);
@@ -382,24 +382,24 @@ const HealthProfile = () => {
             }
           );
         }));
-        toast.success("Thêm tiền sử bệnh thành công!");
+        toast.success("既往病史新增成功。");
         handleCloseAddHistoryModal();
         await fetchProfiles();
       } else {
-        toast.warn("Vui lòng nhập đầy đủ thông tin bệnh và ngày chẩn đoán.");
+        toast.warn("請完整輸入疾病名稱與診斷日期。");
       }
     } catch (error) {
       console.error("Error adding medical history:", error);
       if (error.response?.status === 401) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        toast.error("登入已逾時，請重新登入。");
         setTimeout(() => {
           localStorage.clear();
           navigate("/login");
         }, 2000);
       } else if (error.code === 'ECONNABORTED') {
-        toast.error("Request timeout. Vui lòng thử lại sau!");
+        toast.error("要求逾時，請稍後再試。");
       } else {
-        toast.error("Thêm tiền sử bệnh thất bại! " + (error.response?.data?.message || ""));
+        toast.error("新增既往病史失敗：" + (error.response?.data?.message || ""));
       }
     } finally {
       setSubmitting(false);
@@ -431,7 +431,7 @@ const HealthProfile = () => {
   const handleSaveUpdate = useCallback(async (e, studentId, healthProfileId) => {
     e.preventDefault();
     if (!healthProfileId) {
-      toast.error("Không tìm thấy ID hồ sơ sức khỏe.");
+      toast.error("找不到健康資料 ID。");
       return;
     }
 
@@ -453,23 +453,23 @@ const HealthProfile = () => {
           timeout: 10000 
         }
       );
-      toast.success("Cập nhật hồ sơ sức khỏe thành công!");
+      toast.success("健康資料更新成功。");
       setEditingProfileId(null);
       await fetchProfiles();
     } catch (error) {
       console.error("Error updating health profile:", error);
       if (error.response?.status === 401) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        toast.error("登入已逾時，請重新登入。");
         setTimeout(() => {
           localStorage.clear();
           navigate("/login");
         }, 2000);
       } else if (error.code === 'ECONNABORTED') {
-        toast.error("Request timeout. Vui lòng thử lại sau!");
+        toast.error("要求逾時，請稍後再試。");
       } else if (!error.response) {
         toast.error(ERROR_MESSAGES.NETWORK_ERROR);
       } else {
-        toast.error("Cập nhật hồ sơ thất bại! " + (error.response?.data?.message || ""));
+        toast.error("更新健康資料失敗：" + (error.response?.data?.message || ""));
       }
     } finally {
       setSubmitting(false);
@@ -485,7 +485,7 @@ const HealthProfile = () => {
   }, [fetchProfiles, isInitialized]);
 
   // Helper function to safely display data
-  const safeDisplayValue = useCallback((value, defaultValue = "Không có") => {
+  const safeDisplayValue = useCallback((value, defaultValue = "無") => {
     if (!value || (typeof value === 'string' && value.trim() === '')) {
       return defaultValue;
     }
@@ -497,7 +497,7 @@ const HealthProfile = () => {
     <div className={styles.loadingOverlay}>
       <div className={styles.customSpinner}>
         <div className={styles.spinnerIcon}></div>
-        <div className={styles.spinnerText}>Đang tải dữ liệu...</div>
+        <div className={styles.spinnerText}>資料載入中...</div>
       </div>
     </div>
   );
@@ -543,7 +543,7 @@ const HealthProfile = () => {
             marginBottom: '16px',
             lineHeight: '1.3'
           }}>
-            Chưa có liên kết học sinh
+            尚未連結學生
           </h2>
 
           {/* Description */}
@@ -573,7 +573,7 @@ const HealthProfile = () => {
               marginBottom: '16px',
               textAlign: 'center'
             }}>
-              Các bước để liên kết với con em:
+              學生連結方式：
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -592,7 +592,7 @@ const HealthProfile = () => {
                   flexShrink: 0
                 }}>1</div>
                 <span style={{ color: '#475569', fontSize: '15px' }}>
-                  Liên hệ với nhà trường qua số điện thoại hoặc email
+                  聯絡學校健康中心
                 </span>
               </div>
               
@@ -611,7 +611,7 @@ const HealthProfile = () => {
                   flexShrink: 0
                 }}>2</div>
                 <span style={{ color: '#475569', fontSize: '15px' }}>
-                  Cung cấp thông tin cá nhân và thông tin con em
+                  提供學生與聯絡人資料
                 </span>
               </div>
               
@@ -630,7 +630,7 @@ const HealthProfile = () => {
                   flexShrink: 0
                 }}>3</div>
                 <span style={{ color: '#475569', fontSize: '15px' }}>
-                  Đợi nhà trường xác nhận và liên kết tài khoản
+                  由學校確認並完成連結
                 </span>
               </div>
             </div>
@@ -650,7 +650,7 @@ const HealthProfile = () => {
               fontWeight: '500',
               margin: 0
             }}>
-              💡 Sau khi liên kết thành công, bạn sẽ có thể xem và quản lý hồ sơ sức khỏe của con em tại đây.
+              完成連結後即可查看學生健康資料。
             </p>
           </div>
         </div>
@@ -667,91 +667,91 @@ const HealthProfile = () => {
       <>
         <div className={styles.studentHeader}>
           <h3 className={styles.name}>{studentInfo.fullName}</h3>
-          <p className={styles.subInfo}>Lớp: {studentInfo.className}</p>
+          <p className={styles.subInfo}>班級： {studentInfo.className}</p>
         </div>
-        <h4 className={styles.sectionTitle}>Thông tin hồ sơ sức khỏe</h4>
+        <h4 className={styles.sectionTitle}>健康資料</h4>
         <div className={styles.infoBox}>
           {isEditing ? (
             <form onSubmit={(e) => handleSaveUpdate(e, studentInfo.studentId, profile.profileId)}>
               <div className={styles.infoGrid}>
-                <div><span className={styles.label}>Họ và tên:</span> {studentInfo.fullName}</div>
-                <div><span className={styles.label}>Lớp:</span> {studentInfo.className}</div>
-                <div><span className={styles.label}>Giới tính:</span> {studentInfo.gender}</div>
-                <div><span className={styles.label}>Tuổi:</span> {calculateAge(studentInfo.dateOfBirth)}</div>
+                <div><span className={styles.label}>姓名：</span> {studentInfo.fullName}</div>
+                <div><span className={styles.label}>班級：</span> {studentInfo.className}</div>
+                <div><span className={styles.label}>性別：</span> {studentInfo.gender}</div>
+                <div><span className={styles.label}>年齡：</span> {calculateAge(studentInfo.dateOfBirth)}</div>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <label htmlFor="height" className={styles.label}>Chiều cao:</label>
+                  <label htmlFor="height" className={styles.label}>身高：</label>
                   <input type="number" id="height" name="height" value={editFormData.height} onChange={handleEditFormChange} style={{ width: '80px', padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc' }} /> cm
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <label htmlFor="weight" className={styles.label}>Cân nặng:</label>
+                  <label htmlFor="weight" className={styles.label}>體重：</label>
                   <input type="number" id="weight" name="weight" value={editFormData.weight} onChange={handleEditFormChange} style={{ width: '80px', padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc' }} /> kg
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label htmlFor="chronicDiseases" className={styles.label}>Bệnh mãn tính:</label>
+                  <label htmlFor="chronicDiseases" className={styles.label}>慢性疾病：</label>
                   <input type="text" id="chronicDiseases" name="chronicDiseases" value={editFormData.chronicDiseases} onChange={handleEditFormChange} style={{ width: '100%', padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc' }}/>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label htmlFor="allergies" className={styles.label}>Dị ứng:</label>
+                  <label htmlFor="allergies" className={styles.label}>過敏：</label>
                   <input type="text" id="allergies" name="allergies" value={editFormData.allergies} onChange={handleEditFormChange} style={{ width: '100%', padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc' }}/>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label htmlFor="generalNote" className={styles.label}>Ghi chú y tế:</label>
+                  <label htmlFor="generalNote" className={styles.label}>健康備註：</label>
                   <input type="text" id="generalNote" name="generalNote" value={editFormData.generalNote} onChange={handleEditFormChange} style={{ width: '100%', padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc' }}/>
                 </div>
-                <div><span className={styles.label}>Trạng thái hồ sơ:</span> Đang hoạt động</div>
+                <div><span className={styles.label}>資料狀態：</span> 使用中</div>
               </div>
               <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                 <button type="submit" disabled={submitting} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#20b2aa', color: 'white', cursor: 'pointer', fontWeight: '600' }}>
-                  {submitting ? "Đang lưu..." : "Lưu thay đổi"}
+                  {submitting ? "儲存中..." : "儲存變更"}
                 </button>
                 <button type="button" onClick={handleCancelUpdate} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #ccc', background: '#f8f8f8', cursor: 'pointer', fontWeight: '600' }}>
-                  Hủy
+                  取消
                 </button>
               </div>
             </form>
           ) : (
             <div className={styles.infoGrid}>
               <div>
-                <span className={styles.label}>Họ và tên:</span> {studentInfo.fullName}
+                <span className={styles.label}>姓名：</span> {studentInfo.fullName}
               </div>
               <div>
-                <span className={styles.label}>Lớp:</span> {studentInfo.className}
+                <span className={styles.label}>班級：</span> {studentInfo.className}
               </div>
               <div>
-                <span className={styles.label}>Giới tính:</span> {studentInfo.gender}
+                <span className={styles.label}>性別：</span> {studentInfo.gender}
               </div>
               <div>
-                <span className={styles.label}>Tuổi:</span> {calculateAge(studentInfo.dateOfBirth)}
+                <span className={styles.label}>年齡：</span> {calculateAge(studentInfo.dateOfBirth)}
               </div>
               <div>
-                <span className={styles.label}>Chiều cao:</span> {
-                  profile.height > 0 ? `${profile.height} cm` : "Chưa có thông tin"
+                <span className={styles.label}>身高：</span> {
+                  profile.height > 0 ? `${profile.height} cm` : "尚未登錄"
                 }
               </div>
               <div>
-                <span className={styles.label}>Cân nặng:</span> {
-                  profile.weight > 0 ? `${profile.weight} kg` : "Chưa có thông tin"
+                <span className={styles.label}>體重：</span> {
+                  profile.weight > 0 ? `${profile.weight} kg` : "尚未登錄"
                 }
               </div>
               <div>
-                <span className={styles.label}>Bệnh mãn tính:</span> {
+                <span className={styles.label}>慢性疾病：</span> {
                   safeDisplayValue(profile.chronicDiseases)
                 }
               </div>
               <div>
-                <span className={styles.label}>Dị ứng:</span> {
+                <span className={styles.label}>過敏：</span> {
                   safeDisplayValue(profile.allergies)
                 }
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
-                <span className={styles.label}>Ghi chú y tế:</span> {
+                <span className={styles.label}>健康備註：</span> {
                   safeDisplayValue(profile.generalNote)
                 }
               </div>
               <div>
-                <span className={styles.label}>Trạng thái hồ sơ:</span> {
-                  profile.isActive ? "Đang hoạt động" : "Ngừng hoạt động"
+                <span className={styles.label}>資料狀態：</span> {
+                  profile.isActive ? "使用中" : "已停用"
                 }
               </div>
             </div>
@@ -762,14 +762,14 @@ const HealthProfile = () => {
         {!isEditing && (
           <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button onClick={() => handleUpdateClick(profile)} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#0ea5e9', color: 'white', cursor: 'pointer', fontWeight: '600' }}>
-              Cập nhật
+              更新
             </button>
           </div>
         )}
 
         {/* Medical History Table */}
         <div style={{ marginTop: 24 }}>
-          <h4 style={{ color: '#20b2aa', marginBottom: 12, fontSize: 18, fontWeight: 600 }}>Tiền sử bệnh</h4>
+          <h4 style={{ color: '#20b2aa', marginBottom: 12, fontSize: 18, fontWeight: 600 }}>既往病史</h4>
           {studentMedicalHistory.length === 0 ? (
             <div style={{ 
               color: '#64748b', 
@@ -779,7 +779,7 @@ const HealthProfile = () => {
               borderRadius: 8,
               border: '1px dashed #cbd5e1'
             }}>
-              Không có tiền sử bệnh
+              無 tiền sử bệnh
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -799,21 +799,21 @@ const HealthProfile = () => {
                       fontWeight: 600,
                       textAlign: 'left',
                       fontSize: 14
-                    }}>Tên bệnh</th>
+                    }}>疾病名稱</th>
                     <th style={{ 
                       padding: '12px 16px', 
                       color: '#fff', 
                       fontWeight: 600,
                       textAlign: 'left',
                       fontSize: 14
-                    }}>Ghi chú</th>
+                    }}>備註</th>
                     <th style={{ 
                       padding: '12px 16px', 
                       color: '#fff', 
                       fontWeight: 600,
                       textAlign: 'left',
                       fontSize: 14
-                    }}>Ngày chẩn đoán</th>
+                    }}>診斷日期</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -827,18 +827,18 @@ const HealthProfile = () => {
                         fontSize: 14,
                         fontWeight: 500,
                         color: '#1e293b'
-                      }}>{mh.diseaseName || 'Không có thông tin'}</td>
+                      }}>{mh.diseaseName || '無 thông tin'}</td>
                       <td style={{ 
                         padding: '12px 16px', 
                         fontSize: 14,
                         color: '#64748b'
-                      }}>{mh.note || 'Không có ghi chú'}</td>
+                      }}>{mh.note || '無 ghi chú'}</td>
                       <td style={{ 
                         padding: '12px 16px', 
                         fontSize: 14,
                         color: '#64748b'
                       }}>
-                        {mh.diagnosedDate ? new Date(mh.diagnosedDate).toLocaleDateString('vi-VN') : 'Không có thông tin'}
+                        {mh.diagnosedDate ? new Date(mh.diagnosedDate).toLocaleDateString("zh-TW") : '無 thông tin'}
                       </td>
                     </tr>
                   ))}
@@ -854,7 +854,7 @@ const HealthProfile = () => {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M12 5v14m7-7H5"/>
               </svg>
-              Thêm Tiền sử bệnh
+              Thêm 既往病史
             </button>
           </div>
         </div>
@@ -876,7 +876,7 @@ const HealthProfile = () => {
       }}
     >
       <h2 style={{ color: "#0e2a47", marginBottom: "20px" }}>
-        Hồ sơ sức khỏe học sinh
+        學生健康資料
       </h2>
       {!profile ? (
         <div style={{
@@ -902,7 +902,7 @@ const HealthProfile = () => {
             </div>
             <div>
               <h4 style={{ color: '#92400e', fontSize: '16px', fontWeight: '600', margin: 0 }}>
-                Chưa có hồ sơ sức khỏe
+                尚未建立健康資料
               </h4>
               <p style={{ color: '#b45309', fontSize: '14px', margin: '4px 0 0 0' }}>
                 {ERROR_MESSAGES.NO_HEALTH_PROFILE}
@@ -939,7 +939,7 @@ const HealthProfile = () => {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 5v14m7-7H5"/>
             </svg>
-            Tạo hồ sơ sức khỏe cho {studentInfo.fullName}
+            建立健康資料－{studentInfo.fullName}
           </button>
         </div>
       ) : (
@@ -959,7 +959,7 @@ const HealthProfile = () => {
         {studentList.map(renderStudentCard)}
       </div>
       {showModal && (
-        <Modal isOpen={showModal} onClose={handleCloseModal} title={`Tạo hồ sơ sức khỏe cho ${modalStudent?.fullName || ''}`}>
+        <Modal isOpen={showModal} onClose={handleCloseModal} title={`建立健康資料－${modalStudent?.fullName || ''}`}>
           <form onSubmit={handleCreateProfile} style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 16, minWidth: 350 }}>
             {/* Health Profile fields */}
             <label style={{ color: '#20b2aa', fontWeight: 600, marginBottom: 4 }}>
@@ -975,31 +975,31 @@ const HealthProfile = () => {
               />
             </label>
             <label style={{ color: '#0284c7', fontWeight: 500, marginBottom: 4 }}>
-              Bệnh mãn tính:
+              慢性疾病：
               <input name="chronicDiseases" value={formData.chronicDiseases} onChange={handleFormChange}
                 style={{ width: '100%', marginTop: 6, padding: '10px', borderRadius: 8, border: '1px solid #cbd5e1', outline: 'none', fontSize: 16, marginBottom: 2 }}
               />
             </label>
             <label style={{ color: '#0284c7', fontWeight: 500, marginBottom: 4 }}>
-              Dị ứng:
+              過敏：
               <input name="allergies" value={formData.allergies} onChange={handleFormChange}
                 style={{ width: '100%', marginTop: 6, padding: '10px', borderRadius: 8, border: '1px solid #cbd5e1', outline: 'none', fontSize: 16, marginBottom: 2 }}
               />
             </label>
             <label style={{ color: '#0284c7', fontWeight: 500, marginBottom: 4 }}>
-              Ghi chú y tế:
+              健康備註：
               <input name="generalNote" value={formData.generalNote} onChange={handleFormChange}
                 style={{ width: '100%', marginTop: 6, padding: '10px', borderRadius: 8, border: '1px solid #cbd5e1', outline: 'none', fontSize: 16, marginBottom: 2 }}
               />
             </label>
             {/* Medical History section */}
             <div style={{ margin: '18px 0 0 0', padding: '12px', background: '#e0f7fa', borderRadius: 8 }}>
-              <div style={{ fontWeight: 700, color: '#20b2aa', marginBottom: 8, fontSize: 17 }}>Tiền sử bệnh</div>
+              <div style={{ fontWeight: 700, color: '#20b2aa', marginBottom: 8, fontSize: 17 }}>既往病史</div>
               {medicalHistories.map((mh, idx) => (
                 <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
                   <input
                     name="diseaseName"
-                    placeholder="Tên bệnh *"
+                    placeholder="疾病名稱 *"
                     value={mh.diseaseName}
                     onChange={e => handleMedicalHistoryChange(idx, e)}
                     required
@@ -1007,7 +1007,7 @@ const HealthProfile = () => {
                   />
                   <input
                     name="note"
-                    placeholder="Ghi chú"
+                    placeholder="備註"
                     value={mh.note}
                     onChange={e => handleMedicalHistoryChange(idx, e)}
                     style={{ flex: 2, minWidth: 100, padding: '8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 15 }}
@@ -1026,11 +1026,11 @@ const HealthProfile = () => {
                   )}
                 </div>
               ))}
-              <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>* Có thể thêm nhiều bệnh, tên bệnh và ngày chẩn đoán là bắt buộc</div>
+              <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>可新增多筆病史；疾病名稱與診斷日期為必填。</div>
             </div>
             <button type="submit" disabled={submitting}
               style={{ marginTop: 10, background: submitting ? '#a7f3d0' : '#10b981', color: '#fff', padding: '12px 0', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 18, cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)' }}>
-              {submitting ? "Đang tạo..." : "Tạo hồ sơ"}
+              {submitting ? "建立中..." : "建立健康資料"}
             </button>
           </form>
         </Modal>
@@ -1038,14 +1038,14 @@ const HealthProfile = () => {
 
       {/* New Modal for Adding Medical History */}
       {isAddHistoryModalOpen && (
-        <Modal isOpen={isAddHistoryModalOpen} onClose={handleCloseAddHistoryModal} title={`Thêm tiền sử bệnh cho ${studentForHistory?.fullName || ''}`}>
+        <Modal isOpen={isAddHistoryModalOpen} onClose={handleCloseAddHistoryModal} title={`新增既往病史－${studentForHistory?.fullName || ''}`}>
           <form onSubmit={handleAddMedicalHistorySubmit} style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 16, minWidth: 450 }}>
             <div style={{ padding: '12px', background: '#e0f7fa', borderRadius: 8 }}>
               {newMedicalHistories.map((mh, idx) => (
                 <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
                   <input
                     name="diseaseName"
-                    placeholder="Tên bệnh *"
+                    placeholder="疾病名稱 *"
                     value={mh.diseaseName}
                     onChange={e => handleNewMedicalHistoryChange(idx, e)}
                     required
@@ -1053,7 +1053,7 @@ const HealthProfile = () => {
                   />
                   <input
                     name="note"
-                    placeholder="Ghi chú"
+                    placeholder="備註"
                     value={mh.note}
                     onChange={e => handleNewMedicalHistoryChange(idx, e)}
                     style={{ flex: 2, minWidth: 100, padding: '8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 15 }}
@@ -1072,11 +1072,11 @@ const HealthProfile = () => {
                   )}
                 </div>
               ))}
-              <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>* Có thể thêm nhiều bệnh, tên bệnh và ngày chẩn đoán là bắt buộc</div>
+              <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>可新增多筆病史；疾病名稱與診斷日期為必填。</div>
             </div>
             <button type="submit" disabled={submitting}
               style={{ marginTop: 10, background: submitting ? '#a7f3d0' : '#10b981', color: '#fff', padding: '12px 0', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 18, cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)' }}>
-              {submitting ? "Đang lưu..." : "Lưu thay đổi"}
+              {submitting ? "儲存中..." : "儲存變更"}
             </button>
           </form>
         </Modal>
