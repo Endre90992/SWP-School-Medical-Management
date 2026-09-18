@@ -1,95 +1,63 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-
-import { Home, Users, ClipboardList, Rss, Flag, LogOut, Menu, Bell, ClipboardPlus, User } from "lucide-react";
-
-import { Home, Home as Home2, Users, Rss, Bell, LogOut, Menu, User, Globe } from "lucide-react";
-
-
-import { Home, Home as Home2, Users, Rss, Bell, LogOut, Menu, User, Globe } from "lucide-react";
-
-
-import { Home, Users, Rss, Bell, LogOut, Menu, User, LayoutDashboard } from "lucide-react";
-
-import style from "./Sidebar.module.css";
+import { Bell, Home, LogOut, Menu, Rss, User, Users } from "lucide-react";
 import { jwtDecode } from "jwt-decode";
+import style from "./Sidebar.module.css";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
-  const navigate = useNavigate();
   const [username, setUsername] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        const name = decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"];
-        setUsername(name);
-      } catch {
-        setUsername("");
-      }
+    if (!token) return;
+    try {
+      const decoded = jwtDecode(token);
+      setUsername(
+        decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] ||
+          localStorage.getItem("fullname") ||
+          ""
+      );
+    } catch {
+      setUsername(localStorage.getItem("fullname") || "");
     }
   }, []);
 
-  const toggleSidebar = () => setIsOpen(!isOpen);
+  const logout = () => {
+    localStorage.clear();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <aside className={`${style.sbSidebar} ${isOpen ? style.expanded : style.collapsed}`}>
       {isOpen && (
         <div className={style.profileBox}>
-          <div className={style.avatar}>
-            <User size={18} stroke="#20b2aa" />
-          </div>
-          <div className={style.profileName}>{username || "Người dùng"}</div>
+          <div className={style.avatar}><User size={18} stroke="#20b2aa" /></div>
+          <div className={style.profileName}>{username || "本機管理者"}</div>
         </div>
       )}
-      <div className={style.navItem} onClick={toggleSidebar}>
+
+      <button type="button" className={style.navItem} onClick={() => setIsOpen((v) => !v)}>
         <Menu size={20} />
-        {isOpen && <span className={style.systemName}>EduHealth</span>}
-      </div>
+        {isOpen && <span className={style.systemName}>EduHealth 本機版</span>}
+      </button>
+
       <nav>
-
-        <NavLink to="/" className={({ isActive }) => `${style.navItem} ${isActive ? style.active : ""}`}>
-          <Globe size={20} stroke="#fff" />
-          <span>Trang chủ</span>
-        </NavLink>
         <NavLink to="/manager" className={({ isActive }) => `${style.navItem} ${isActive ? style.active : ""}`}>
-
-        <div
-          className={style.navItem}
-          style={{ cursor: 'pointer' }}
-          onClick={() => navigate('/')}
-        >
-
-          <Home size={20} />
-          <span>Trang chủ</span>
-        </div>
-        <NavLink to="/manager" className={({ isActive }) => `${style.navItem} ${isActive ? style.active : ""}`}>
-          <LayoutDashboard size={20} />
-          <span>Bảng điều khiển</span>
+          <Home size={20} /><span>管理首頁</span>
         </NavLink>
         <NavLink to="/users" className={({ isActive }) => `${style.navItem} ${isActive ? style.active : ""}`}>
-          <Users size={20} />
-          <span>Quản lý người dùng</span>
+          <Users size={20} /><span>使用者管理</span>
         </NavLink>
         <NavLink to="/manager/blog" className={({ isActive }) => `${style.navItem} ${isActive ? style.active : ""}`}>
-          <Rss size={20} />
-          <span>Quản lý Blog</span>
+          <Rss size={20} /><span>健康資訊管理</span>
         </NavLink>
         <NavLink to="/sendnotifications" className={({ isActive }) => `${style.navItem} ${isActive ? style.active : ""}`}>
-          <Bell size={20} />
-          <span>Gửi thông báo</span>
+          <Bell size={20} /><span>通知管理</span>
         </NavLink>
-        <button
-          className={`${style.navItem} ${style.logoutButton}`}
-          onClick={() => {
-            localStorage.clear();
-            navigate("/");
-          }}
-        >
-          <LogOut size={20} stroke="#fff" />
-          <span>Đăng xuất</span>
+        <button type="button" className={`${style.navItem} ${style.logoutButton}`} onClick={logout}>
+          <LogOut size={20} /><span>登出</span>
         </button>
       </nav>
     </aside>

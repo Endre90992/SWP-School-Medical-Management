@@ -673,7 +673,7 @@ namespace SchoolMedicalManagement.Service.Implement
                     return new BaseResponse
                     {
                         Status = StatusCodes.Status400BadRequest.ToString(),
-                        Message = "Không thể chuyển trạng thái sang 'Đang diễn ra' vì chưa có phiếu đồng ý nào được phê duyệt",
+                        Message = "Không thể chuyển trạng thái sang '進行中' vì chưa có phiếu đồng ý nào được phê duyệt",
                         Data = null
                     };
                 }
@@ -732,7 +732,7 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status400BadRequest.ToString(),
-                    Message = "Chỉ chiến dịch với trạng thái 'Đang diễn ra' có thể bị hủy kích hoạt",
+                    Message = "Chỉ chiến dịch với trạng thái '進行中' có thể bị hủy kích hoạt",
                     Data = null
                 };
             }
@@ -796,7 +796,7 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status400BadRequest.ToString(),
-                    Message = "Chỉ chiến dịch với trạng thái 'Đã hoàn thành' có thể được kích hoạt",
+                    Message = "Chỉ chiến dịch với trạng thái '已完成' có thể được kích hoạt",
                     Data = null
                 };
             }
@@ -898,11 +898,11 @@ namespace SchoolMedicalManagement.Service.Implement
 
             var statusName = status.Value switch
             {
-                1 => "Chưa bắt đầu",
-                2 => "Đang diễn ra",
-                3 => "Đã hoàn thành",
-                4 => "Đã huỷ",
-                _ => "Không xác định"
+                1 => "尚未開始",
+                2 => "進行中",
+                3 => "已完成",
+                4 => "已取消",
+                _ => "未知狀態"
             };
 
             return new BaseResponse

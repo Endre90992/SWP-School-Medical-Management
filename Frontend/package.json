@@ -1,14 +1,13 @@
 {
-  "name": "frontend",
+  "name": "eduhealth-local-tw-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:cors": "vite --host",
+    "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",

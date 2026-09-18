@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { FiHeart, FiShield, FiAlertTriangle, FiInbox, FiSearch } from 'react-icons/fi';
 
 // Constants
-const API_BASE_URL = "https://swp-school-medical-management.onrender.com/api";
+const API_BASE_URL = "http://127.0.0.1:5080/api";
 const FILTERS = {
   ALL: "all",
   HEALTH: "health",
@@ -19,8 +19,8 @@ const FILTERS = {
 // Error messages
 const ERROR_MESSAGES = {
   FETCH_STUDENTS_FAILED: "Lỗi khi tải danh sách học sinh",
-  FETCH_DATA_FAILED: "Đã xảy ra lỗi khi tải dữ liệu",
-  NO_STUDENTS_LINKED: "Tài khoản của bạn chưa được liên kết với học sinh nào. Vui lòng liên hệ nhà trường để được hỗ trợ.",
+  FETCH_DATA_FAILED: "載入資料時發生錯誤",
+  NO_STUDENTS_LINKED: "此帳號尚未連結學生資料，請由健康中心管理者確認。",
 };
 
 // API endpoints
@@ -48,7 +48,7 @@ const ChildCareHistory = () => {
 
   // Utility functions
   const formatDate = useCallback((dateStr) => {
-    if (!dateStr) return "Chưa có ngày";
+    if (!dateStr) return "尚無日期";
     return dayjs(dateStr).format("DD/MM/YYYY HH:mm");
   }, []);
 
@@ -210,10 +210,10 @@ const ChildCareHistory = () => {
         details = (
           <div className={styles.healthDetailsContainer}>
             <div className={styles.healthSection}>
-              <h4 className={styles.sectionTitle}>Chỉ số cơ thể</h4>
+              <h4 className={styles.sectionTitle}>身體指標</h4>
               <div className={styles.metricsGrid}>
                 <span><strong>Chiều cao:</strong> {item.height} cm</span>
-                <span><strong>Cân nặng:</strong> {item.weight} kg</span>
+                <span><strong>體重：</strong> {item.weight} kg</span>
                 <span><strong>BMI:</strong> {item.bmi}</span>
                 <span><strong>Huyết áp:</strong> {item.bloodPressure}</span>
                 <span><strong>Nhịp tim:</strong> {item.heartRate}</span>
@@ -221,11 +221,11 @@ const ChildCareHistory = () => {
             </div>
             
             <div className={styles.healthSection}>
-              <h4 className={styles.sectionTitle}>Kết quả khám chuyên khoa</h4>
+              <h4 className={styles.sectionTitle}>專科檢查結果</h4>
               <div className={styles.specialistGrid}>
                 <p><strong>Mắt:</strong> {item.visionSummary}</p>
                 <p><strong>Tai-Mũi-Họng:</strong> {item.ent} {item.entNotes && `(${item.entNotes})`}</p>
-                <p><strong>Răng-Hàm-Mặt:</strong> {item.mouth}, Sâu răng: {item.toothDecay} {item.toothNotes && `(${item.toothNotes})`}</p>
+                <p><strong>口腔牙科：</strong> {item.mouth}, 齲齒： {item.toothDecay} {item.toothNotes && `(${item.toothNotes})`}</p>
                 <p><strong>Họng:</strong> {item.throat}</p>
               </div>
             </div>
@@ -240,14 +240,14 @@ const ChildCareHistory = () => {
         break;
       case FILTERS.VACCINE:
         icon = <FiShield />;
-        tag = 'Tiêm chủng';
+        tag = '預防接種';
         tagStyle = styles.tagConsent;
         iconStyle = styles.iconVaccine;
         title = item.campaignName;
         details = (
           <>
-            <p><strong>Kết quả:</strong> {item.result || "Chưa có"}</p>
-            <p><strong>Ghi chú:</strong> {item.followUpNote || "Không có"}</p>
+            <p><strong>結果：</strong> {item.result || "尚無"}</p>
+            <p><strong>備註：</strong> {item.followUpNote || "無"}</p>
           </>
         );
         break;
@@ -259,10 +259,10 @@ const ChildCareHistory = () => {
         title = item.eventType;
         details = (
           <>
-            <p><strong>Mức độ:</strong> {item.severityLevelName}</p>
-            <p><strong>Mô tả:</strong> {item.description}</p>
-            <p><strong>Ghi chú của điều dưỡng:</strong> {item.notes}</p>
-            <p><strong>Người xử lý:</strong> {item.handledByName}</p>
+            <p><strong>嚴重程度：</strong> {item.severityLevelName}</p>
+            <p><strong>說明：</strong> {item.description}</p>
+            <p><strong>護理備註：</strong> {item.notes}</p>
+            <p><strong>處理人員：</strong> {item.handledByName}</p>
           </>
         );
         break;
@@ -305,9 +305,9 @@ const ChildCareHistory = () => {
         <main className={styles.content}>
           <div className={styles.pageWrapper}>
             <header className={styles.header}>
-              <h2 className={styles.title}>Lịch Sử Chăm Sóc Sức Khỏe</h2>
+              <h2 className={styles.title}>健康照護紀錄</h2>
             </header>
-            {renderEmptyState("Chưa có liên kết học sinh", ERROR_MESSAGES.NO_STUDENTS_LINKED)}
+            {renderEmptyState("尚未連結學生", ERROR_MESSAGES.NO_STUDENTS_LINKED)}
           </div>
         </main>
       </div>
@@ -325,7 +325,7 @@ const ChildCareHistory = () => {
       <div className={styles.content}>
         <div className={styles.pageWrapper}>
           <header className={styles.header}>
-            <h2 className={styles.title}>Lịch Sử Chăm Sóc Sức Khỏe</h2>
+            <h2 className={styles.title}>健康照護紀錄</h2>
             {students.length > 0 && (
               <div className={styles.studentSelector}>
                 <select id="student-select" value={selectedStudentId} onChange={handleStudentChange}>
@@ -343,11 +343,11 @@ const ChildCareHistory = () => {
             <div className={styles.mainContent}>
               <div className={styles.itemList}>
                 {loading ? (
-                  <p>Đang tải dữ liệu...</p>
+                  <p>資料載入中...</p>
                 ) : combinedAndFilteredItems.length > 0 ? (
                   combinedAndFilteredItems.map(renderItemCard)
                 ) : (
-                  renderEmptyState("Không tìm thấy dữ liệu", "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm của bạn.")
+                  renderEmptyState("查無資料", "請調整篩選條件或搜尋關鍵字。")
                 )}
               </div>
             </div>
@@ -358,7 +358,7 @@ const ChildCareHistory = () => {
                 <div className={styles.searchBox}>
                   <input
                     type="text"
-                    placeholder="Tìm theo tên, ghi chú, ngày..."
+                    placeholder="依姓名、備註或日期搜尋..."
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
                   />
@@ -370,7 +370,7 @@ const ChildCareHistory = () => {
                 <div className={styles.tabList}>
                   <button className={`${styles.tabButton} ${filter === FILTERS.ALL ? styles.active : ""}`} onClick={() => setFilter(FILTERS.ALL)}>Tất cả</button>
                   <button className={`${styles.tabButton} ${filter === FILTERS.HEALTH ? styles.active : ""}`} onClick={() => setFilter(FILTERS.HEALTH)}>Khám sức khỏe</button>
-                  <button className={`${styles.tabButton} ${filter === FILTERS.VACCINE ? styles.active : ""}`} onClick={() => setFilter(FILTERS.VACCINE)}>Tiêm chủng</button>
+                  <button className={`${styles.tabButton} ${filter === FILTERS.VACCINE ? styles.active : ""}`} onClick={() => setFilter(FILTERS.VACCINE)}>預防接種</button>
                   <button className={`${styles.tabButton} ${filter === FILTERS.EVENT ? styles.active : ""}`} onClick={() => setFilter(FILTERS.EVENT)}>Sự cố y tế</button>
                 </div>
               </div>

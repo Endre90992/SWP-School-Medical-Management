@@ -8,17 +8,17 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import UserMenu from "../../components/UserMenu";
 
-const API_BASE_URL = "https://swp-school-medical-management.onrender.com/api";
+const API_BASE_URL = "http://127.0.0.1:5080/api";
 
 const ERROR_MESSAGES = {
-  FETCH_DATA_FAILED: "❌ Lỗi khi tải dữ liệu",
-  FEEDBACK_EMPTY: "❌ Nội dung không được để trống",
-  FEEDBACK_SEND_FAILED: "🚫 Gửi góp ý thất bại",
-  NO_STUDENTS_LINKED: "Tài khoản chưa được liên kết với học sinh nào. Vui lòng liên hệ nhà trường để được hỗ trợ!"
+  FETCH_DATA_FAILED: "載入資料失敗",
+  FEEDBACK_EMPTY: "內容不得空白",
+  FEEDBACK_SEND_FAILED: "送出回覆失敗",
+  NO_STUDENTS_LINKED: "此帳號尚未連結學生，請聯絡學校協助。"
 };
 
 const SUCCESS_MESSAGES = {
-  FEEDBACK_SENT: "Gửi góp ý thành công!"
+  FEEDBACK_SENT: "回覆送出成功。"
 };
 
 const API_ENDPOINTS = {
@@ -90,7 +90,7 @@ const ParentDashboard = () => {
       const loadTime = Date.now() - startTime;
       if (error.name === 'AbortError') {
         console.error(`⏰ Overview request timeout after ${loadTime}ms`);
-        throw new Error("Yêu cầu quá thời gian chờ. Vui lòng thử lại.");
+        throw new Error("要求逾時，請再試一次。");
       }
       console.error(`❌ Overview failed after ${loadTime}ms:`, error);
       throw error;
@@ -100,7 +100,7 @@ const ParentDashboard = () => {
   const fetchStudents = useCallback(async () => {
     if (!parentId) {
       console.error("❌ No parentId found");
-      throw new Error("Không tìm thấy thông tin phụ huynh");
+      throw new Error("找不到家長資料");
     }
 
     const startTime = Date.now();
@@ -128,7 +128,7 @@ const ParentDashboard = () => {
       const loadTime = Date.now() - startTime;
       if (error.name === 'AbortError') {
         console.error(`⏰ Students request timeout after ${loadTime}ms`);
-        throw new Error("Yêu cầu quá thời gian chờ. Vui lòng thử lại.");
+        throw new Error("要求逾時，請再試一次。");
       }
 
       if (error.response && error.response.status === 404) {
@@ -147,7 +147,7 @@ const ParentDashboard = () => {
     if (!parentId) return [];
     try {
       const res = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/Dashboard/parent/${parentId}`
+        `http://127.0.0.1:5080/api/Dashboard/parent/${parentId}`
       );
       const notifications = res.data?.data?.recentNotifications || [];
       setHealthNotifications(notifications);
@@ -181,7 +181,7 @@ const ParentDashboard = () => {
 
       if (studentResult.status === 'rejected') {
         console.error("❌ Students fetch failed:", studentResult.reason);
-        setDataError(`Không thể tải danh sách học sinh: ${studentResult.reason.message}`);
+        setDataError(`無法載入學生名單：${studentResult.reason.message}`);
       } else if (studentResult.value && studentResult.value.length === 0) {
         console.log("👨‍👩‍👧‍👦 No students linked - this is normal for empty state");
       }
@@ -189,8 +189,8 @@ const ParentDashboard = () => {
       if (overviewResult.status === 'rejected') {
         console.error("❌ Overview fetch failed:", overviewResult.reason);
         setDataError(prev => prev ?
-          `${prev} và dữ liệu tổng quan: ${overviewResult.reason.message}` :
-          `Không thể tải dữ liệu tổng quan: ${overviewResult.reason.message}`
+          `${prev}；總覽資料：${overviewResult.reason.message}` :
+          `無法載入總覽資料：${overviewResult.reason.message}`
         );
       }
       
@@ -205,7 +205,7 @@ const ParentDashboard = () => {
     } catch (error) {
       const totalLoadTime = Date.now() - totalStartTime;
       console.error(`❌ Complete dashboard load failed after ${totalLoadTime}ms:`, error);
-      setDataError("Không thể tải dữ liệu dashboard. Vui lòng thử lại.");
+      setDataError("無法載入家長首頁，請再試一次。");
       toast.error(ERROR_MESSAGES.FETCH_DATA_FAILED);
     } finally {
       setLoading(false);
@@ -257,7 +257,7 @@ const ParentDashboard = () => {
     <div className={styles.loadingOverlay}>
       <div className={styles.customSpinner}>
         <div className={styles.spinnerIcon}></div>
-        <div className={styles.spinnerText}>Đang tải dữ liệu...</div>
+        <div className={styles.spinnerText}>資料載入中...</div>
       </div>
     </div>
   );
@@ -271,8 +271,8 @@ const ParentDashboard = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className={styles.titleGroup}>
               <h1>
-                <span className={styles.textBlack}>Bảng điều khiển</span>
-                <span className={styles.textAccent}> Phụ huynh</span>
+                <span className={styles.textBlack}>家長</span>
+                <span className={styles.textAccent}>首頁</span>
               </h1>
             </div>
             <UserMenu />
@@ -292,7 +292,7 @@ const ParentDashboard = () => {
             margin: '2rem'
           }}>
             <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>❌</div>
-            <h3 style={{ color: '#d97706', marginBottom: '1rem' }}>Có lỗi xảy ra</h3>
+            <h3 style={{ color: '#d97706', marginBottom: '1rem' }}>發生錯誤</h3>
             <p style={{ color: '#92400e', fontSize: '1.1rem', lineHeight: '1.6' }}>
               {dataError}
             </p>
@@ -310,7 +310,7 @@ const ParentDashboard = () => {
                 fontWeight: '500'
               }}
             >
-              Thử lại
+              重新載入
             </button>
 
           </div>
@@ -350,7 +350,7 @@ const ParentDashboard = () => {
               marginBottom: '16px',
               lineHeight: '1.3'
             }}>
-              Chưa có liên kết học sinh
+              尚未連結學生
             </h2>
 
             <p style={{
@@ -360,7 +360,7 @@ const ParentDashboard = () => {
               maxWidth: '500px',
               marginBottom: '32px'
             }}>
-              Tài khoản của bạn chưa được liên kết với học sinh nào. Vui lòng liên hệ nhà trường để được hỗ trợ liên kết với con em mình.
+              此帳號尚未連結學生，請聯絡學校協助設定。
             </p>
 
             <div style={{
@@ -378,7 +378,7 @@ const ParentDashboard = () => {
                 marginBottom: '16px',
                 textAlign: 'center'
               }}>
-                Các bước để sử dụng hệ thống:
+                如需使用家長功能：
               </h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -397,7 +397,7 @@ const ParentDashboard = () => {
                     flexShrink: 0
                   }}>1</div>
                   <span style={{ color: '#475569', fontSize: '15px' }}>
-                    Liên hệ với nhà trường qua số điện thoại hoặc email
+                    聯絡學校健康中心
                   </span>
                 </div>
 
@@ -416,7 +416,7 @@ const ParentDashboard = () => {
                     flexShrink: 0
                   }}>2</div>
                   <span style={{ color: '#475569', fontSize: '15px' }}>
-                    Cung cấp thông tin cá nhân và thông tin con em
+                    提供學生與聯絡人資料
                   </span>
                 </div>
 
@@ -435,7 +435,7 @@ const ParentDashboard = () => {
                     flexShrink: 0
                   }}>3</div>
                   <span style={{ color: '#475569', fontSize: '15px' }}>
-                    Đợi nhà trường xác nhận và liên kết tài khoản
+                    由學校確認並完成帳號連結
                   </span>
                 </div>
               </div>
@@ -454,7 +454,7 @@ const ParentDashboard = () => {
                 fontWeight: '500',
                 margin: 0
               }}>
-                💡 Sau khi liên kết thành công, bạn sẽ có thể sử dụng đầy đủ các tính năng của hệ thống.
+                完成連結後即可查看學生健康相關資料。
               </p>
             </div>
           </div>
@@ -465,13 +465,13 @@ const ParentDashboard = () => {
 
   const renderSummaryCards = () => {
     const pendingMedicationCount = myMedicationRequests.filter(
-      (req) => req.status === "Chờ duyệt"
+      (req) => req.status === "待審核"
     ).length;
 
     const summaryData = [
       {
         value: myStudents.length,
-        label: "Số con đang học",
+        label: "已連結學生",
         unit: "con",
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -480,8 +480,8 @@ const ParentDashboard = () => {
       },
       {
         value: myMedicalEvents.length,
-        label: "Sự kiện y tế gần đây",
-        unit: "sự kiện",
+        label: "近期傷病紀錄",
+        unit: "筆",
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
         ),
@@ -489,8 +489,8 @@ const ParentDashboard = () => {
       },
       {
         value: pendingMedicationCount,
-        label: "Yêu cầu thuốc",
-        unit: "chờ xử lý",
+        label: "用藥申請",
+        unit: "待處理",
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12,2a10,10,0,0,0-10,10,10,10,0,0,0,10,10h0a10,10,0,0,0,10-10,10,10,0,0,0-10-10Z"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         ),
@@ -516,8 +516,8 @@ const ParentDashboard = () => {
 
   const renderStudentInfo = () => (
     <div className={styles.contentCard}>
-      <h3 className={styles.cardTitle}>Thông tin con em</h3>
-      <p className={styles.cardSubtitle}>Tổng quan về các con đang học</p>
+      <h3 className={styles.cardTitle}>學生資料</h3>
+      <p className={styles.cardSubtitle}>已連結學生的基本資料</p>
       <div className={styles.studentList}>
         {myStudents.map((student, index) => (
           <div key={index} className={styles.studentItem}>
@@ -526,11 +526,11 @@ const ParentDashboard = () => {
             </div>
             <div className={styles.studentDetails}>
               <strong>{student.fullName}</strong>
-              <p>Lớp {student.className} <span>|</span> {formatDateTime(student.dateOfBirth)}</p>
+              <p>班級 {student.className} <span>|</span> {formatDateTime(student.dateOfBirth)}</p>
             </div>
-            {/* Assumption: student.healthStatus exists. Values: "Tốt", "Bình thường" */}
-            <span className={`${styles.statusBadge} ${student.healthStatus === 'Tốt' ? styles.statusGood : styles.statusNormal}`}>
-              {student.healthStatus || 'Bình thường'}
+            {/* Assumption: student.healthStatus exists. Values: "良好", "一般" */}
+            <span className={`${styles.statusBadge} ${student.healthStatus === '良好' ? styles.statusGood : styles.statusNormal}`}>
+              {student.healthStatus || '一般'}
             </span>
           </div>
         ))}
@@ -539,28 +539,28 @@ const ParentDashboard = () => {
   );
 
   const getEventVisuals = (eventType) => {
-    if (eventType?.toLowerCase().includes("khám")) {
-      return { icon: '🩺', status: 'Hoàn thành', color: 'green' };
+    if (eventType?.toLowerCase().includes("健檢")) {
+      return { icon: '🩺', status: '已完成', color: 'green' };
     }
-    if (eventType?.toLowerCase().includes("sốt")) {
-      return { icon: '🌡️', status: 'Theo dõi', color: 'orange' };
+    if (eventType?.toLowerCase().includes("發燒")) {
+      return { icon: '🌡️', status: '追蹤中', color: 'orange' };
     }
-    if (eventType?.toLowerCase().includes("tiêm") || eventType?.toLowerCase().includes("vaccine")) {
-      return { icon: '❤️', status: 'Hoàn thành', color: 'green' };
+    if (eventType?.toLowerCase().includes("接種") || eventType?.toLowerCase().includes("vaccine")) {
+      return { icon: '❤️', status: '已完成', color: 'green' };
     }
-    if (eventType?.toLowerCase().includes("trầy xước")) {
-      return { icon: '🩹', status: 'Đã xử lý', color: 'blue' };
+    if (eventType?.toLowerCase().includes("擦傷")) {
+      return { icon: '🩹', status: '已處理', color: 'blue' };
     }
-    if (eventType?.toLowerCase().includes("thị lực")) {
-      return { icon: '👁️', status: 'Hoàn thành', color: 'green' };
+    if (eventType?.toLowerCase().includes("視力")) {
+      return { icon: '👁️', status: '已完成', color: 'green' };
     }
-    return { icon: '❤️‍🩹', status: 'Đã xử lý', color: 'blue' };
+    return { icon: '❤️‍🩹', status: '已處理', color: 'blue' };
   };
 
   const renderMedicalEvents = () => (
     <div className={styles.contentCard}>
-      <h3 className={styles.cardTitle}>Sự kiện y tế gần đây</h3>
-      <p className={styles.cardSubtitle}>5 sự kiện y tế mới nhất của con em</p>
+      <h3 className={styles.cardTitle}>近期傷病紀錄</h3>
+      <p className={styles.cardSubtitle}>5 筆 y tế mới nhất của con em</p>
       <div className={styles.eventList}>
         {myMedicalEvents.slice(0, 5).map((event, index) => {
           const visuals = getEventVisuals(event.eventType);
@@ -569,7 +569,7 @@ const ParentDashboard = () => {
               <div className={`${styles.eventIcon} ${styles[visuals.color]}`}>{visuals.icon}</div>
               <div className={styles.eventDetails}>
                 <strong>{event.eventType}</strong>
-                <p>{event.studentName}<span>|</span>{event.severity || 'Bình thường'}</p>
+                <p>{event.studentName}<span>|</span>{event.severity || '一般'}</p>
                 <span>{formatDateTime(event.eventDate, "DD/MM/YYYY - HH:mm")}</span>
               </div>
               <span className={`${styles.statusBadge} ${styles['status' + visuals.status.replace(/\s/g, '')]}`}>
@@ -584,18 +584,18 @@ const ParentDashboard = () => {
   
   const getMedicationStatus = (status) => {
     switch (status) {
-      case "Đã duyệt": return { text: "Đã duyệt", className: styles.statusApproved };
-      case "Chờ duyệt": return { text: "Chờ duyệt", className: styles.statusPending };
-      case "Bị từ chối": return { text: "Từ chối", className: styles.statusRejected };
-      case "Đã hoàn thành": return { text: "Hoàn thành", className: styles.statusCompleted };
+      case "已核准": return { text: "已核准", className: styles.statusApproved };
+      case "待審核": return { text: "待審核", className: styles.statusPending };
+      case "已拒絕": return { text: "Từ chối", className: styles.statusRejected };
+      case "已完成": return { text: "已完成", className: styles.statusCompleted };
       default: return { text: status, className: styles.statusNormal };
     }
   };
 
   const renderMedicationRequests = () => (
     <div className={styles.contentCard}>
-      <h3 className={styles.cardTitle}>Yêu cầu thuốc</h3>
-      <p className={styles.cardSubtitle}>Các yêu cầu thuốc đang chờ duyệt</p>
+      <h3 className={styles.cardTitle}>用藥申請</h3>
+      <p className={styles.cardSubtitle}>待審核的用藥申請</p>
       <div className={styles.medicationList}>
         {myMedicationRequests.slice(0, 5).map((req, index) => {
           const status = getMedicationStatus(req.status);
@@ -622,18 +622,18 @@ const ParentDashboard = () => {
   const getNotificationVisuals = (notification) => {
     const title = notification.title?.toLowerCase();
     if (title.includes('nghỉ')) {
-        return { icon: '⚠️', tag: 'Quan trọng', color: 'red' };
+        return { icon: '⚠️', tag: '重要', color: 'red' };
     }
     if (title.includes('họp')) {
-        return { icon: 'ℹ️', tag: 'Thông tin', color: 'blue' };
+        return { icon: 'ℹ️', tag: '資訊', color: 'blue' };
     }
-    return { icon: '🔔', tag: 'Thông báo', color: 'gray' };
+    return { icon: '🔔', tag: '通知', color: 'gray' };
   };
 
   const renderSchoolAnnouncements = () => (
       <div className={styles.contentCard}>
-          <h3 className={styles.cardTitle}>Thông báo từ trường</h3>
-          <p className={styles.cardSubtitle}>3 thông báo quan trọng mới nhất</p>
+          <h3 className={styles.cardTitle}>學校通知</h3>
+          <p className={styles.cardSubtitle}>最近 3 則通知</p>
           <div className={styles.announcementList}>
               {healthNotifications.slice(0, 3).map((noti, index) => {
                   const visuals = getNotificationVisuals(noti);
@@ -660,10 +660,10 @@ const ParentDashboard = () => {
     return (
       <div className={styles.feedbackOverlay}>
         <div className={styles.feedbackModal}>
-          <h3>Góp ý cho trường</h3>
+          <h3>回覆學校</h3>
           <textarea
             rows="5"
-            placeholder="Nhập ý kiến của bạn..."
+            placeholder="輸入回覆內容..."
             value={feedbackContent}
             onChange={(e) => setFeedbackContent(e.target.value)}
           />
@@ -672,9 +672,9 @@ const ParentDashboard = () => {
               onClick={handleSubmitFeedback}
               disabled={feedbackLoading || !feedbackContent.trim()}
             >
-              {feedbackLoading ? "Đang gửi..." : "Gửi"}
+              {feedbackLoading ? "送出中..." : "送出"}
             </button>
-            <button onClick={handleCloseFeedbackForm}>Hủy</button>
+            <button onClick={handleCloseFeedbackForm}>取消</button>
           </div>
         </div>
       </div>
@@ -687,7 +687,7 @@ const ParentDashboard = () => {
   const renderHeader = () => (
     <div className={styles.header}>
       <h1 className={styles.headerTitle}>Dashboard</h1>
-      <p className={styles.welcomeMessage}>Chào mừng trở lại, phụ huynh của {myStudents[0]?.fullName || 'học sinh'}!</p>
+      <p className={styles.welcomeMessage}>歡迎回來，{myStudents[0]?.fullName || '學生'}!</p>
     </div>
   );
 

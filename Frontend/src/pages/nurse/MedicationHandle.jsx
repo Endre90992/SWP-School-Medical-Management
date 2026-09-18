@@ -41,14 +41,14 @@ const MedicationHandle = () => {
     setLoading(true);
     try {
       const res = await axios.get(
-        "https://swp-school-medical-management.onrender.com/api/MedicationRequest/all"
+        "http://127.0.0.1:5080/api/MedicationRequest/all"
       );
       const all = Array.isArray(res.data?.data) ? res.data.data : [];
-      setPendingRequests(all.filter((item) => item.status === "Chờ duyệt"));
-      setApprovedRequests(all.filter((item) => item.status === "Đã duyệt"));
-      setScheduledRequests(all.filter((item) => item.status === "Đã lên lịch"));
-      setGivenRequests(all.filter((item) => item.status === "Đã hoàn thành"));
-      setRejectedRequests(all.filter((item) => item.status === "Bị từ chối"));
+      setPendingRequests(all.filter((item) => item.status === "待審核"));
+      setApprovedRequests(all.filter((item) => item.status === "已核准"));
+      setScheduledRequests(all.filter((item) => item.status === "已排程"));
+      setGivenRequests(all.filter((item) => item.status === "已完成"));
+      setRejectedRequests(all.filter((item) => item.status === "已拒絕"));
       return all;
     } catch (error) {
       console.error("Lỗi khi lấy dữ liệu:", error);
@@ -68,12 +68,12 @@ const MedicationHandle = () => {
     const token = localStorage.getItem("token");
 
     if (!nurseID) {
-      notifyError("Không tìm thấy thông tin y tá. Vui lòng đăng nhập lại.");
+      notifyError("找不到護理師登入資料，請重新登入。");
       return;
     }
 
     if (!requestID || isNaN(requestID) || nurseID.length < 10) {
-      notifyError("Thiếu hoặc sai requestID/nurseID!");
+      notifyError("用藥申請或護理師資料不完整。");
       return;
     }
 
@@ -86,45 +86,45 @@ const MedicationHandle = () => {
 
     try {
       await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/MedicationRequest/handle",
+        "http://127.0.0.1:5080/api/MedicationRequest/handle",
         payload,
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       updateLastAction(requestID);
       // ✅ Chỉ hiển thị thành công dựa trên kết quả POST
       notifySuccess(
-        statusId === 2 ? "✅ Đã xác nhận yêu cầu!" : "🚫 Đã từ chối yêu cầu!"
+        statusId === 2 ? "用藥申請已核准。" : "用藥申請已拒絕。"
       );
 
       // 🔄 Sau đó cập nhật danh sách (không kiểm tra trạng thái)
       await fetchRequests();
     } catch (error) {
       console.error("Chi tiết lỗi:", error.response?.data || error.message);
-      notifyError("❌ Xử lý yêu cầu thất bại. Vui lòng thử lại sau.");
+      notifyError("處理用藥申請失敗，請稍後再試。");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Hàm cập nhật trạng thái sang 'Đã lên lịch'
+  // Hàm cập nhật trạng thái sang '已排程'
   const handleSchedule = async (requestID) => {
     const token = localStorage.getItem("token");
     const nurseID = localStorage.getItem("userId");
     setSubmitting(true);
-    const payload = { statusId: 4, nurseId: nurseID }; // 4: Đã lên lịch, gửi kèm nurseId
+    const payload = { statusId: 4, nurseId: nurseID }; // 4: 已排程, gửi kèm nurseId
     try {
       await axios.put(
-        `https://swp-school-medical-management.onrender.com/api/MedicationRequest/${requestID}/status`,
+        `http://127.0.0.1:5080/api/MedicationRequest/${requestID}/status`,
         payload,
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       updateLastAction(requestID);
-      notifySuccess("Đã lên lịch cho đơn thuốc!");
+      notifySuccess("用藥申請已排程！");
       await fetchRequests();
       setApprovedPage(1);
     } catch (error) {
       console.error("Chi tiết lỗi:", error.response?.data || error.message);
-      notifyError("Cập nhật thất bại. Vui lòng thử lại sau.");
+      notifyError("更新失敗，請稍後再試。");
     } finally {
       setSubmitting(false);
     }
@@ -134,20 +134,20 @@ const MedicationHandle = () => {
   const handleMarkAsGivenFromSchedule = async (requestID) => {
     const token = localStorage.getItem("token");
     setSubmitting(true);
-    const payload = { statusId: 5 }; // 5: Đã hoàn thành
+    const payload = { statusId: 5 }; // 5: 已完成
     try {
       await axios.put(
-        `https://swp-school-medical-management.onrender.com/api/MedicationRequest/${requestID}/status`,
+        `http://127.0.0.1:5080/api/MedicationRequest/${requestID}/status`,
         payload,
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       updateLastAction(requestID);
-      notifySuccess("Cập nhật trạng thái 'Đã cho uống' thành công!");
+      notifySuccess("已更新為『已完成用藥』！");
       await fetchRequests();
       setScheduledPage(1);
     } catch (error) {
       console.error("Chi tiết lỗi:", error.response?.data || error.message);
-      notifyError("Cập nhật thất bại. Vui lòng thử lại sau.");
+      notifyError("更新失敗，請稍後再試。");
     } finally {
       setSubmitting(false);
     }
@@ -178,11 +178,11 @@ const MedicationHandle = () => {
   };
 
   const tabList = [
-    { key: "pending", label: "Chờ duyệt" },
-    { key: "approved", label: "Đã duyệt" },
-    { key: "scheduled", label: "Lên lịch" },
-    { key: "rejected", label: "Từ chối" },
-    { key: "given", label: "Đã cho thuốc" },
+    { key: "pending", label: "待審核" },
+    { key: "approved", label: "已核准" },
+    { key: "scheduled", label: "已排程" },
+    { key: "rejected", label: "拒絕" },
+    { key: "given", label: "已給藥" },
   ];
   const [activeTab, setActiveTab] = useState("pending");
 
@@ -209,18 +209,18 @@ const MedicationHandle = () => {
   // Badge màu cho trạng thái
   const statusBadge = (status) => {
     switch (status) {
-      case "Chờ duyệt":
-        return <span className={style.badgePending}>Chờ duyệt</span>;
-      case "Đã duyệt":
-        return <span className={style.badgeApproved}>Đã duyệt</span>;
-      case "Lên lịch":
-      case "Đã lên lịch":
-        return <span className={style.badgeScheduled}>Đã lên lịch</span>;
-      case "Đã hoàn thành":
-      case "Đã cho thuốc":
-        return <span className={style.badgeGiven}>Đã cho thuốc</span>;
-      case "Bị từ chối":
-        return <span className={style.badgeRejected}>Từ chối</span>;
+      case "待審核":
+        return <span className={style.badgePending}>待審核</span>;
+      case "已核准":
+        return <span className={style.badgeApproved}>已核准</span>;
+      case "已排程":
+      case "已排程":
+        return <span className={style.badgeScheduled}>已排程</span>;
+      case "已完成":
+      case "已給藥":
+        return <span className={style.badgeGiven}>已給藥</span>;
+      case "已拒絕":
+        return <span className={style.badgeRejected}>拒絕</span>;
       default:
         return <span>{status}</span>;
     }
@@ -238,25 +238,25 @@ const MedicationHandle = () => {
       </div>
       <div className={style.medCardBody}>
         <div>
-          <b>Tên Thuốc:</b> {req.medicationName}
+          <b>藥物名稱：</b> {req.medicationName}
         </div>
         <div>
-          <b>Liều dùng:</b> {req.dosage}
+          <b>劑量：</b> {req.dosage}
         </div>
         <div>
-          <b>Hướng dẫn:</b> {req.instructions}
+          <b>用藥方式：</b> {req.instructions}
         </div>
         <div>
           <b></b>{" "}
           {req.imagePath ? (
             <img
-              src={`https://swp-school-medical-management.onrender.com${req.imagePath}`}
-              alt="Ảnh thuốc"
+              src={`http://127.0.0.1:5080${req.imagePath}`}
+              alt="藥袋／藥品照片"
               className={style.miniImage}
               onClick={() =>
                 setImageModal({
                   open: true,
-                  url: `https://swp-school-medical-management.onrender.com${req.imagePath}`,
+                  url: `http://127.0.0.1:5080${req.imagePath}`,
                 })
               }
               style={{ cursor: "pointer" }}
@@ -266,21 +266,21 @@ const MedicationHandle = () => {
           )}
         </div>
         <div>
-          <b>Phụ huynh:</b> {req.parentName}{" "}
+          <b>家長／聯絡人：</b> {req.parentName}{" "}
           {req.parentPhone ? `- ${req.parentPhone}` : ""}
         </div>
         <div>
-          <b>Thời gian yêu cầu:</b>{" "}
+          <b>申請時間：</b>{" "}
           {req.requestDate ? new Date(req.requestDate).toLocaleString() : "-"}
         </div>
-        {req.status === "Bị từ chối" && req.rejectReason && (
+        {req.status === "已拒絕" && req.rejectReason && (
           <div className={style.rejectReason}>
-            <b>Lý do từ chối:</b> {req.rejectReason}
+            <b>拒絕原因：</b> {req.rejectReason}
           </div>
         )}
-        {req.status === "Đã cho thuốc" && req.givenNote && (
+        {req.status === "已給藥" && req.givenNote && (
           <div className={style.givenNote}>
-            <b>Ghi chú:</b> {req.givenNote}
+            <b>備註：</b> {req.givenNote}
           </div>
         )}
       </div>
@@ -294,14 +294,14 @@ const MedicationHandle = () => {
                 onClick={() => handleConfirm(req.requestID, 2)}
                 disabled={submitting}
               >
-                Xác nhận
+                核准
               </button>
               <button
                 className={style.rejectBtn}
                 onClick={() => handleConfirm(req.requestID, 3)}
                 disabled={submitting}
               >
-                Từ chối
+                拒絕
               </button>
             </>
           )}
@@ -311,7 +311,7 @@ const MedicationHandle = () => {
               onClick={() => handleSchedule(req.requestID)}
               disabled={submitting}
             >
-              Lên lịch
+              已排程
             </button>
           )}
           {tableType === "scheduled" && (
@@ -320,7 +320,7 @@ const MedicationHandle = () => {
               onClick={() => handleMarkAsGivenFromSchedule(req.requestID)}
               disabled={submitting}
             >
-              Đã cho thuốc
+              已給藥
             </button>
           )}
           {/* Có thể thêm nút Chi tiết nếu muốn */}
@@ -413,7 +413,7 @@ const MedicationHandle = () => {
             <div className={style.customSpinner}>
               <div className={style.spinnerIcon}></div>
               <div className={style.spinnerText}>
-                {loading ? "Đang tải dữ liệu..." : "Đang xử lý..."}
+                {loading ? "資料載入中..." : "處理中..."}
               </div>
             </div>
           </div>
@@ -437,7 +437,7 @@ const MedicationHandle = () => {
           <input
             className={style.searchBar}
             type="text"
-            placeholder="Tìm kiếm theo tên học sinh..."
+            placeholder="依學生姓名搜尋..."
             value={searchName}
             onChange={e => {
               setSearchName(e.target.value);
@@ -454,7 +454,7 @@ const MedicationHandle = () => {
         <div className={style.cardList}>
           {paginatedTabData[activeTab].length === 0 ? (
             <div className={style.emptyMsg}>
-              Không có đơn thuốc nào trong danh sách này
+              此分類目前沒有用藥申請
             </div>
           ) : (
             paginatedTabData[activeTab].map((req) => (
@@ -485,14 +485,14 @@ const MedicationHandle = () => {
           >
             <img
               src={imageModal.url}
-              alt="Ảnh thuốc lớn"
+              alt="藥袋／藥品照片"
               className={style.bigImage}
             />
             <button
               className={style.closeModalBtn}
               onClick={() => setImageModal({ open: false, url: "" })}
             >
-              Đóng
+              關閉
             </button>
 
           </div>

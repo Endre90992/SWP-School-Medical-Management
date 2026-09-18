@@ -1,33 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SchoolMedicalManagement.Models.Entity;
-using SchoolMedicalManagement.Models.Utils;
 using SchoolMedicalManagement.Models.Request;
+using SchoolMedicalManagement.Models.Utils;
 
 namespace SchoolMedicalManagement.Repository.Repository
 {
-    // Repository xử lý dữ liệu liên quan đến User
     public class UserRepository : GenericRepository<User>
     {
         public UserRepository(SwpEduHealV5Context context) : base(context)
         {
         }
 
-        // Đăng nhập: kiểm tra username và mật khẩu đã hash
         public async Task<User?> GetLoginUser(LoginUserRequest loginRequest)
         {
-            return await _context.Users
+            var user = await _context.Users
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u =>
                     u.Username == loginRequest.Username &&
-                    u.Password == HashPassword.HashPasswordd(loginRequest.Password));
+                    u.IsActive == true);
+
+            if (user == null || !HashPassword.VerifyPassword(loginRequest.Password, user.Password))
+                return null;
+
+            // 舊資料若仍使用 SHA-256，登入成功後立即升級成 BCrypt。
+            if (!user.Password.StartsWith("$2", StringComparison.Ordinal))
+            {
+                user.Password = HashPassword.HashPasswordd(loginRequest.Password);
+                await _context.SaveChangesAsync();
+            }
+
+            return user;
         }
 
-        // Lấy danh sách tất cả người dùng (kèm Role)
         public async Task<List<User>> GetAllUser()
         {
             return await _context.Users
@@ -35,7 +39,6 @@ namespace SchoolMedicalManagement.Repository.Repository
                 .ToListAsync();
         }
 
-        // Lấy thông tin chi tiết 1 người dùng theo ID (kèm Role)
         public async Task<User?> GetUserById(Guid id)
         {
             return await _context.Users
@@ -43,7 +46,6 @@ namespace SchoolMedicalManagement.Repository.Repository
                 .FirstOrDefaultAsync(u => u.UserId == id);
         }
 
-        // Lấy người dùng theo Username (dùng để kiểm tra trùng)
         public async Task<User?> GetUserByUsername(string username)
         {
             return await _context.Users
@@ -51,32 +53,25 @@ namespace SchoolMedicalManagement.Repository.Repository
                 .FirstOrDefaultAsync(u => u.Username == username);
         }
 
-        // Tạo người dùng mới → lấy lại thông tin đầy đủ (gồm Role)
         public async Task<User?> CreateUser(User user)
         {
             await CreateAsync(user);
-            return await GetUserById(user.UserId); // đảm bảo có Include Role
+            return await GetUserById(user.UserId);
         }
 
-        // Xóa người dùng nếu tồn tại
         public async Task<bool> HardDeleteUser(Guid id)
         {
             var user = await GetUserById(id);
-            if (user == null)
-            {
-                return false;
-            }
+            if (user == null) return false;
             return await RemoveAsync(user);
         }
 
-        // Cập nhật thông tin người dùng
         public async Task<User?> UpdateUser(User user)
         {
             await UpdateAsync(user);
-            return await GetUserById(user.UserId); // trả lại thông tin mới (gồm Role)
+            return await GetUserById(user.UserId);
         }
 
-        // Lấy user đơn giản theo ID (không Include Role), dùng khi đổi mật khẩu
         public Task<User?> GetUserById(Guid id, ChangePasswordUserRequest request)
         {
             return _context.Users.FirstOrDefaultAsync(u => u.UserId == id);
@@ -85,25 +80,20 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<bool> SoftDeleteUser(Guid id)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == id);
-            if (user == null)
-            {
-                return false;
-            }
-           user.IsActive = false;
-            UpdateAsync(user);
-            return true;
+            if (user == null) return false;
 
+            user.IsActive = false;
+            await UpdateAsync(user);
+            return true;
         }
 
-        // Lấy người dùng theo Email (dùng cho quên mật khẩu, xác thực OTP)
         public async Task<User?> GetUserByEmail(string email)
         {
             return await _context.Users
                 .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Email == email);
+                .FirstOrDefaultAsync(u => u.Email == email && u.IsActive == true);
         }
 
-        // Lấy danh sách VaccinationConsentRequest theo danh sách StudentId
         public async Task<List<VaccinationConsentRequest>> GetConsentRequestsByStudentIds(List<int> studentIds)
         {
             return await _context.VaccinationConsentRequests

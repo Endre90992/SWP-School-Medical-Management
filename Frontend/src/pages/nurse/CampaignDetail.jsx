@@ -33,23 +33,23 @@ const CampaignDetail = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const isChuaBatDau = (status) => status === "Chưa bắt đầu";
-  const isDangDienRa = (status) => status === "Đang diễn ra";
-  const isDaHoanThanh = (status) => status === "Đã hoàn thành";
-  const isDaHuy = (status) => status === "Đã huỷ";
+  const isChuaBatDau = (status) => status === "尚未開始";
+  const isDangDienRa = (status) => status === "進行中";
+  const isDaHoanThanh = (status) => status === "已完成";
+  const isDaHuy = (status) => status === "已取消";
 
   // State cho phạm vi gửi và dữ liệu học sinh/lớp
   const [sendScope, setSendScope] = useState("all"); // "all" hoặc "class"
   const [selectedClasses, setSelectedClasses] = useState([]);
   const [classList, setClassList] = useState([]); // Danh sách lớp
-  const [studentList, setStudentList] = useState([]); // Danh sách học sinh hiển thị
+  const [studentList, setStudentList] = useState([]); // 學生名單 hiển thị
   const [allStudents, setAllStudents] = useState([]); // Toàn bộ học sinh
-  const [autoDeclineAfterDays, setAutoDeclineAfterDays] = useState(1); // Số ngày tự động từ chối
+  const [autoDeclineAfterDays, setAutoDeclineAfterDays] = useState(1); // Số 天 tự động 不同意
 
   useEffect(() => {
     const fetchCampaignDetail = async () => {
       const res = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns`
+        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns`
       );
       const campaignData = res.data.data.find(
         (item) => item.campaignId.toString() === id
@@ -59,7 +59,7 @@ const CampaignDetail = () => {
 
     const fetchConsents = async () => {
       const res = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${id}/consent-requests`
+        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${id}/consent-requests`
       );
       setConsents(res.data.data);
     };
@@ -118,38 +118,38 @@ const CampaignDetail = () => {
 
   // --- VALIDATION HELPER ---
   const isCompletedOrCancelled = (status) =>
-    status === "Đã hoàn thành" || status === "Đã huỷ";
+    status === "已完成" || status === "已取消";
 
   const handleSendConsentToAll = async () => {
     // Validation: Không gửi nếu đã hoàn thành/hủy
     if (isCompletedOrCancelled(campaign.statusName)) {
       notifyError(
-        "Không thể gửi phiếu đồng ý cho chiến dịch đã hoàn thành hoặc huỷ."
+        "活動已完成或取消，無法再建立同意回覆。"
       );
       return;
     }
     try {
       setModalLoading(true);
       if (!campaign || !campaign.campaignId) {
-        notifyError("Không tìm thấy thông tin chiến dịch.");
+        notifyError("找不到接種活動資料。");
         return;
       }
       const res = await axios.post(
-        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${campaign.campaignId}/send-consent-to-all-parents`,
+        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${campaign.campaignId}/send-consent-to-all-parents`,
         null,
         { params: { autoDeclineAfterDays } }
       );
       setSendResult(res.data.data);
-      notifySuccess("Đã gửi thông báo đến cho phụ huynh.");
+      notifySuccess("已建立家長本機通知。");
       setShowModal(true);
       const consentsRes = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${campaign.campaignId}/consent-requests`
+        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${campaign.campaignId}/consent-requests`
       );
       setConsents(consentsRes.data.data);
       // Gửi email cho từng phụ huynh
-      const subject = "Xác nhận tiêm chủng cho con em quý phụ huynh";
+      const subject = "學生預防接種確認";
       const body =
-        "Kính gửi quý phụ huynh, vui lòng xác nhận phiếu tiêm chủng cho con em mình trên hệ thống.";
+        "請家長確認學生本次預防接種意願。";
       const parentIds = [
         ...new Set(allStudents.map((stu) => stu.parentId).filter(Boolean)),
       ];
@@ -157,9 +157,9 @@ const CampaignDetail = () => {
         await sendEmailToParent(parentId, subject, body);
       }
     } catch (err) {
-      console.error("Gửi phiếu xác nhận thất bại:", err, err.response?.data);
+      console.error("建立接種意願確認 thất bại:", err, err.response?.data);
       notifyError(
-        "Không thể gửi phiếu xác nhận: " +
+        "建立接種確認失敗：" +
           (err.response?.data?.message || err.message)
       );
     } finally {
@@ -168,24 +168,24 @@ const CampaignDetail = () => {
   };
 
   const handleStartCampaign = async () => {
-    // Validation: Không có sự đồng ý từ phụ huynh
+    // Validation: Không có sự 同意 từ phụ huynh
     const agreedStudents = consents
-      .filter((c) => c.consentStatusName === "Đồng ý")
+      .filter((c) => c.consentStatusName === "同意")
       .map((c) => parseInt(c.studentId));
     if (agreedStudents.length === 0) {
-      notifyError("Chưa có sự đồng ý từ phụ huynh để tạo hồ sơ tiêm chủng.");
+      notifyError("尚無家長同意資料，無法建立接種紀錄。");
       return;
     }
     try {
       if (!isChuaBatDau(campaign.statusName)) {
         notifyError(
-          "Chỉ chiến dịch ở trạng thái 'Chưa bắt đầu' mới có thể khởi động."
+          "只有「尚未開始」的活動可以開始。"
         );
         return;
       }
 
       await axios.put(
-        "https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns",
+        "http://127.0.0.1:5080/api/VaccinationCampaign/campaigns",
         {
           vaccineName: campaign.vaccineName,
           date: campaign.date,
@@ -196,17 +196,17 @@ const CampaignDetail = () => {
         }
       );
 
-      notifySuccess("Chiến dịch đã được khởi động!");
+      notifySuccess("接種活動已開始。");
       setCampaign((prev) => ({
         ...prev,
-        statusName: "Đang diễn ra",
+        statusName: "進行中",
         statusId: 2,
         totalVaccinationRecords: agreedStudents.length,
       }));
     } catch (err) {
       console.error("Lỗi khi khởi động chiến dịch:", err, err.response?.data);
       notifyError(
-        "Không thể khởi động chiến dịch: " +
+        "無法開始接種活動：" +
           (err.response?.data?.message || err.message)
       );
     }
@@ -219,64 +219,64 @@ const CampaignDetail = () => {
       campaign.totalVaccinationRecords === 0
     ) {
       notifyError(
-        "Không thể hoàn thành chiến dịch vì chưa có bản ghi tiêm chủng nào."
+        "尚無接種紀錄，無法將活動標記為完成。"
       );
       return;
     }
     try {
       await axios.put(
-        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${id}/deactivate`
+        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${id}/deactivate`
       );
-      notifySuccess("Chiến dịch đã được đánh dấu hoàn thành.");
+      notifySuccess("接種活動已標記為完成。");
       setCampaign((prev) => ({
         ...prev,
-        statusName: "Đã hoàn thành",
+        statusName: "已完成",
       }));
     } catch (err) {
       console.error("Lỗi khi đánh dấu hoàn thành:", err);
-      notifyError("Không thể cập nhật trạng thái chiến dịch.");
+      notifyError("無法更新接種活動狀態。");
     }
   };
 
   const exportToExcel = () => {
-    const agreed = consents.filter((c) => c.consentStatusName === "Đồng ý");
-    const rejected = consents.filter((c) => c.consentStatusName === "Từ chối");
+    const agreed = consents.filter((c) => c.consentStatusName === "同意");
+    const rejected = consents.filter((c) => c.consentStatusName === "不同意");
     const pending = consents.filter(
-      (c) => c.consentStatusName === "Chờ xác nhận"
+      (c) => c.consentStatusName === "待回覆"
     );
 
-    // Sheet 1: Tổng quan
+    // Sheet 1: 摘要
     const summarySheet = [
-      ["Tên chiến dịch", campaign.vaccineName],
-      ["Ngày tiêm", campaign.date],
-      ["Tổng số phản hồi", consents.length],
-      ["Số học sinh đồng ý", agreed.length],
-      ["Số học sinh từ chối", rejected.length],
-      ["Chưa phản hồi", pending.length],
+      ["活動名稱", campaign.vaccineName],
+      ["接種日期", campaign.date],
+      ["回覆總數", consents.length],
+      ["同意人數", agreed.length],
+      ["不同意人數", rejected.length],
+      ["尚未回覆", pending.length],
     ];
 
     // Sheet 2: Chi tiết
     const detailHeader = [
       "STT",
-      "Học sinh",
-      "Phụ huynh",
-      "Trạng thái",
-      "Ngày phản hồi",
+      "學生",
+      "家長／聯絡人",
+      "狀態",
+      "回覆日期",
     ];
     const detailRows = consents.map((c, idx) => [
       idx + 1,
       c.studentName,
       c.parentName,
       c.consentStatusName,
-      c.consentDate ? new Date(c.consentDate).toLocaleDateString() : "",
+      c.consentDate ? new Date(c.consentDate).toLocaleDateString("zh-TW") : "",
     ]);
 
     const wb = XLSX.utils.book_new();
     const summaryWs = XLSX.utils.aoa_to_sheet(summarySheet);
     const detailWs = XLSX.utils.aoa_to_sheet([detailHeader, ...detailRows]);
 
-    XLSX.utils.book_append_sheet(wb, summaryWs, "Tổng quan");
-    XLSX.utils.book_append_sheet(wb, detailWs, "Chi tiết phản hồi");
+    XLSX.utils.book_append_sheet(wb, summaryWs, "摘要");
+    XLSX.utils.book_append_sheet(wb, detailWs, "回覆明細");
 
     XLSX.writeFile(
       wb,
@@ -292,15 +292,15 @@ const CampaignDetail = () => {
     );
 
   const totalAgreed = consents.filter(
-    (c) => c.consentStatusName === "Đồng ý"
+    (c) => c.consentStatusName === "同意"
   ).length;
   const totalRejected = consents.filter(
-    (c) => c.consentStatusName === "Từ chối"
+    (c) => c.consentStatusName === "不同意"
   ).length;
 
   const filteredConsents = consents.filter((c) => {
-    if (activeTab === "approved") return c.consentStatusName === "Đồng ý";
-    if (activeTab === "rejected") return c.consentStatusName === "Từ chối";
+    if (activeTab === "approved") return c.consentStatusName === "同意";
+    if (activeTab === "rejected") return c.consentStatusName === "不同意";
     return true;
   });
 
@@ -321,42 +321,42 @@ const CampaignDetail = () => {
 
   return (
     <div className={style.container}>
-      <h2 id="campaign-title">Chi tiết chiến dịch tiêm chủng</h2>
+      <h2 id="campaign-title">預防接種活動詳細資料</h2>
       <Guideline />
 
       {/* Info cards section */}
       <div id="info-row" className={style.infoRow}>
         <div className={style.infoCard}>
-          <div className={style.infoTitle}>Tên</div>
+          <div className={style.infoTitle}>名稱</div>
           <div className={style.infoValue}>{campaign.vaccineName}</div>
         </div>
         <div className={style.infoCard}>
-          <div className={style.infoTitle}>Mô tả</div>
+          <div className={style.infoTitle}>說明</div>
           <div className={style.infoValue}>{campaign.description}</div>
         </div>
         <div className={style.infoCard}>
-          <div className={style.infoTitle}>Thời gian</div>
+          <div className={style.infoTitle}>日期</div>
           <div className={style.infoValue}>{campaign.date}</div>
         </div>
         <div className={style.infoCard}>
-          <div className={style.infoTitle}>Trạng thái</div>
+          <div className={style.infoTitle}>狀態</div>
           <div className={style.infoValue}>{campaign.statusName}</div>
         </div>
-        {/* Thống kê card */}
+        {/* 統計 card */}
         <div className={style.statsCard}>
-          <div className={style.infoTitle}>Thống kê</div>
+          <div className={style.infoTitle}>統計</div>
           <div className={style.statsRow}>
             <div className={style.statBox}>
               <span className={`${style.statNum} ${style.agree}`}>
                 {totalAgreed}
               </span>
-              <span className={style.statLabel}>đồng ý</span>
+              <span className={style.statLabel}>同意</span>
             </div>
             <div className={style.statBox}>
               <span className={`${style.statNum} ${style.reject}`}>
                 {totalRejected}
               </span>
-              <span className={style.statLabel}>từ chối</span>
+              <span className={style.statLabel}>不同意</span>
             </div>
           </div>
         </div>
@@ -388,7 +388,7 @@ const CampaignDetail = () => {
               textAlign: "center",
             }}
           >
-            <h3>Chọn phạm vi gửi phiếu xác nhận</h3>
+            <h3>選擇接種意願確認範圍</h3>
             <button
               style={{
                 margin: "16px 0",
@@ -406,7 +406,7 @@ const CampaignDetail = () => {
                 await handleSendConsentToAll();
               }}
             >
-              Gửi cho toàn trường
+              全校學生
             </button>
             <br />
             <button
@@ -426,7 +426,7 @@ const CampaignDetail = () => {
                 setSendScope("class");
               }}
             >
-              Gửi theo lớp
+              依班級
             </button>
             <br />
             <button
@@ -440,7 +440,7 @@ const CampaignDetail = () => {
               }}
               onClick={() => setShowSendOptions(false)}
             >
-              Huỷ
+              取消
             </button>
           </div>
         </div>
@@ -452,7 +452,7 @@ const CampaignDetail = () => {
           isDangDienRa(campaign.statusName)) && (
           <div className={style.sendClassCard}>
             <div className={style.sendClassTitle}>
-              Gửi phiếu xác nhận theo lớp
+              依班級建立接種意願確認
             </div>
             <div
               className={style.sendClassRow}
@@ -498,7 +498,7 @@ const CampaignDetail = () => {
                 ))}
               </div>
             </div>
-            {/* Input số ngày quy định nằm dưới, căn giữa */}
+            {/* Input số 天 quy định nằm dưới, căn giữa */}
             <div
               style={{
                 display: "flex",
@@ -508,7 +508,7 @@ const CampaignDetail = () => {
               }}
             >
               <span className={style.sendClassInputLabel}>
-                Số ngày cho phép:
+                回覆期限：
               </span>
               <input
                 type="number"
@@ -519,11 +519,11 @@ const CampaignDetail = () => {
                 }
                 className={style.sendClassInput}
               />
-              <span>ngày</span>
+              <span>天</span>
             </div>
             <div className={style.sendClassList}>
               <div className={style.sendClassListTitle}>
-                Danh sách học sinh ({studentList.length}):
+                學生名單 ({studentList.length}):
               </div>
               <ul style={{ margin: 0, paddingLeft: 18 }}>
                 {studentList.map((stu) => (
@@ -540,7 +540,7 @@ const CampaignDetail = () => {
                 // Validation: Không gửi nếu đã hoàn thành/hủy
                 if (isCompletedOrCancelled(campaign.statusName)) {
                   notifyError(
-                    "Không thể gửi phiếu đồng ý cho chiến dịch đã hoàn thành hoặc huỷ."
+                    "活動已完成或取消，無法再建立同意回覆。"
                   );
                   return;
                 }
@@ -548,14 +548,14 @@ const CampaignDetail = () => {
                   try {
                     for (const cls of selectedClasses) {
                       await axios.post(
-                        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${campaign.campaignId}/send-consent-by-class`,
+                        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${campaign.campaignId}/send-consent-by-class`,
                         { className: cls, autoDeclineAfterDays }
                       );
                     }
-                    notifySuccess("Đã gửi phiếu xác nhận cho các lớp đã chọn.");
+                    notifySuccess("已為選取班級建立接種意願確認。");
                     // Load lại consents nếu cần
                     const consentsRes = await axios.get(
-                      `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${campaign.campaignId}/consent-requests`
+                      `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${campaign.campaignId}/consent-requests`
                     );
                     setConsents(consentsRes.data.data);
                     // Gửi email cho từng phụ huynh với thông tin học sinh cụ thể
@@ -566,21 +566,21 @@ const CampaignDetail = () => {
                       );
                       if (
                         stu.parentId &&
-                        (!consent || consent.consentStatusName === "Chờ xác nhận")
+                        (!consent || consent.consentStatusName === "待回覆")
                       ) {
-                        const subject = "Xác nhận tiêm chủng cho con em quý phụ huynh";
-                        const body = `Kính gửi quý phụ huynh, vui lòng xác nhận phiếu tiêm chủng cho học sinh: ${stu.fullName} (${stu.className}) trên hệ thống.`;
+                        const subject = "學生預防接種確認";
+                        const body = `請確認學生 ${stu.fullName}（${stu.className}）的預防接種意願。`;
                         await sendEmailToParent(stu.parentId, subject, body);
                       }
                     }
                     setSendScope("all"); // Ẩn form sau khi gửi thành công
                   } catch {
-                    notifyError("Gửi phiếu xác nhận thất bại!");
+                    notifyError("建立接種意願確認失敗。");
                   }
                 }
               }}
             >
-              Xác nhận gửi cho lớp này
+              確認此班級
             </button>
             <button
               style={{
@@ -597,7 +597,7 @@ const CampaignDetail = () => {
               }}
               onClick={() => setSendScope("all")}
             >
-              Huỷ
+              取消
             </button>
           </div>
         )}
@@ -610,31 +610,31 @@ const CampaignDetail = () => {
             className={style.btnNotify}
             onClick={() => setShowSendOptions(true)}
           >
-            Gửi phiếu xác nhận
+            建立接種意願確認
           </button>
         )}
         {isChuaBatDau(campaign.statusName) && totalAgreed > 0 && (
           <button  id="btn-start" className={style.btnStart} onClick={handleStartCampaign}>
-            Khởi động chiến dịch
+            開始接種活動
           </button>
         )}
         {isDaHoanThanh(campaign.statusName) && (
           <>
             <button id="btn-export"   className={style.btnExport} onClick={exportToExcel}>
-              Xuất Excel
+              匯出 Excel
             </button>
           </>
         )}
         {isDangDienRa(campaign.statusName) && (
           <button id="btn-complete" className={style.btnComplete} onClick={handleMarkAsCompleted}>
-            Đánh dấu hoàn thành
+            標記為完成
           </button>
         )}
         {isDaHuy(campaign.statusName) && (
-          <span className={style.cancelledTag}> Đã huỷ</span>
+          <span className={style.cancelledTag}> 已取消</span>
         )}
         <button id="btn-result" onClick={() => navigate(`/vaccines/${id}/result`)}>
-          Xem kết quả tiêm chủng
+          查看接種結果
         </button>
       </div>
 
@@ -646,7 +646,7 @@ const CampaignDetail = () => {
             setCurrentPage(1);
           }}
         >
-          Tất cả ({consents.length})
+          全部 ({consents.length})
         </button>
         <button
           className={activeTab === "approved" ? style.activeTab : ""}
@@ -655,7 +655,7 @@ const CampaignDetail = () => {
             setCurrentPage(1);
           }}
         >
-          Đồng ý ({totalAgreed})
+          同意 ({totalAgreed})
         </button>
         <button
           className={activeTab === "rejected" ? style.activeTab : ""}
@@ -664,17 +664,17 @@ const CampaignDetail = () => {
             setCurrentPage(1);
           }}
         >
-          Từ chối ({totalRejected})
+          不同意 ({totalRejected})
         </button>
       </div>
 
       <table  id="consent-table" className={style.table}>
         <thead>
           <tr>
-            <th>Học sinh</th>
-            <th>Phụ huynh</th>
-            <th>Trạng thái</th>
-            <th>Ngày phản hồi</th>
+            <th>學生</th>
+            <th>家長／聯絡人</th>
+            <th>狀態</th>
+            <th>回覆日期</th>
           </tr>
         </thead>
         <tbody>
@@ -693,7 +693,7 @@ const CampaignDetail = () => {
               </td>
               <td>
                 {c.consentDate
-                  ? new Date(c.consentDate).toLocaleDateString()
+                  ? new Date(c.consentDate).toLocaleDateString("zh-TW")
                   : "—"}
               </td>
             </tr>
@@ -716,19 +716,19 @@ const CampaignDetail = () => {
       {/* Removed chart and calendar section as requested */}
 
       <button onClick={() => navigate(-1)} id="btn-back" className={style.btnBack}>
-        ← Quay lại
+        ← 返回
       </button>
 
       {showModal && sendResult && (
         <div className={style.modalOverlay}>
           <div className={style.modalContent}>
-            <h3>Kết quả gửi phiếu xác nhận</h3>
+            <h3>建立確認結果</h3>
             <p>
-              🟢 Gửi thành công: <strong>{sendResult.successCount}</strong> /{" "}
+              🟢 成功: <strong>{sendResult.successCount}</strong> /{" "}
               {sendResult.totalStudents}
             </p>
             <p>
-              🔴 Thất bại: <strong>{sendResult.failedCount}</strong>
+              🔴 失敗: <strong>{sendResult.failedCount}</strong>
             </p>
             {sendResult.failedReasons.length > 0 && (
               <div
@@ -754,7 +754,7 @@ const CampaignDetail = () => {
               onClick={() => setShowModal(false)}
               className={style.btnBack}
             >
-              Đóng
+              關閉
             </button>
           </div>
         </div>

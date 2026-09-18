@@ -19,12 +19,14 @@ namespace SchoolMedicalManagement.Service.Implement
         private readonly string _senderEmail;
         private readonly string _senderName;
         private readonly UserRepository _userRepository;
+        private readonly bool _offlineMode;
 
         public EmailService(IConfiguration configuration, UserRepository userRepository)
         {
             _configuration = configuration;
-            _smtpServer = _configuration["EmailSettings:SmtpServer"];
-            _smtpPort = int.Parse(_configuration["EmailSettings:SmtpPort"]);
+            _offlineMode = _configuration.GetValue<bool>("OfflineMode");
+            _smtpServer = _configuration["EmailSettings:SmtpServer"] ?? "127.0.0.1";
+            _smtpPort = int.TryParse(_configuration["EmailSettings:SmtpPort"], out var configuredPort) ? configuredPort : 25;
             _smtpUsername = _configuration["EmailSettings:SmtpUsername"];
             _smtpPassword = _configuration["EmailSettings:SmtpPassword"];
             _senderEmail = _configuration["EmailSettings:SenderEmail"];
@@ -35,6 +37,16 @@ namespace SchoolMedicalManagement.Service.Implement
         // Gửi email thông thường
         public async Task<BaseResponse> SendEmailAsync(string to, string subject, string body)
         {
+            if (_offlineMode)
+            {
+                return new BaseResponse
+                {
+                    Status = "200",
+                    Message = "離線模式：已略過電子郵件寄送。",
+                    Data = null
+                };
+            }
+
             try
             {
                 if (string.IsNullOrEmpty(to))

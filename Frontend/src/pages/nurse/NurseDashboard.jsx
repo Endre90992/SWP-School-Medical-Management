@@ -1,20 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import {
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 import Sidebar from "../../components/sidebar/Sidebar";
+import UserMenu from "../../components/UserMenu";
 import style from "../../assets/css/nursedashboard.module.css";
 
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import UserMenu from "../../components/UserMenu";
-
-
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+const API_URL = "http://127.0.0.1:5080/api/Dashboard/overview";
+const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f7f", "#4D96FF", "#F4C430"];
 
 const NurseDashBoard = () => {
   const [loading, setLoading] = useState(true);
@@ -24,53 +23,57 @@ const NurseDashBoard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(
-          "https://swp-school-medical-management.onrender.com/api/Dashboard/overview"
-        );
-        if (res.data.status === "200") {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(API_URL, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (String(res.data?.status) === "200") {
           setDashboardData(res.data.data);
         }
       } catch (error) {
-        console.error("Lỗi khi tải dữ liệu dashboard:", error);
+        console.error("無法載入健康中心儀表板：", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-
     fetchData();
   }, []);
 
-  if (loading)
+  const incidentChartData = useMemo(() => {
+    const count = {};
+    (dashboardData?.recentMedicalEvents || []).forEach((event) => {
+      const type = event.eventType || "未分類";
+      count[type] = (count[type] || 0) + 1;
+    });
+    return Object.entries(count).map(([name, value]) => ({ name, value }));
+  }, [dashboardData]);
+
+  if (loading) {
     return (
       <div className={style.loadingOverlay}>
-        <div className={style.spinner}></div>
-        <div className={style.loadingText}>Đang tải dữ liệu...</div>
+        <div className={style.spinner} />
+        <div className={style.loadingText}>資料載入中...</div>
       </div>
     );
-  if (!dashboardData)
-    return <div className={style.loadingText}>Không có dữ liệu dashboard</div>;
+  }
 
-  // Tạo dữ liệu biểu đồ thống kê sự cố theo loại
-  const incidentTypeCount = {};
-  dashboardData.recentMedicalEvents.forEach((event) => {
-    const type = event.eventType || "Không xác định";
-    incidentTypeCount[type] = (incidentTypeCount[type] || 0) + 1;
-  });
-  const incidentChartData = Object.entries(incidentTypeCount).map(([name, value]) => ({ name, value }));
+  if (!dashboardData) {
+    return <div className={style.loadingText}>目前沒有儀表板資料</div>;
+  }
 
-  const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f7f", "#4D96FF", "#F4C430", "#FF6B6B", "#9AE6B4", "#FFA500"];
-
-  const renderIncidentLabel = ({ name }) => name;
+  const recentEvents = dashboardData.recentMedicalEvents || [];
+  const recentMedicationRequests = dashboardData.recentMedicationRequests || [];
 
   return (
     <div className={style.container}>
       <Sidebar />
       <main className={style.dashboardWrapper}>
         <header className={style.dashboardHeaderBar}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div className={style.titleGroup}>
               <h1>
-                <span className={style.textBlack}>Bảng điều khiển</span>
-                <span className={style.textAccent}> Y tế</span>
+                <span className={style.textBlack}>健康中心</span>
+                <span className={style.textAccent}> 儀表板</span>
               </h1>
             </div>
             <UserMenu />
@@ -79,32 +82,28 @@ const NurseDashBoard = () => {
 
         <div className={style.summaryGrid}>
           <div className={style.summaryBox}>
-            <h4>Yêu cầu thuốc chờ xử lý</h4>
-            <p>{dashboardData.pendingMedicationRequests}</p>
+            <h4>待處理用藥申請</h4>
+            <p>{dashboardData.pendingMedicationRequests || 0}</p>
             <span>
-              {dashboardData.totalMedicationRequests -
-                dashboardData.pendingMedicationRequests}{" "}
-              đã xử lý
+              {(dashboardData.totalMedicationRequests || 0) -
+                (dashboardData.pendingMedicationRequests || 0)}{" "}
+              筆已處理
             </span>
           </div>
           <div className={style.summaryBox}>
-            <h4>Mũi tiêm sắp tới</h4>
-            <p>87</p>
-            <span>Trong tuần này</span>
+            <h4>預防接種活動</h4>
+            <p>{dashboardData.totalVaccinationCampaigns || 0}</p>
+            <span>本機資料庫中的接種活動</span>
           </div>
           <div className={style.summaryBox}>
-            <h4>Kiểm tra sức khỏe</h4>
-            <p>{dashboardData.totalHealthCheckCampaigns}</p>
-            <span>{dashboardData.activeHealthCheckCampaigns} đã lên lịch</span>
+            <h4>健康檢查</h4>
+            <p>{dashboardData.totalHealthCheckCampaigns || 0}</p>
+            <span>{dashboardData.activeHealthCheckCampaigns || 0} 個進行中</span>
           </div>
           <div className={style.summaryBox}>
-            <h4>Sự cố được báo cáo</h4>
-            <p>{dashboardData.recentMedicalEvents.length}</p>
-            <span>
-              {dashboardData.totalMedicalEvents -
-                dashboardData.recentMedicalEvents.length}{" "}
-              sự cố hôm qua
-            </span>
+            <h4>近期傷病紀錄</h4>
+            <p>{recentEvents.length}</p>
+            <span>可至「傷病紀錄」查看完整內容</span>
           </div>
         </div>
 
@@ -112,41 +111,30 @@ const NurseDashBoard = () => {
           <div className={style.leftPanel}>
             <section className={style.card}>
               <div className={style.cardHeader}>
-                <h3>Yêu cầu thuốc</h3>
-                <a href="#">Xem tất cả →</a>
+                <h3>近期用藥申請</h3>
               </div>
               <table className={style.styledTable}>
                 <thead>
                   <tr>
-                    <th>Học sinh</th>
-                    <th>Thuốc</th>
-                    <th>Trạng thái</th>
-                    <th>Thời gian</th>
-                    <th>Thao tác</th>
+                    <th>學生</th>
+                    <th>藥物</th>
+                    <th>狀態</th>
+                    <th>申請時間</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {dashboardData.recentMedicationRequests.map((req) => (
-                    <tr key={req.requestId}>
-                      <td>{req.studentName}</td>
-                      <td>{req.medicationName}</td>
-                      <td>
-                        <span
-                          className={`${style.pill} ${
-                            req.status === "Đã duyệt"
-                              ? style.green
-                              : style.yellow
-                          }`}
-                        >
-                          {req.status}
-                        </span>
-                      </td>
-                      <td>{new Date(req.requestDate).toLocaleString()}</td>
-                      <td>
-                        <button className={style.btnAction}>Xác nhận</button>
-                      </td>
-                    </tr>
-                  ))}
+                  {recentMedicationRequests.length === 0 ? (
+                    <tr><td colSpan="4">目前沒有用藥申請</td></tr>
+                  ) : (
+                    recentMedicationRequests.map((req) => (
+                      <tr key={req.requestId}>
+                        <td>{req.studentName || "—"}</td>
+                        <td>{req.medicationName || "—"}</td>
+                        <td><span className={style.pill}>{req.status || "—"}</span></td>
+                        <td>{req.requestDate ? new Date(req.requestDate).toLocaleString("zh-TW") : "—"}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </section>
@@ -154,29 +142,30 @@ const NurseDashBoard = () => {
 
           <div className={style.rightPanel}>
             <section className={style.card}>
-              <h3>Biểu đồ thống kê sự cố theo loại</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={incidentChartData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label={renderIncidentLabel}
-                  >
-                    {incidentChartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <h3>近期傷病類型統計</h3>
+              {incidentChartData.length === 0 ? (
+                <p>目前沒有傷病紀錄</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={incidentChartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label={({ name }) => name}
+                    >
+                      {incidentChartData.map((_, index) => (
+                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </section>
           </div>
         </div>

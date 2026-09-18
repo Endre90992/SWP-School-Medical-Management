@@ -1,46 +1,40 @@
-import React, { useEffect, useState } from "react";
-import blogStyle from "../../assets/css/Blog.module.css";
-import { SearchOutlined } from "@ant-design/icons";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { SearchOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import blogStyle from "../../assets/css/Blog.module.css";
 import style from "../../assets/css/homepage.module.css";
 import logo from "../../assets/icon/eduhealth.jpg";
-import { useNavigate } from "react-router-dom";
-
 import UserMenu from "../../components/UserMenu";
 
-import { jwtDecode } from "jwt-decode";
-
-
-const apiUrl = "https://swp-school-medical-management.onrender.com/api/BlogPost";
+const API_URL = "http://127.0.0.1:5080/api/BlogPost";
+const PAGE_SIZE = 5;
 
 const BlogPublic = () => {
   const [blogs, setBlogs] = useState([]);
   const [searchText, setSearchText] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const blogsPerPage = 5;
-  const navigate = useNavigate();
   const [expanded, setExpanded] = useState({});
-
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [username, setUsername] = useState("");
-  const [role, setRole] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchBlogs = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(apiUrl);
-        const blogsData = Array.isArray(res.data) ? res.data : res.data?.data || [];
-
-        setBlogs(blogsData.filter(blog => blog.isActive !== false));
-
-        const sortedBlogs = blogsData
-          .filter(blog => blog.isActive !== false)
-          .sort((a, b) => new Date(b.postedDate) - new Date(a.postedDate));
-        setBlogs(sortedBlogs);
-
-      } catch {
+        const res = await axios.get(API_URL);
+        const list = Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data)
+            ? res.data
+            : [];
+        setBlogs(
+          list
+            .filter((blog) => blog.isActive !== false)
+            .sort((a, b) => new Date(b.postedDate) - new Date(a.postedDate))
+        );
+      } catch (error) {
+        console.error("無法載入健康資訊：", error);
         setBlogs([]);
       } finally {
         setLoading(false);
@@ -49,201 +43,154 @@ const BlogPublic = () => {
     fetchBlogs();
   }, []);
 
+  const filtered = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    if (!keyword) return blogs;
+    return blogs.filter((blog) =>
+      [blog.title, blog.content, blog.authorName]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [blogs, searchText]);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        const name = decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"];
-        const roleName = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-        setUsername(name);
-        setRole(roleName);
-      } catch (e) {
-        setUsername("");
-        setRole("");
-      }
-    } else {
-      setUsername("");
-      setRole("");
-    }
-  }, []);
+  useEffect(() => setCurrentPage(1), [searchText]);
 
-  const handleDashboard = () => {
-    if (role === "Manager") navigate("/manager");
-    else if (role === "Nurse") navigate("/nurse");
-    else if (role === "Parent") navigate("/parent");
-    else navigate("/");
-  };
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
-
-
-  const filteredBlogs = blogs.filter(blog => {
-    const matchSearch =
-      blog.title.toLowerCase().includes(searchText.toLowerCase()) ||
-      blog.content.toLowerCase().includes(searchText.toLowerCase());
-    return matchSearch;
-  });
-
-
-  // Sắp xếp theo thời gian tạo mới nhất lên đầu
-  const sortedBlogs = [...filteredBlogs].sort((a, b) => {
-    const dateA = new Date(a.postedDate);
-    const dateB = new Date(b.postedDate);
-    return dateB - dateA;
-  });
-
-  const totalPages = Math.ceil(sortedBlogs.length / blogsPerPage);
-  const paginatedBlogs = sortedBlogs.slice((currentPage - 1) * blogsPerPage, currentPage * blogsPerPage);
-
-  const totalPages = Math.ceil(filteredBlogs.length / blogsPerPage);
-  const paginatedBlogs = filteredBlogs.slice((currentPage - 1) * blogsPerPage, currentPage * blogsPerPage);
-
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageItems = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
   return (
     <div style={{ background: "#f8fafb", minHeight: "100vh" }}>
       <header className={style.navbar}>
         <div className={style.logo}>
-          <img src={logo} alt="EduHealth Logo" className={style.logoImg} />
+          <img src={logo} alt="EduHealth" className={style.logoImg} />
         </div>
         <nav className={style.navLinks}>
-          <a href="#" className={style.navLink} onClick={e => { e.preventDefault(); navigate("/"); }}>Trang chủ</a>
-          <a href="#" className={style.navLink} onClick={e => { e.preventDefault(); navigate("/#about"); }}>Giới thiệu</a>
-          <a href="#" className={style.navLink} onClick={e => { e.preventDefault(); navigate("/blog"); }}>Blog Y Tế</a>
-          <a href="#" className={style.navLink} onClick={e => { e.preventDefault(); navigate("/#contact"); }}>Liên hệ</a>
-
+          <a href="/" className={style.navLink} onClick={(event) => { event.preventDefault(); navigate("/"); }}>
+            首頁
+          </a>
+          <a href="/blog" className={style.navLink} onClick={(event) => event.preventDefault()}>
+            健康資訊
+          </a>
           {localStorage.getItem("token") ? (
             <UserMenu />
-
-          {username ? (
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <button
-                className={style.loginBtn}
-                style={{ minWidth: 120, fontWeight: 600 }}
-                onClick={() => setShowDropdown((v) => !v)}
-              >
-                {username} &#9662;
-              </button>
-              {showDropdown && (
-                <div style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '100%',
-                  background: '#fff',
-                  color: '#222',
-                  border: '1px solid #eee',
-                  borderRadius: 8,
-                  minWidth: 150,
-                  boxShadow: '0 4px 16px #0001',
-                  zIndex: 1000,
-                }}>
-                  <button style={{ width: '100%', padding: 10, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer' }} onClick={() => { setShowDropdown(false); handleDashboard(); }}>MyDashboard</button>
-                  <button style={{ width: '100%', padding: 10, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#e11d48' }} onClick={handleLogout}>Logout</button>
-                </div>
-              )}
-            </div>
-
           ) : (
-            <button className={style.loginBtn} onClick={() => navigate("/login")}>Đăng nhập</button>
+            <button className={style.loginBtn} onClick={() => navigate("/login")}>
+              登入
+            </button>
           )}
         </nav>
       </header>
+
       <div className={blogStyle.headerBlog} style={{ marginTop: 0, borderRadius: 0 }}>
         <div className={blogStyle.headerContent} style={{ margin: "0 auto", textAlign: "center" }}>
-          <h1 className={blogStyle.titleBlog} style={{ fontSize: "2.5rem" }}>Blog Y Tế Học Đường</h1>
+          <h1 className={blogStyle.titleBlog} style={{ fontSize: "2.5rem" }}>
+            校園健康資訊
+          </h1>
           <p className={blogStyle.descBlog} style={{ fontSize: "1.15rem" }}>
-            Cập nhật kiến thức y tế mới nhất, hướng dẫn chăm sóc sức khỏe và các mẹo hay cho cuộc sống khỏe mạnh
+            本頁內容儲存在本機資料庫，不會從外部網站載入。
           </p>
         </div>
       </div>
-      <div style={{ maxWidth: 820, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "center", margin: "32px 0 18px 0", gap: 12 }}>
-          <div style={{ position: "relative", width: 340 }}>
-            <SearchOutlined style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#20b2aa", fontSize: 20, zIndex: 2 }} />
+
+      <div style={{ maxWidth: 820, margin: "0 auto", padding: "0 16px 48px" }}>
+        <div style={{ display: "flex", justifyContent: "center", margin: "32px 0 18px" }}>
+          <div style={{ position: "relative", width: "min(100%, 420px)" }}>
+            <SearchOutlined
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#20b2aa",
+                fontSize: 20,
+                zIndex: 2,
+              }}
+            />
             <input
               className={blogStyle.blogSearch}
-              style={{ paddingLeft: 38, width: 340, fontSize: "1.08rem", border: "1.5px solid #20b2aa", boxShadow: "0 1px 6px rgba(32,178,170,0.07)" }}
-              placeholder="Tìm kiếm bài viết..."
+              style={{ paddingLeft: 38, width: "100%" }}
+              placeholder="搜尋健康資訊..."
               value={searchText}
-              onChange={e => setSearchText(e.target.value)}
-              onKeyDown={e => { if (e.key === "Escape") setSearchText(""); }}
+              onChange={(event) => setSearchText(event.target.value)}
             />
-            {searchText && (
-              <span
-                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: "#aaa", cursor: "pointer", fontSize: 18 }}
-                onClick={() => setSearchText("")}
-                title="Xóa tìm kiếm"
-              >&#10005;</span>
-            )}
           </div>
         </div>
+
         <div className={blogStyle.blogListSection}>
-          {loading && <div style={{ textAlign: "center", color: "#888", margin: "32px 0" }}>Đang tải dữ liệu...</div>}
-          {paginatedBlogs.length === 0 && !loading && (
-            <div style={{ textAlign: "center", color: "#888", margin: "32px 0" }}>Không tìm thấy bài viết nào.</div>
+          {loading && (
+            <div style={{ textAlign: "center", color: "#888", margin: "32px 0" }}>
+              資料載入中...
+            </div>
           )}
-          {paginatedBlogs.map((blog) => {
-            const isExpanded = expanded[blog.postId];
+
+          {!loading && pageItems.length === 0 && (
+            <div style={{ textAlign: "center", color: "#888", margin: "32px 0" }}>
+              目前沒有符合條件的健康資訊。
+            </div>
+          )}
+
+          {pageItems.map((blog) => {
+            const isExpanded = Boolean(expanded[blog.postId]);
+            const content = String(blog.content || "");
             return (
-              <div className={blogStyle.blogCard} key={blog.postId}>
+              <article className={blogStyle.blogCard} key={blog.postId}>
                 <div className={blogStyle.blogCardContent}>
                   <div className={blogStyle.blogMetaRow}>
-                    <span className={blogStyle.blogAuthor} style={{ color: "#20b2aa", fontWeight: 700 }}>
-                      {blog.authorName ? ` ${blog.authorName}` : "Tác giả ẩn danh"}
+                    <span className={blogStyle.blogAuthor}>
+                      {blog.authorName || "健康中心"}
                     </span>
                     <span className={blogStyle.blogDate} style={{ marginLeft: 16 }}>
-                      {blog.postedDate}
+                      {blog.postedDate
+                        ? new Date(blog.postedDate).toLocaleDateString("zh-TW")
+                        : ""}
                     </span>
-                    <span style={{ color: "#888", fontSize: 13, marginLeft: 16 }}>5 phút đọc</span>
                   </div>
                   <h2 className={blogStyle.blogTitle}>{blog.title}</h2>
-                  <div className={blogStyle.blogDesc} style={{ marginBottom: 8 }}>
-                    {isExpanded ? (
-                      <div dangerouslySetInnerHTML={{ __html: blog.content }} />
-                    ) : (
-                      <div dangerouslySetInnerHTML={{ __html: blog.content.length > 180 ? blog.content.slice(0, 180) + "..." : blog.content }} />
-                    )}
+                  <div className={blogStyle.blogDesc} style={{ whiteSpace: "pre-wrap" }}>
+                    {isExpanded || content.length <= 180
+                      ? content
+                      : content.slice(0, 180) + "..."}
                   </div>
-                  <div className={blogStyle.blogTagsRow}>
-                    {blog.tags && blog.tags.map((tag, idx) => (
-                      <span className={blogStyle.blogTag} key={idx}>#{tag}</span>
-                    ))}
-                  </div>
-                  <div style={{ textAlign: "right", marginTop: 8 }}>
-                    <button
-                      className={blogStyle.blogDetailLink}
-                      style={{ fontWeight: 600, fontSize: "1.05rem" }}
-                      onClick={() => setExpanded(prev => ({ ...prev, [blog.postId]: !isExpanded }))}
-                    >
-                      {isExpanded ? "Thu gọn" : "Đọc thêm"}
-                    </button>
-                  </div>
+                  {content.length > 180 && (
+                    <div style={{ textAlign: "right", marginTop: 8 }}>
+                      <button
+                        className={blogStyle.blogDetailLink}
+                        onClick={() =>
+                          setExpanded((prev) => ({
+                            ...prev,
+                            [blog.postId]: !isExpanded,
+                          }))
+                        }
+                      >
+                        {isExpanded ? "收合" : "閱讀全文"}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
+              </article>
             );
           })}
-          {/* Phân trang */}
+
           {totalPages > 1 && (
             <div style={{ textAlign: "center", margin: "24px 0" }}>
-              {Array.from({ length: totalPages }, (_, i) => (
+              {Array.from({ length: totalPages }, (_, index) => (
                 <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
+                  key={index + 1}
+                  onClick={() => setCurrentPage(index + 1)}
                   style={{
                     margin: "0 4px",
                     padding: "6px 14px",
                     borderRadius: 6,
                     border: "1px solid #20b2aa",
-                    background: currentPage === i + 1 ? "#20b2aa" : "#fff",
-                    color: currentPage === i + 1 ? "#fff" : "#20b2aa",
-                    fontWeight: currentPage === i + 1 ? 700 : 400,
+                    background: currentPage === index + 1 ? "#20b2aa" : "#fff",
+                    color: currentPage === index + 1 ? "#fff" : "#20b2aa",
                     cursor: "pointer",
                   }}
                 >
-                  {i + 1}
+                  {index + 1}
                 </button>
               ))}
             </div>
@@ -254,4 +201,4 @@ const BlogPublic = () => {
   );
 };
 
-export default BlogPublic; 
+export default BlogPublic;

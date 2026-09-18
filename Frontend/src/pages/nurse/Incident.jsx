@@ -31,12 +31,12 @@ import LoadingOverlay from "../../components/LoadingOverlay";
 import { useNavigate } from "react-router-dom";
 
 // API URL constants
-const MEDICAL_EVENT_API = "https://swp-school-medical-management.onrender.com/api/MedicalEvent";
-const MEDICAL_EVENT_TYPE_API = "https://swp-school-medical-management.onrender.com/api/MedicalEventType";
-const STUDENT_API = "https://swp-school-medical-management.onrender.com/api/Student";
-const USER_API = "https://swp-school-medical-management.onrender.com/api/User";
-const MEDICAL_SUPPLIES_API = "https://swp-school-medical-management.onrender.com/api/MedicalSupplies";
-const NOTIFICATION_API = "https://swp-school-medical-management.onrender.com/api/Notification/send";
+const MEDICAL_EVENT_API = "http://127.0.0.1:5080/api/MedicalEvent";
+const MEDICAL_EVENT_TYPE_API = "http://127.0.0.1:5080/api/MedicalEventType";
+const STUDENT_API = "http://127.0.0.1:5080/api/Student";
+const USER_API = "http://127.0.0.1:5080/api/User";
+const MEDICAL_SUPPLIES_API = "http://127.0.0.1:5080/api/MedicalSupplies";
+const NOTIFICATION_API = "http://127.0.0.1:5080/api/Notification/send";
 
 const COLORS = ["#F4C430", "#FF6B6B", "#4D96FF", "#9AE6B4", "#FFA500"];
 
@@ -44,7 +44,7 @@ const Incident = () => {
   const [search, setSearch] = useState("");
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
-  const [eventTypeFilter, setEventTypeFilter] = useState("Tất cả");
+  const [eventTypeFilter, setEventTypeFilter] = useState("全部");
   const [dateFilter, setDateFilter] = useState("");
   const [summary, setSummary] = useState({
     total: 0,
@@ -101,16 +101,16 @@ const Incident = () => {
   const navigate = useNavigate();
 
   const severityLevels = [
-    { id: "1", level: "Nhẹ" },
-    { id: "2", level: "Trung bình" },
-    { id: "3", level: "Nặng" },
+    { id: "1", level: "輕度" },
+    { id: "2", level: "中度" },
+    { id: "3", level: "重度" },
   ];
 
   // Thêm hàm kiểm tra token
   const getTokenOrRedirect = () => {
     const token = localStorage.getItem("token");
     if (!token) {
-      notifyError("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+      notifyError("登入已逾時，請重新登入。");
       setTimeout(() => navigate("/login"), 1500);
       return null;
     }
@@ -142,9 +142,9 @@ const Incident = () => {
         }
       })
       .catch((err) => {
-        console.error("❌ Lỗi lấy loại sự cố:", err);
+        console.error("❌ Lỗi lấy loại 筆傷病:", err);
         setEventTypes([]); // Ensure it's an empty array on error
-        notifyError("Không thể tải danh sách loại sự cố. Vui lòng thử lại.");
+        notifyError("無法載入傷病類型，請稍後再試。");
       });
   };
 
@@ -164,7 +164,7 @@ const Incident = () => {
         setEvents(eventList.sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate)));
       })
       .catch((err) => {
-        console.error("❌ Lỗi lấy danh sách sự cố:", err);
+        console.error("❌ Lỗi lấy danh sách 筆傷病:", err);
         setEvents([]);
       })
       .finally(() => setLoading(false));
@@ -174,8 +174,8 @@ const Incident = () => {
     if (handledByName && handledByName !== "") return handledByName;
     const user = users.find((u) => u.userId === id || u.userID === id);
     if (user) return user.fullName;
-    if (id === localStorage.getItem("userId")) return "Bạn";
-    return "Không rõ";
+    if (id === localStorage.getItem("userId")) return "目前使用者";
+    return "未填寫";
   };
 
   // Hàm gửi notification/email cho phụ huynh: luôn lấy parentId từ API nếu chưa có
@@ -186,7 +186,7 @@ const Incident = () => {
       // Lấy parentId từ event hoặc từ API nếu chưa có
       let parentId = event.parentId;
       let studentName = event.studentName;
-      console.log('[DEBUG] Gửi thông báo cho studentId:', studentId, 'event:', event);
+      console.log('[DEBUG] 建立本機通知 cho studentId:', studentId, 'event:', event);
       if (!parentId) {
         const res = await axios.get(
           `${STUDENT_API}/${studentId}`,
@@ -198,12 +198,12 @@ const Incident = () => {
       }
       console.log('[DEBUG] parentId:', parentId, 'studentName:', studentName);
       if (!parentId) {
-        notifyError("Không tìm thấy phụ huynh của học sinh này!");
+        notifyError("找不到此學生的家長／聯絡人。");
         return false;
       }
       // Trong sendNotificationToParent, tạo message với fallback tránh undefined/null/Invalid Date
-      const message = `Học sinh: ${studentName}\nLoại sự cố: ${event.eventType || "Không rõ"}\nThời gian: ${event.eventDate ? new Date(event.eventDate).toLocaleString() : "Không rõ"}\nMức độ: ${event.severityLevelName || "Không rõ"}\nMô tả: ${event.description || "Không có"}`;
-      const subject = "Thông báo sự cố y tế học đường";
+      const message = `學生: ${studentName}\n傷病類型: ${event.eventType || "未填寫"}\n時間: ${event.eventDate ? new Date(event.eventDate).toLocaleString("zh-TW") : "未填寫"}\n嚴重程度: ${event.severityLevelName || "未填寫"}\n傷病描述: ${event.description || "無"}`;
+      const subject = "校園傷病紀錄通知";
       await Promise.all([
         axios.post(
           NOTIFICATION_API,
@@ -217,7 +217,7 @@ const Incident = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         ),
         axios.post(
-          "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+          "http://127.0.0.1:5080/api/Email/send-by-userid",
           {
             userId: parentId,
             subject,
@@ -231,11 +231,11 @@ const Incident = () => {
           e.eventId === event.eventId ? { ...e, notificationSent: true } : e
         )
       );
-      console.log('[DEBUG] Gửi thông báo/email thành công cho parentId:', parentId);
+      console.log('[DEBUG] 已建立本機家長通知：', parentId);
       return true;
     } catch (err) {
-      notifyError("Gửi thông báo hoặc email thất bại!");
-      console.error("❌ Lỗi gửi thông báo:", err);
+      notifyError("建立本機通知 hoặc email thất bại!");
+      console.error("❌ 建立通知失敗：", err);
       if (err.response) {
         console.error('[DEBUG] Lỗi response:', err.response.data);
       }
@@ -245,7 +245,7 @@ const Incident = () => {
 
   const handleCreateEventType = () => {
     if (!newEventTypeName.trim()) {
-      notifyError("Tên loại sự cố không được để trống!");
+      notifyError("傷病類型名稱不得空白。");
       return;
     }
     setModalLoading(true);
@@ -260,7 +260,7 @@ const Incident = () => {
         }
       )
       .then((res) => {
-        notifySuccess("Tạo loại sự cố mới thành công!");
+        notifySuccess("新增傷病類型成功！");
         setShowCreateEventTypeModal(false);
         setNewEventTypeName("");
 
@@ -279,9 +279,9 @@ const Incident = () => {
         }
       })
       .catch((err) => {
-        console.error("❌ Lỗi tạo loại sự cố:", err);
+        console.error("❌ Lỗi tạo loại 筆傷病:", err);
         notifyError(
-          "Lỗi khi tạo loại sự cố mới: " +
+          "Lỗi khi tạo loại 筆傷病 mới: " +
             (err.response?.data?.message || err.message)
         );
       })
@@ -311,7 +311,7 @@ const Incident = () => {
         setStudents(studentData);
         setAllStudents(studentData);
         
-        // Tạo danh sách lớp từ dữ liệu học sinh
+        // 新增 danh sách lớp từ dữ liệu học sinh
         if (studentData.length > 0) {
           const uniqueClasses = Array.from(
             new Set(studentData.map((s) => s.className).filter(Boolean))
@@ -346,7 +346,7 @@ const Incident = () => {
         setSupplies(Array.isArray(res.data.data) ? res.data.data : []);
       })
       .catch((err) => {
-        console.error("❌ Lỗi lấy vật tư:", err);
+        console.error("❌ 取得醫療物資失敗：", err);
         setSupplies([]);
       });
   }, []);
@@ -376,7 +376,7 @@ const Incident = () => {
   useEffect(() => {
     const filtered = events.filter((event) => {
       const matchType =
-        eventTypeFilter === "Tất cả" || event.eventType === eventTypeFilter;
+        eventTypeFilter === "全部" || event.eventType === eventTypeFilter;
       const matchSearch = event.studentName
         ?.toLowerCase()
         .includes(search.toLowerCase());
@@ -432,20 +432,20 @@ const Incident = () => {
 
     const ws = XLSX.utils.json_to_sheet(
       filteredEvents.map((e) => ({
-        "Học sinh": e.studentName,
-        "Loại sự cố": e.eventType,
-        "Thời gian": new Date(e.eventDate).toLocaleString(),
-        "Mức độ": e.severityLevelName,
-        "Người xử lý": e.handledByName || "",
+        "學生": e.studentName,
+        "傷病類型": e.eventType,
+        "時間": new Date(e.eventDate).toLocaleString("zh-TW"),
+        "嚴重程度": e.severityLevelName,
+        "處理人員": e.handledByName || "",
       }))
     );
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sự cố y tế");
+    XLSX.utils.book_append_sheet(wb, ws, "傷病紀錄");
 
     const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     const data = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(data, "su_co_y_te.xlsx");
+    saveAs(data, "學生傷病紀錄.xlsx");
   };
 
   const handleCreate = () => {
@@ -459,7 +459,7 @@ const Incident = () => {
       isNaN(Number(newEvent.studentId)) ||
       Number(newEvent.studentId) === 0
     ) {
-      notifyError("Vui lòng chọn học sinh!");
+      notifyError("請選擇學生。");
       return;
     }
     if (
@@ -467,7 +467,7 @@ const Incident = () => {
       isNaN(Number(newEvent.eventTypeId)) ||
       Number(newEvent.eventTypeId) === 0
     ) {
-      notifyError("Vui lòng chọn loại sự cố!");
+      notifyError("請選擇傷病類型。");
       return;
     }
     if (
@@ -475,19 +475,19 @@ const Incident = () => {
       isNaN(Number(newEvent.severityId)) ||
       Number(newEvent.severityId) === 0
     ) {
-      notifyError("Vui lòng chọn mức độ!");
+      notifyError("請選擇嚴重程度。");
       return;
     }
     if (!newEvent.eventDate) {
-      notifyError("Vui lòng chọn thời gian!");
+      notifyError("請選擇時間。");
       return;
     }
     if (!newEvent.description) {
-      notifyError("Vui lòng nhập mô tả!");
+      notifyError("請輸入傷病描述。");
       return;
     }
     if (!currentUserId) {
-      notifyError("Vui lòng đăng nhập lại!");
+      notifyError("請重新登入。");
       return;
     }
 
@@ -499,7 +499,7 @@ const Incident = () => {
       eventDate: newEvent.eventDate,
       description: newEvent.description,
       handledByUserId: currentUserId,
-      status: "Đã gửi",
+      status: "已建立",
       location: newEvent.location,
       notes: newEvent.notes,
       suppliesUsed: suppliesUsed
@@ -514,7 +514,7 @@ const Incident = () => {
           quantityUsed: Number(item.quantityUsed),
           note: item.note || "",
         })),
-      request: "Không có yêu cầu đặc biệt",
+      request: "無特殊需求",
       parentId: studentObj?.parentId,
       studentName: studentObj?.fullName,
       parentName: studentObj?.parentName,
@@ -531,10 +531,10 @@ const Incident = () => {
         },
       })
       .then((res) => {
-        console.log("✅ Tạo sự cố thành công:", res.data);
+        console.log("✅ 新增傷病紀錄成功：", res.data);
         const added = {
           ...res.data,
-          handledByName: "Bạn",
+          handledByName: "目前使用者",
           notificationSent: false, // mặc định chưa gửi, sẽ cập nhật sau khi gửi
           parentId: payload.parentId,
           studentName: payload.studentName,
@@ -560,26 +560,26 @@ const Incident = () => {
         const severityObj = severityLevels.find(sl => sl.id == payload.severityId);
         const notificationEvent = {
           ...added,
-          eventType: eventTypeObj ? eventTypeObj.name : "Không rõ",
-          severityLevelName: severityObj ? severityObj.level : "Không rõ",
-          description: payload.description || "Không có",
+          eventType: eventTypeObj ? eventTypeObj.name : "未填寫",
+          severityLevelName: severityObj ? severityObj.level : "未填寫",
+          description: payload.description || "無",
           eventDate: payload.eventDate || "",
           studentName: payload.studentName,
           parentId: payload.parentId,
         };
         sendNotificationToParent(notificationEvent.studentId, notificationEvent).then((ok) => {
           if (ok) {
-            notifySuccess("Tạo sự cố và gửi thông báo thành công!");
+            notifySuccess("新增傷病紀錄並建立本機通知成功！");
           } else {
-            notifyError("Tạo sự cố thành công nhưng gửi thông báo/email thất bại!");
+            notifyError("傷病紀錄已新增，但本機通知建立失敗。");
           }
         });
       })
       .catch((err) => {
         const errorDetail =
           err.response?.data?.errors || err.response?.data || err.message;
-        console.error("❌ Lỗi tạo sự cố:", errorDetail);
-        notifyError("Lỗi khi tạo mới sự cố!");
+        console.error("❌ Lỗi tạo 筆傷病:", errorDetail);
+        notifyError("新增傷病紀錄失敗。");
       });
   };
 
@@ -627,24 +627,24 @@ const Incident = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        console.log("✅ Cập nhật sự cố thành công:", res.data);
+        console.log("✅ 更新傷病紀錄成功：", res.data);
         fetchEvents();
         setShowEditForm(false);
         setEditingEvent(null);
-        notifySuccess("Cập nhật sự cố thành công!");
+        notifySuccess("更新傷病紀錄成功！");
       })
       .catch((err) => {
         const errorDetail =
           err.response?.data?.errors || err.response?.data || err.message;
-        console.error("❌ Lỗi cập nhật sự cố:", errorDetail);
-        notifyError("Lỗi khi cập nhật sự cố!");
+        console.error("❌ Lỗi cập nhật 筆傷病:", errorDetail);
+        notifyError("更新傷病紀錄失敗。");
       });
   };
 
   const handleDelete = (id) => {
     toast.warn(
       <div>
-        <div>Bạn có chắc chắn muốn xoá sự cố này?</div>
+        <div>目前使用者 có chắc chắn muốn xoá 筆傷病 này?</div>
         <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
           <button
             style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 12px', cursor: 'pointer' }}
@@ -655,18 +655,18 @@ const Incident = () => {
                 .then(() => {
                   setEvents((prev) => prev.filter((e) => e.eventId !== id));
                   setSelectedEvent(null);
-                  notifySuccess("Đã xoá sự cố!");
+                  notifySuccess("傷病紀錄已刪除。");
                 })
-                .catch(() => notifyError("Lỗi khi xoá sự cố!"));
+                .catch(() => notifyError("刪除傷病紀錄失敗。"));
             }}
           >
-            Xoá
+            刪除
           </button>
           <button
             style={{ background: '#fff', color: '#333', border: '1px solid #ccc', borderRadius: 4, padding: '4px 12px', cursor: 'pointer' }}
             onClick={() => toast.dismiss()}
           >
-            Huỷ
+            取消
           </button>
         </div>
       </div>,
@@ -684,7 +684,7 @@ const Incident = () => {
       !bulkEvent.selectedStudents ||
       bulkEvent.selectedStudents.length === 0
     ) {
-      notifyError("Vui lòng chọn ít nhất một học sinh!");
+      notifyError("請至少選擇一名學生。");
       return;
     }
     if (
@@ -692,7 +692,7 @@ const Incident = () => {
       isNaN(Number(bulkEvent.eventTypeId)) ||
       Number(bulkEvent.eventTypeId) === 0
     ) {
-      notifyError("Vui lòng chọn loại sự cố!");
+      notifyError("請選擇傷病類型。");
       return;
     }
     if (
@@ -700,19 +700,19 @@ const Incident = () => {
       isNaN(Number(bulkEvent.severityId)) ||
       Number(bulkEvent.severityId) === 0
     ) {
-      notifyError("Vui lòng chọn mức độ!");
+      notifyError("請選擇嚴重程度。");
       return;
     }
     if (!bulkEvent.eventDate) {
-      notifyError("Vui lòng chọn thời gian!");
+      notifyError("請選擇時間。");
       return;
     }
     if (!bulkEvent.description) {
-      notifyError("Vui lòng nhập mô tả!");
+      notifyError("請輸入傷病描述。");
       return;
     }
     if (!currentUserId) {
-      notifyError("Vui lòng đăng nhập lại!");
+      notifyError("請重新登入。");
       return;
     }
 
@@ -729,7 +729,7 @@ const Incident = () => {
         note: item.note || "",
       }));
 
-    // Tạo nhiều sự cố cùng lúc
+    // 新增 nhiều 筆傷病 cùng lúc
     const promises = bulkEvent.selectedStudents.map((studentId) => {
       const studentObj = allStudents.find(s => Number(s.studentId) === Number(studentId));
       const payload = {
@@ -739,11 +739,11 @@ const Incident = () => {
         eventDate: bulkEvent.eventDate,
         description: bulkEvent.description,
         handledByUserId: currentUserId,
-        status: "Đã gửi",
+        status: "已建立",
         location: bulkEvent.location,
         notes: bulkEvent.notes,
         suppliesUsed: suppliesPayload,
-        request: "Không có yêu cầu đặc biệt",
+        request: "無特殊需求",
         parentId: studentObj?.parentId,
         studentName: studentObj?.fullName,
         parentName: studentObj?.parentName,
@@ -766,15 +766,15 @@ const Incident = () => {
           return {
             ...event,
             studentId: sid,
-            handledByName: "Bạn",
+            handledByName: "目前使用者",
             notificationSent: false,
             parentId: event.parentId || studentObj?.parentId,
             studentName: event.studentName || studentObj?.fullName || "",
             parentName: event.parentName || studentObj?.parentName || "",
             className: event.className || studentObj?.className || "",
-            eventType: event.eventType || event.data?.eventType || (eventTypes.find(et => et.id == (event.eventTypeId || event.data?.eventTypeId))?.name) || "Không rõ",
-            severityLevelName: event.severityLevelName || event.data?.severityLevelName || (severityLevels.find(sl => sl.id == (event.severityId || event.data?.severityId))?.level) || "Không rõ",
-            description: event.description || event.data?.description || "Không có",
+            eventType: event.eventType || event.data?.eventType || (eventTypes.find(et => et.id == (event.eventTypeId || event.data?.eventTypeId))?.name) || "未填寫",
+            severityLevelName: event.severityLevelName || event.data?.severityLevelName || (severityLevels.find(sl => sl.id == (event.severityId || event.data?.severityId))?.level) || "未填寫",
+            description: event.description || event.data?.description || "無",
             eventDate: event.eventDate || event.data?.eventDate || "",
           };
         });
@@ -793,24 +793,24 @@ const Incident = () => {
         setShowAllStudents(false);
         setSearchStudent("");
         fetchEvents();
-        notifySuccess(`Đã tạo thành công ${responses.length} sự cố y tế!`);
-        // Gửi thông báo tuần tự cho từng event, luôn truyền đúng studentId
+        notifySuccess(`已成功建立 ${responses.length} 筆傷病紀錄！`);
+        // 建立本機通知 週 tự cho từng event, luôn truyền đúng studentId
         let hasError = false;
         for (const event of addedEvents) {
           const ok = await sendNotificationToParent(event.studentId, event);
           if (!ok) hasError = true;
         }
         if (hasError) {
-          notifyError("Một số thông báo/email gửi thất bại. Vui lòng kiểm tra lại!");
+          notifyError("部分本機通知建立失敗，請確認。");
         } else {
-          notifySuccess("Đã gửi thông báo và email cho tất cả phụ huynh!");
+          notifySuccess("已建立通知 và email cho tất cả phụ huynh!");
         }
       })
       .catch((err) => {
         const errorDetail =
           err.response?.data?.errors || err.response?.data || err.message;
-        console.error("❌ Lỗi tạo hàng loạt sự cố:", errorDetail);
-        notifyError("Lỗi khi tạo hàng loạt sự cố!");
+        console.error("❌ Lỗi tạo hàng loạt 筆傷病:", errorDetail);
+        notifyError("批次新增傷病紀錄失敗。");
       });
   };
 
@@ -856,7 +856,7 @@ const Incident = () => {
     );
   };
 
-  // Hàm lấy dữ liệu cho BarChart: top 10 loại sự cố
+  // Hàm lấy dữ liệu cho BarChart: top 10 loại 筆傷病
   const getBarChartData = (data) => {
     if (!Array.isArray(data) || data.length === 0) return [];
     const typeMap = {};
@@ -886,21 +886,21 @@ const Incident = () => {
       <Sidebar />
       <div className={style.contentArea}>
         {/* LOADING OVERLAY */}
-        {(loading || modalLoading) && <LoadingOverlay text="Đang tải dữ liệu..." />}
+        {(loading || modalLoading) && <LoadingOverlay text="資料載入中..." />}
         <div className={style.header}>
-          <h2>Báo cáo sự cố y tế học đường</h2>
+          <h2>學生傷病紀錄</h2>
           <div className={style.headerButtons}>
             <button
               className={style.bulkAddButton}
               onClick={() => setShowBulkCreateForm(true)}
             >
-              <Users size={16} /> Tạo hàng loạt
+              <Users size={16} /> 批次新增
             </button>
             <button
               className={style.addButton}
               onClick={() => setShowCreateForm(true)}
             >
-              <Plus size={16} /> Tạo sự cố mới
+              <Plus size={16} /> 新增傷病紀錄
             </button>
           </div>
         </div>
@@ -910,7 +910,7 @@ const Incident = () => {
             value={eventTypeFilter}
             onChange={(e) => setEventTypeFilter(e.target.value)}
           >
-            <option value="Tất cả">Tất cả</option>
+            <option value="全部">全部</option>
             {eventTypes.map((type) => (
               <option key={type.id} value={type.name}>
                 {type.name}
@@ -926,15 +926,15 @@ const Incident = () => {
             <Search size={16} />
             <input
               type="text"
-              placeholder="Tìm học sinh..."
+              placeholder="搜尋學生..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
-            <option value="day">Theo ngày</option>
-            <option value="week">Theo tuần</option>
-            <option value="month">Theo tháng</option>
+            <option value="day">依日期</option>
+            <option value="week">依週</option>
+            <option value="month">依月份</option>
           </select>
         </div>
 
@@ -942,10 +942,10 @@ const Incident = () => {
           <table>
             <thead>
               <tr>
-                <th>Học sinh</th>
-                <th>Loại sự cố</th>
-                <th>Thời gian</th>
-                <th>Mức độ</th>
+                <th>學生</th>
+                <th>傷病類型</th>
+                <th>時間</th>
+                <th>嚴重程度</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
@@ -958,13 +958,13 @@ const Incident = () => {
                       <td>
                         <span className={style.tagBlue}>{event.eventType}</span>
                       </td>
-                      <td>{new Date(event.eventDate).toLocaleString()}</td>
+                      <td>{new Date(event.eventDate).toLocaleString("zh-TW")}</td>
                       <td>
                         <span
                           className={
-                            event.severityLevelName === "Nhẹ"
+                            event.severityLevelName === "輕度"
                               ? style.tagYellow
-                              : event.severityLevelName === "Trung bình"
+                              : event.severityLevelName === "中度"
                               ? style.tagOrange
                               : style.tagRed
                           }
@@ -978,7 +978,7 @@ const Incident = () => {
                           className={style.viewDetail}
                           onClick={() => setSelectedEvent(event)}
                         >
-                          Xem chi tiết
+                          查看詳細資料
                         </button>
                       </td>
                     </tr>
@@ -1012,7 +1012,7 @@ const Incident = () => {
 
         <div className={style.summarySection}>
           <div className={style.chartCard}>
-            <h4>Thống kê theo loại</h4>
+            <h4>依傷病類型統計</h4>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart
                 data={getBarChartData(filteredEvents)}
@@ -1021,7 +1021,7 @@ const Incident = () => {
               >
                 <XAxis type="number" allowDecimals={false} tick={{ fontSize: 13 }} />
                 <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 13 }} />
-                <Tooltip formatter={(value) => [`${value} sự cố`]} />
+                <Tooltip formatter={(value) => [`${value} 筆傷病`]} />
                 <Legend />
                 <Bar dataKey="value" fill="#4D96FF">
                   {getBarChartData(filteredEvents).map((entry, index) => (
@@ -1033,29 +1033,29 @@ const Incident = () => {
           </div>
 
           <div className={style.summaryCard}>
-            <h4>Tóm tắt</h4>
+            <h4>摘要</h4>
             <p>
-              Tổng sự cố: <strong>{summary.total}</strong>
+              傷病總筆數: <strong>{summary.total}</strong>
             </p>
             <p>
-              Đã gửi thông báo: <strong>{summary.sent}</strong>
+              已建立通知: <strong>{summary.sent}</strong>
             </p>
             <p>
-              Đang chờ xử lý: <strong>{summary.pending}</strong>
+              待處理: <strong>{summary.pending}</strong>
             </p>
             <div className={style.links}>
-              <button onClick={handleExportExcel}>Xuất dữ liệu Excel</button>
+              <button onClick={handleExportExcel}>匯出 Excel</button>
             </div>
           </div>
 
           <div className={style.chartCard}>
             <h4>
-              Phân phối theo{" "}
+              趨勢：{" "}
               {groupBy === "day"
-                ? "ngày"
+                ? "日"
                 : groupBy === "week"
-                ? "tuần"
-                : "tháng"}
+                ? "週"
+                : "月"}
             </h4>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={distributionData}>
@@ -1078,60 +1078,60 @@ const Incident = () => {
       {selectedEvent && (
         <div className={style.modalOverlay}>
           <div className={style.modalContent}>
-            <h3>Chi tiết sự cố</h3>
+            <h3>傷病紀錄詳細資料</h3>
             <table className={style.detailTable}>
               <tbody>
                 <tr>
                   <td>
-                    <strong>Học sinh:</strong>
+                    <strong>學生:</strong>
                   </td>
                   <td>{selectedEvent.studentName}</td>
                 </tr>
                 <tr>
                   <td>
-                    <strong>Phụ huynh:</strong>
+                    <strong>家長／聯絡人:</strong>
                   </td>
                   <td>{selectedEvent.parentName}</td>
                 </tr>
                 <tr>
                   <td>
-                    <strong>Loại sự cố:</strong>
+                    <strong>傷病類型:</strong>
                   </td>
                   <td>{selectedEvent.eventType}</td>
                 </tr>
                 <tr>
                   <td>
-                    <strong>Mức độ:</strong>
+                    <strong>嚴重程度:</strong>
                   </td>
                   <td>{selectedEvent.severityLevelName}</td>
                 </tr>
                 <tr>
                   <td>
-                    <strong>Thời gian:</strong>
+                    <strong>時間:</strong>
                   </td>
-                  <td>{new Date(selectedEvent.eventDate).toLocaleString()}</td>
+                  <td>{new Date(selectedEvent.eventDate).toLocaleString("zh-TW")}</td>
                 </tr>
                 <tr>
                   <td>
-                    <strong>Địa điểm:</strong>
+                    <strong>發生地點:</strong>
                   </td>
-                  <td>{selectedEvent.location || "Không rõ"}</td>
+                  <td>{selectedEvent.location || "未填寫"}</td>
                 </tr>
                 <tr>
                   <td>
-                    <strong>Mô tả:</strong>
+                    <strong>傷病描述:</strong>
                   </td>
                   <td>{selectedEvent.description}</td>
                 </tr>
                 <tr>
                   <td>
-                    <strong>Ghi chú:</strong>
+                    <strong>備註:</strong>
                   </td>
-                  <td>{selectedEvent.notes || "Không có"}</td>
+                  <td>{selectedEvent.notes || "無"}</td>
                 </tr>
                 <tr>
                   <td>
-                    <strong>Người xử lý:</strong>
+                    <strong>處理人員:</strong>
                   </td>
                   <td>
                     {getStaffName(
@@ -1146,14 +1146,14 @@ const Incident = () => {
             {selectedEvent.suppliesUsed?.length > 0 && (
               <>
                 <p>
-                  <h4 className={style.sectionTitle}>Vật tư đã sử dụng:</h4>
+                  <h4 className={style.sectionTitle}>已使用醫療物資:</h4>
                 </p>
                 <table className={style.detailTable}>
                   <thead>
                     <tr>
-                      <th>Tên vật tư</th>
-                      <th>Số lượng</th>
-                      <th>Ghi chú</th>
+                      <th>物資名稱</th>
+                      <th>數量</th>
+                      <th>備註</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1163,7 +1163,7 @@ const Incident = () => {
                         <td>
                           {supply.quantityUsed} {supply.unit || ""}
                         </td>
-                        <td>{supply.note || "Không ghi chú"}</td>
+                        <td>{supply.note || "無備註"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1174,23 +1174,23 @@ const Incident = () => {
             {selectedMedicalHistory.length > 0 && (
               <>
                 <p>
-                  <h4 className={style.sectionTitle}>Tiền sử bệnh:</h4>
+                  <h4 className={style.sectionTitle}>既往病史:</h4>
                 </p>
                 <table className={style.detailTable}>
                   <thead>
                     <tr>
-                      <th>Bệnh</th>
-                      <th>Ghi chú</th>
-                      <th>Ngày chẩn đoán</th>
+                      <th>疾病</th>
+                      <th>備註</th>
+                      <th>診斷日期</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedMedicalHistory.map((mh) => (
                       <tr key={mh.historyId}>
                         <td>{mh.diseaseName}</td>
-                        <td>{mh.note || "Không ghi chú"}</td>
+                        <td>{mh.note || "無備註"}</td>
                         <td>
-                          {new Date(mh.diagnosedDate).toLocaleDateString()}
+                          {new Date(mh.diagnosedDate).toLocaleDateString("zh-TW")}
                         </td>
                       </tr>
                     ))}
@@ -1204,21 +1204,21 @@ const Incident = () => {
                 className={style.editBtn}
                 onClick={() => handleEdit(selectedEvent)}
               >
-                Chỉnh sửa
+                編輯
               </button>
               <button
                 className={style.deleteBtn}
                 onClick={() => handleDelete(selectedEvent.eventId)}
               >
-                Xoá
+                刪除
               </button>
-              <button onClick={() => setSelectedEvent(null)}>Đóng</button>
+              <button onClick={() => setSelectedEvent(null)}>關閉</button>
               {selectedEvent && !selectedEvent.notificationSent && (
                 <button
                   className={style.sendBtn}
                   onClick={() => setShowSendOption(true)}
                 >
-                  Gửi thông báo
+                  建立本機通知
                 </button>
               )}
             </div>
@@ -1228,7 +1228,7 @@ const Incident = () => {
       {showSendOption && (
         <div className={style.modalOverlay}>
           <div className={style.modalContent}>
-            <h4>Bạn muốn gửi thông báo?</h4>
+            <h4>是否建立家長通知？</h4>
             <button
               className={style.sendBtn}
               onClick={async () => {
@@ -1242,11 +1242,11 @@ const Incident = () => {
                   );
                   const parentId = res.data?.data?.parentId;
                   if (!parentId) {
-                    notifyError("Không tìm thấy phụ huynh của học sinh này!");
+                    notifyError("找不到此學生的家長／聯絡人。");
                     return;
                   }
-                  const message = `Học sinh: ${selectedEvent.studentName}\nLoại sự cố: ${selectedEvent.eventType}\nThời gian: ${selectedEvent.eventDate ? new Date(selectedEvent.eventDate).toLocaleString() : "Không rõ"}\nMức độ: ${selectedEvent.severityLevelName || "Không rõ"}\nMô tả: ${selectedEvent.description || "Không có"}`;
-                  const subject = "Thông báo sự cố y tế học đường";
+                  const message = `學生: ${selectedEvent.studentName}\n傷病類型: ${selectedEvent.eventType}\n時間: ${selectedEvent.eventDate ? new Date(selectedEvent.eventDate).toLocaleString("zh-TW") : "未填寫"}\n嚴重程度: ${selectedEvent.severityLevelName || "未填寫"}\n傷病描述: ${selectedEvent.description || "無"}`;
+                  const subject = "校園傷病紀錄通知";
                   // Gửi notification và email song song
                   await Promise.all([
                     axios.post(
@@ -1261,7 +1261,7 @@ const Incident = () => {
                       { headers: { Authorization: `Bearer ${token}` } }
                     ),
                     axios.post(
-                      "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+                      "http://127.0.0.1:5080/api/Email/send-by-userid",
                       {
                         userId: parentId,
                         subject,
@@ -1270,20 +1270,20 @@ const Incident = () => {
                       { headers: { Authorization: `Bearer ${token}` } }
                     ),
                   ]);
-                  notifySuccess("Đã gửi thông báo và email cho phụ huynh!");
+                  notifySuccess("已建立通知 và email cho phụ huynh!");
                   setShowSendOption(false);
                 } catch {
-                  notifyError("Gửi thông báo hoặc email thất bại!");
+                  notifyError("建立本機通知 hoặc email thất bại!");
                 }
               }}
             >
-              Gửi thông báo
+              建立本機通知
             </button>
             <button
               className={style.closeBtn}
               onClick={() => setShowSendOption(false)}
             >
-              Đóng
+              關閉
             </button>
           </div>
         </div>
@@ -1291,7 +1291,7 @@ const Incident = () => {
       {showCreateForm && (
         <div className={style.modalOverlay}>
           <div className={style.modalContent}>
-            <h3>Tạo sự cố mới</h3>
+            <h3>新增傷病紀錄</h3>
             {/* Dropdown chọn lớp */}
             <select
               value={selectedClass}
@@ -1329,7 +1329,7 @@ const Incident = () => {
               }}
               style={{ marginBottom: 12 }}
             >
-              <option value="">-- Chọn lớp --</option>
+              <option value="">-- 選擇班級 --</option>
               {classList.map((cl) => (
                 <option key={cl} value={cl}>
                   {cl}
@@ -1345,7 +1345,7 @@ const Incident = () => {
                     }))
                   : []
               }
-              placeholder={selectedClass ? "Tìm học sinh..." : "Chọn lớp trước"}
+              placeholder={selectedClass ? "搜尋學生..." : "請先選擇班級"}
               isDisabled={!selectedClass}
               value={
                 classStudents.find((s) => s.studentId === newEvent.studentId)
@@ -1372,7 +1372,7 @@ const Incident = () => {
                 }
               }}
             >
-              <option value="">-- Loại sự cố --</option>
+              <option value="">-- 傷病類型 --</option>
               {eventTypes.map((et) => (
                 <option key={et.id} value={et.id}>
                   {et.name}
@@ -1382,7 +1382,7 @@ const Incident = () => {
                 value="add_new_type"
                 style={{ color: "#007bff", fontWeight: "bold" }}
               >
-                + Tạo loại mới...
+                + 新增傷病類型...
               </option>
             </select>
 
@@ -1392,7 +1392,7 @@ const Incident = () => {
                 setNewEvent({ ...newEvent, severityId: e.target.value })
               }
             >
-              <option value="">-- Mức độ --</option>
+              <option value="">-- 嚴重程度 --</option>
               {severityLevels.map((sl) => (
                 <option key={sl.id} value={sl.id}>
                   {sl.level}
@@ -1410,7 +1410,7 @@ const Incident = () => {
 
             <input
               type="text"
-              placeholder="Địa điểm xảy ra sự cố"
+              placeholder="發生地點 xảy ra 筆傷病"
               value={newEvent.location}
               onChange={(e) =>
                 setNewEvent({ ...newEvent, location: e.target.value })
@@ -1418,7 +1418,7 @@ const Incident = () => {
             />
 
             <textarea
-              placeholder="Mô tả"
+              placeholder="傷病描述"
               value={newEvent.description}
               onChange={(e) =>
                 setNewEvent({ ...newEvent, description: e.target.value })
@@ -1426,14 +1426,14 @@ const Incident = () => {
             />
 
             <textarea
-              placeholder="Ghi chú"
+              placeholder="備註"
               value={newEvent.notes}
               onChange={(e) =>
                 setNewEvent({ ...newEvent, notes: e.target.value })
               }
             />
 
-            <h4 className={style.sectionTitle}>Vật tư đã sử dụng:</h4>
+            <h4 className={style.sectionTitle}>已使用醫療物資:</h4>
             {suppliesUsed.map((s, index) => (
               <div
                 key={index}
@@ -1447,7 +1447,7 @@ const Incident = () => {
                     setSuppliesUsed(updated);
                   }}
                 >
-                  <option value="">-- Chọn vật tư --</option>
+                  <option value="">-- 選擇醫療物資 --</option>
                   {Array.isArray(supplies)
                     ? supplies.map((supply) => (
                         <option key={supply.supplyID} value={supply.supplyID}>
@@ -1459,7 +1459,7 @@ const Incident = () => {
 
                 <input
                   type="number"
-                  placeholder="Số lượng"
+                  placeholder="數量"
                   value={s.quantityUsed}
                   onChange={(e) => {
                     const updated = [...suppliesUsed];
@@ -1471,7 +1471,7 @@ const Incident = () => {
 
                 <input
                   type="text"
-                  placeholder="Ghi chú"
+                  placeholder="備註"
                   value={s.note}
                   onChange={(e) => {
                     const updated = [...suppliesUsed];
@@ -1501,19 +1501,19 @@ const Incident = () => {
               }
               style={{ marginBottom: "10px" }}
             >
-              + Thêm vật tư
+              + 新增物資
             </button>
 
             <div className={style.modalActions}>
               <button className={style.tagBlue} onClick={handleCreate}>
-                Tạo
+                新增
               </button>
 
               <button
                 className={style.closeBtn}
                 onClick={() => setShowCreateForm(false)}
               >
-                Huỷ
+                取消
               </button>
             </div>
           </div>
@@ -1522,13 +1522,13 @@ const Incident = () => {
       {showEditForm && editingEvent && (
         <div className={style.modalOverlay}>
           <div className={style.modalContent}>
-            <h3>Chỉnh sửa sự cố</h3>
+            <h3>編輯 筆傷病</h3>
 
             <label className={style.infoLabel}>
-              Học sinh: <strong>{editingEvent.studentName}</strong>
+              學生: <strong>{editingEvent.studentName}</strong>
             </label>
             <label className={style.infoLabel}>
-              Loại sự cố: <strong>{editingEvent.eventType}</strong>
+              傷病類型: <strong>{editingEvent.eventType}</strong>
             </label>
 
             <select
@@ -1537,7 +1537,7 @@ const Incident = () => {
                 setEditingEvent({ ...editingEvent, severityId: e.target.value })
               }
             >
-              <option value="">-- Mức độ --</option>
+              <option value="">-- 嚴重程度 --</option>
               {severityLevels.map((sl) => (
                 <option key={sl.id} value={sl.id}>
                   {sl.level}
@@ -1547,7 +1547,7 @@ const Incident = () => {
 
             <input
               type="text"
-              placeholder="Địa điểm xảy ra sự cố"
+              placeholder="發生地點 xảy ra 筆傷病"
               value={editingEvent.location}
               onChange={(e) =>
                 setEditingEvent({ ...editingEvent, location: e.target.value })
@@ -1555,7 +1555,7 @@ const Incident = () => {
             />
 
             <textarea
-              placeholder="Mô tả"
+              placeholder="傷病描述"
               value={editingEvent.description}
               onChange={(e) =>
                 setEditingEvent({
@@ -1566,14 +1566,14 @@ const Incident = () => {
             />
 
             <textarea
-              placeholder="Ghi chú"
+              placeholder="備註"
               value={editingEvent.notes}
               onChange={(e) =>
                 setEditingEvent({ ...editingEvent, notes: e.target.value })
               }
             />
 
-            <h4 className={style.sectionTitle}>Vật tư đã sử dụng:</h4>
+            <h4 className={style.sectionTitle}>已使用醫療物資:</h4>
             {(editingEvent.suppliesUsed || []).map((s, index) => (
               <div
                 key={index}
@@ -1590,7 +1590,7 @@ const Incident = () => {
                     });
                   }}
                 >
-                  <option value="">-- Chọn vật tư --</option>
+                  <option value="">-- 選擇醫療物資 --</option>
                   {Array.isArray(supplies)
                     ? supplies.map((supply) => (
                         <option key={supply.supplyID} value={supply.supplyID}>
@@ -1602,7 +1602,7 @@ const Incident = () => {
 
                 <input
                   type="number"
-                  placeholder="Số lượng"
+                  placeholder="數量"
                   value={s.quantityUsed}
                   onChange={(e) => {
                     const updated = [...editingEvent.suppliesUsed];
@@ -1617,7 +1617,7 @@ const Incident = () => {
 
                 <input
                   type="text"
-                  placeholder="Ghi chú"
+                  placeholder="備註"
                   value={s.note}
                   onChange={(e) => {
                     const updated = [...editingEvent.suppliesUsed];
@@ -1656,12 +1656,12 @@ const Incident = () => {
               }
               style={{ marginBottom: "10px" }}
             >
-              + Thêm vật tư
+              + 新增物資
             </button>
 
             <div className={style.modalActions}>
               <button className={style.tagBlue} onClick={handleUpdate}>
-                Cập nhật
+                更新
               </button>
               <button
                 className={style.closeBtn}
@@ -1670,7 +1670,7 @@ const Incident = () => {
                   setEditingEvent(null);
                 }}
               >
-                Huỷ
+                取消
               </button>
             </div>
           </div>
@@ -1679,9 +1679,9 @@ const Incident = () => {
       {showBulkCreateForm && (
         <div className={style.modalOverlay}>
           <div className={style.modalContent}>
-            <h3>Tạo sự cố hàng loạt</h3>
+            <h3>新增 筆傷病 hàng loạt</h3>
             <p className={style.bulkDescription}>
-              Chọn nhiều học sinh có cùng triệu chứng để tạo sự cố cùng lúc
+              可一次為多名學生建立相同類型的傷病紀錄
             </p>
 
             {/* Tab chọn phương thức */}
@@ -1690,20 +1690,20 @@ const Incident = () => {
                 className={`${style.tabButton} ${!showAllStudents ? style.activeTab : ''}`}
                 onClick={() => setShowAllStudents(false)}
               >
-                Chọn theo lớp
+                依班級選擇
               </button>
               <button
                 className={`${style.tabButton} ${showAllStudents ? style.activeTab : ''}`}
                 onClick={() => setShowAllStudents(true)}
               >
-                Chọn từ tất cả học sinh
+                從全部學生選擇
               </button>
             </div>
 
             {!showAllStudents ? (
               // Chế độ chọn theo lớp
               <div className={style.classSelectionMode}>
-                <h4>Chọn lớp:</h4>
+                <h4>選擇班級：</h4>
                 <div className={style.classGrid}>
                   {classList.map((className) => {
                     const classStudents = getStudentsByClass(className);
@@ -1732,7 +1732,7 @@ const Incident = () => {
                               }
                             }}
                           >
-                            {isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                            {isAllSelected ? '全部取消' : '全部選取'}
                           </button>
                           <button
                             className={style.viewStudentsBtn}
@@ -1741,7 +1741,7 @@ const Incident = () => {
                               setClassStudents(classStudents);
                             }}
                           >
-                            Xem chi tiết
+                            查看詳細資料
                           </button>
                         </div>
                       </div>
@@ -1752,7 +1752,7 @@ const Incident = () => {
                 {/* Hiển thị học sinh của lớp được chọn */}
                 {selectedClass && (
                   <div className={style.selectedClassStudents}>
-                    <h4>Học sinh lớp {selectedClass}:</h4>
+                    <h4>學生 lớp {selectedClass}:</h4>
                     <div className={style.studentCheckboxList}>
                       {classStudents.filter(s => !!s.parentId).map((student) => (
                         <label key={student.studentId} className={style.studentCheckbox}>
@@ -1786,7 +1786,7 @@ const Incident = () => {
                   <Search size={16} />
                   <input
                     type="text"
-                    placeholder="Tìm kiếm học sinh hoặc lớp..."
+                    placeholder="搜尋學生或班級..."
                     value={searchStudent}
                     onChange={(e) => setSearchStudent(e.target.value)}
                   />
@@ -1831,7 +1831,7 @@ const Incident = () => {
                 }
               }}
             >
-              <option value="">-- Loại sự cố --</option>
+              <option value="">-- 傷病類型 --</option>
               {eventTypes.map((et) => (
                 <option key={et.id} value={et.id}>
                   {et.name}
@@ -1841,7 +1841,7 @@ const Incident = () => {
                 value="add_new_type"
                 style={{ color: "#007bff", fontWeight: "bold" }}
               >
-                + Tạo loại mới...
+                + 新增傷病類型...
               </option>
             </select>
 
@@ -1851,7 +1851,7 @@ const Incident = () => {
                 setBulkEvent({ ...bulkEvent, severityId: e.target.value })
               }
             >
-              <option value="">-- Mức độ --</option>
+              <option value="">-- 嚴重程度 --</option>
               {severityLevels.map((sl) => (
                 <option key={sl.id} value={sl.id}>
                   {sl.level}
@@ -1869,7 +1869,7 @@ const Incident = () => {
 
             <input
               type="text"
-              placeholder="Địa điểm xảy ra sự cố"
+              placeholder="發生地點 xảy ra 筆傷病"
               value={bulkEvent.location}
               onChange={(e) =>
                 setBulkEvent({ ...bulkEvent, location: e.target.value })
@@ -1877,7 +1877,7 @@ const Incident = () => {
             />
 
             <textarea
-              placeholder="Mô tả chung cho tất cả học sinh"
+              placeholder="傷病描述 chung cho tất cả học sinh"
               value={bulkEvent.description}
               onChange={(e) =>
                 setBulkEvent({ ...bulkEvent, description: e.target.value })
@@ -1885,14 +1885,14 @@ const Incident = () => {
             />
 
             <textarea
-              placeholder="Ghi chú chung"
+              placeholder="備註 chung"
               value={bulkEvent.notes}
               onChange={(e) =>
                 setBulkEvent({ ...bulkEvent, notes: e.target.value })
               }
             />
 
-            <h4 className={style.sectionTitle}>Vật tư đã sử dụng (chung):</h4>
+            <h4 className={style.sectionTitle}>已使用醫療物資 (chung):</h4>
             {bulkSuppliesUsed.map((s, index) => (
               <div
                 key={index}
@@ -1906,7 +1906,7 @@ const Incident = () => {
                     setBulkSuppliesUsed(updated);
                   }}
                 >
-                  <option value="">-- Chọn vật tư --</option>
+                  <option value="">-- 選擇醫療物資 --</option>
                   {Array.isArray(supplies)
                     ? supplies.map((supply) => (
                         <option key={supply.supplyID} value={supply.supplyID}>
@@ -1918,7 +1918,7 @@ const Incident = () => {
 
                 <input
                   type="number"
-                  placeholder="Số lượng"
+                  placeholder="數量"
                   value={s.quantityUsed}
                   onChange={(e) => {
                     const updated = [...bulkSuppliesUsed];
@@ -1930,7 +1930,7 @@ const Incident = () => {
 
                 <input
                   type="text"
-                  placeholder="Ghi chú"
+                  placeholder="備註"
                   value={s.note}
                   onChange={(e) => {
                     const updated = [...bulkSuppliesUsed];
@@ -1960,12 +1960,12 @@ const Incident = () => {
               }
               style={{ marginBottom: "10px" }}
             >
-              + Thêm vật tư
+              + 新增物資
             </button>
 
             {bulkEvent.selectedStudents.length > 0 && (
               <div className={style.selectedStudents}>
-                <h4>Học sinh đã chọn ({bulkEvent.selectedStudents.length}):</h4>
+                <h4>已選學生（{bulkEvent.selectedStudents.length}）：</h4>
                 <div className={style.studentList}>
                   {bulkEvent.selectedStudents.map((studentId) => {
                     const studentObj = allStudents.find(
@@ -1986,7 +1986,7 @@ const Incident = () => {
 
             <div className={style.modalActions}>
               <button className={style.sendBtn} onClick={handleBulkCreate}>
-                Tạo cho {bulkEvent.selectedStudents.length} học sinh
+                新增 cho {bulkEvent.selectedStudents.length} học sinh
               </button>
               <button
                 className={style.closeBtn}
@@ -1998,7 +1998,7 @@ const Incident = () => {
                   setSearchStudent("");
                 }}
               >
-                Huỷ
+                取消
               </button>
             </div>
           </div>
@@ -2007,10 +2007,10 @@ const Incident = () => {
       {showCreateEventTypeModal && (
         <div className={style.modalOverlay}>
           <div className={style.modalContent} style={{ maxWidth: "400px" }}>
-            <h3>Tạo loại sự cố mới</h3>
+            <h3>新增 loại 筆傷病 mới</h3>
             <input
               type="text"
-              placeholder="Nhập tên loại sự cố..."
+              placeholder="請輸入傷病類型名稱..."
               value={newEventTypeName}
               onChange={(e) => setNewEventTypeName(e.target.value)}
               style={{
@@ -2022,13 +2022,13 @@ const Incident = () => {
             />
             <div className={style.modalActions}>
               <button className={style.tagBlue} onClick={handleCreateEventType}>
-                Tạo
+                新增
               </button>
               <button
                 className={style.closeBtn}
                 onClick={() => setShowCreateEventTypeModal(false)}
               >
-                Huỷ
+                取消
               </button>
             </div>
           </div>

@@ -21,7 +21,7 @@ const VaccineResult = () => {
     const fetchStatus = async () => {
       try {
         const res = await axios.get(
-          `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${id}`
+          `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${id}`
         );
         const statusName =
           res.data.data.statusName || res.data.data.status?.name;
@@ -38,7 +38,7 @@ const VaccineResult = () => {
       setLoading(true);
       try {
         const res = await axios.get(
-          `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${id}/approved-consents`
+          `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${id}/approved-consents`
         );
         const students = res.data.data || [];
 
@@ -46,7 +46,7 @@ const VaccineResult = () => {
           students.map(async (student) => {
             try {
               const recordRes = await axios.get(
-                `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/records/student/${student.studentId}`
+                `http://127.0.0.1:5080/api/VaccinationCampaign/records/student/${student.studentId}`
               );
               let record = recordRes.data.data;
               if (Array.isArray(record)) {
@@ -62,7 +62,7 @@ const VaccineResult = () => {
         );
         setRecords(allRecords);
       } catch (error) {
-        console.error("Lỗi lấy kết quả tiêm chủng:", error);
+        console.error("取得接種結果失敗：", error);
         setRecords([]);
       } finally {
         setLoading(false);
@@ -81,7 +81,7 @@ const VaccineResult = () => {
     const r = records[index];
     try {
       await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/records",
+        "http://127.0.0.1:5080/api/VaccinationCampaign/records",
         {
           studentId: r.studentId,
           campaignId: id,
@@ -93,11 +93,11 @@ const VaccineResult = () => {
         },
         { headers: { "Content-Type": "application/json" } }
       );
-      notifySuccess("Lưu thành công!");
+      notifySuccess("儲存成功！");
       setEditingIndex(null);
     } catch (error) {
       notifyError(
-        "Lỗi khi lưu dữ liệu: " + JSON.stringify(error.response?.data)
+        "儲存資料失敗：" + JSON.stringify(error.response?.data)
       );
     }
   };
@@ -106,14 +106,14 @@ const VaccineResult = () => {
     try {
       // Gửi notification
       const note = student.followUpNote
-        ? `Ghi chú: ${student.followUpNote}`
-        : "Không có ghi chú.";
+        ? `備註: ${student.followUpNote}`
+        : "無備註。";
       await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/Notification/send",
+        "http://127.0.0.1:5080/api/Notification/send",
         {
           receiverId: student.parentId,
-          title: "Kết quả tiêm chủng",
-          message: `Học sinh ${
+          title: "預防接種結果",
+          message: `學生 ${
             student.studentName
           } đã ${student.result.toLowerCase()} trong đợt tiêm chủng.\n${note}`,
           typeId: 2,
@@ -123,26 +123,26 @@ const VaccineResult = () => {
       );
       // Gửi email
       await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+        "http://127.0.0.1:5080/api/Email/send-by-userid",
         {
           userId: student.parentId,
-          subject: `Kết quả tiêm chủng cho học sinh ${student.studentName}`,
-          body: `Học sinh ${
+          subject: `預防接種結果 cho học sinh ${student.studentName}`,
+          body: `學生 ${
             student.studentName
           } đã ${student.result?.toLowerCase()} trong đợt tiêm chủng.\n${note}`,
         },
         { headers: { "Content-Type": "application/json" } }
       );
-      notifySuccess("Đã gửi thông báo và email đến phụ huynh!");
+      notifySuccess("已建立家長本機通知。");
     } catch (error) {
-      console.error("Lỗi khi gửi thông báo/email:", error);
+      console.error("建立通知失敗：", error);
       notifyError(
-        "Không thể gửi thông báo/email: " + error.response?.data?.message
+        "無法建立本機通知：" + error.response?.data?.message
       );
     }
   };
 
-  // Gửi thông báo & email hàng loạt
+  // 批次建立本機通知
   const handleSendAllNotifications = async () => {
     const studentsToSend = records.filter(
       (r) =>
@@ -162,7 +162,7 @@ const VaccineResult = () => {
           r.parentId === undefined)
       ) {
         console.warn(
-          "Không có parentId hợp lệ cho học sinh:",
+          "學生缺少有效的家長識別碼：",
           r.studentName,
           r
         );
@@ -183,12 +183,12 @@ const VaccineResult = () => {
       }
       try {
         const note = student.followUpNote
-          ? `Ghi chú: ${student.followUpNote}`
-          : "Không có ghi chú.";
+          ? `備註: ${student.followUpNote}`
+          : "無備註。";
         const notificationPayload = {
           receiverId: student.parentId,
-          title: "Kết quả tiêm chủng",
-          message: `Học sinh ${
+          title: "預防接種結果",
+          message: `學生 ${
             student.studentName
           } đã ${student.result.toLowerCase()} trong đợt tiêm chủng.\n${note}`,
           typeId: 2, // <-- SỬA LẠI TỪ 8 THÀNH 2
@@ -196,8 +196,8 @@ const VaccineResult = () => {
         };
         const emailPayload = {
           userId: student.parentId,
-          subject: `Kết quả tiêm chủng cho học sinh ${student.studentName}`,
-          body: `Học sinh ${
+          subject: `預防接種結果 cho học sinh ${student.studentName}`,
+          body: `學生 ${
             student.studentName
           } đã ${student.result?.toLowerCase()} trong đợt tiêm chủng.\n${note}`,
         };
@@ -212,12 +212,12 @@ const VaccineResult = () => {
         console.log("Notification payload:", notificationPayload);
         console.log("Email payload:", emailPayload);
         await axios.post(
-          "https://swp-school-medical-management.onrender.com/api/Notification/send",
+          "http://127.0.0.1:5080/api/Notification/send",
           notificationPayload,
           { headers: { "Content-Type": "application/json" } }
         );
         await axios.post(
-          "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+          "http://127.0.0.1:5080/api/Email/send-by-userid",
           emailPayload,
           { headers: { "Content-Type": "application/json" } }
         );
@@ -235,18 +235,18 @@ const VaccineResult = () => {
     }
     if (successCount > 0)
       notifySuccess(
-        `Đã gửi thông báo & email cho ${successCount} phụ huynh thành công!`
+        `已成功建立 ${successCount} 筆家長通知！`
       );
     if (failCount > 0)
-      notifyError(`Không gửi được cho ${failCount} phụ huynh.`);
+      notifyError(`有 ${failCount} 筆家長通知建立失敗。`);
   };
 
   return (
     <div className={style.container}>
-      {loading && <LoadingOverlay text="Đang tải dữ liệu..." />}
-      <h2 className={style.title}>Kết quả tiêm chủng</h2>
+      {loading && <LoadingOverlay text="資料載入中..." />}
+      <h2 className={style.title}>預防接種結果</h2>
       <button className={style.btnBack} onClick={() => navigate(-1)}>
-        ← Quay lại
+        ← 返回
       </button>
 
       <button
@@ -255,26 +255,26 @@ const VaccineResult = () => {
         onClick={handleSendAllNotifications}
         disabled={records.filter((r) => r.result && r.parentId).length === 0}
       >
-        Gửi thông báo & email hàng loạt
+        批次建立本機通知
       </button>
 
       <table className={style.resultTable}>
         <thead>
           <tr>
             <th>STT</th>
-            <th>Học sinh</th>
-            <th>Phụ huynh</th>
-            <th>Ngày phản hồi</th>
-            <th>Kết quả</th>
-            <th>Ghi chú</th>
-            <th>Hành động</th>
+            <th>學生</th>
+            <th>家長／聯絡人</th>
+            <th>回覆日期</th>
+            <th>接種結果</th>
+            <th>備註</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
           {records.length === 0 && !loading ? (
             <tr>
               <td colSpan="7" style={{ textAlign: "center" }}>
-                Không có dữ liệu
+                目前沒有資料
               </td>
             </tr>
           ) : (
@@ -285,7 +285,7 @@ const VaccineResult = () => {
                 <td>{r.parentName}</td>
                 <td>
                   {r.consentDate
-                    ? new Date(r.consentDate).toLocaleDateString()
+                    ? new Date(r.consentDate).toLocaleDateString("zh-TW")
                     : ""}
                 </td>
                 {editingIndex === index ? (
@@ -297,9 +297,9 @@ const VaccineResult = () => {
                           handleInputChange(index, "result", e.target.value)
                         }
                       >
-                        <option value="">--Chọn--</option>
-                        <option value="Thành công">Thành công</option>
-                        <option value="Thất bại">Thất bại</option>
+                        <option value="">-- 請選擇 --</option>
+                        <option value="接種完成">接種完成</option>
+                        <option value="未完成">未完成</option>
                       </select>
                     </td>
                     <td>
@@ -316,12 +316,12 @@ const VaccineResult = () => {
                       />
                     </td>
                     <td>
-                      <button onClick={() => handleSave(index)}>Lưu</button>
+                      <button onClick={() => handleSave(index)}>儲存</button>
                     </td>
                   </>
                 ) : (
                   <>
-                    <td>{r.result || "Chưa ghi nhận"}</td>
+                    <td>{r.result || "尚未登錄"}</td>
                     <td>{r.followUpNote || ""}</td>
                     <td>
                       {r.result && (
@@ -329,24 +329,24 @@ const VaccineResult = () => {
                           onClick={() => setViewingIndex(index)}
                           className={style.detailBtn}
                         >
-                          Xem chi tiết
+                          查看詳細資料
                         </button>
                       )}
-                      {campaignStatus === "Đang diễn ra" &&
+                      {campaignStatus === "進行中" &&
                         (r.result ? (
                           <button onClick={() => setEditingIndex(index)}>
-                            Chỉnh sửa
+                            編輯
                           </button>
                         ) : (
                           <button onClick={() => setEditingIndex(index)}>
-                            Ghi nhận
+                            登錄
                           </button>
                         ))}
-                      {campaignStatus === "Đã hoàn thành" && r.result && (
+                      {campaignStatus === "已完成" && r.result && (
                         <button
                           onClick={() => handleSendNotificationAndEmail(r)}
                         >
-                          Gửi thông báo & email
+                          建立本機通知
                         </button>
                       )}
                     </td>
@@ -361,25 +361,25 @@ const VaccineResult = () => {
       {viewingIndex !== null && (
         <div className={style.detailModal}>
           <div className={style.modalContent}>
-            <h3>Chi tiết kết quả tiêm</h3>
+            <h3>接種結果詳細資料</h3>
             <p>
-              <strong>Học sinh:</strong> {records[viewingIndex].studentName}
+              <strong>學生:</strong> {records[viewingIndex].studentName}
             </p>
             <p>
-              <strong>Phụ huynh:</strong> {records[viewingIndex].parentName}
+              <strong>家長／聯絡人:</strong> {records[viewingIndex].parentName}
             </p>
             <p>
-              <strong>Kết quả:</strong> {records[viewingIndex].result}
+              <strong>接種結果:</strong> {records[viewingIndex].result}
             </p>
             <p>
-              <strong>Ghi chú:</strong>{" "}
-              {records[viewingIndex].followUpNote || "Không có"}
+              <strong>備註:</strong>{" "}
+              {records[viewingIndex].followUpNote || "無"}
             </p>
             <button
               onClick={() => setViewingIndex(null)}
               className={style.closeBtn}
             >
-              Đóng
+              關閉
             </button>
           </div>
         </div>

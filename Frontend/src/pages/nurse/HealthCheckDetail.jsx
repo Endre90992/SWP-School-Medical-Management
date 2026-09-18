@@ -59,11 +59,11 @@ const HealthCheckDetail = () => {
 
     try {
       const response = await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/health-checks/summaries",
+        "http://127.0.0.1:5080/api/health-checks/summaries",
         dataToSubmit
       );
       console.log("Dữ liệu đã được lưu:", response.data);
-      notifySuccess("Thông tin sức khỏe đã được ghi nhận!");
+      notifySuccess("健康檢查資料已登錄。");
       setShowModal(false); // Đóng modal sau khi lưu thành công
       // Reload data
       fetchData();
@@ -72,10 +72,10 @@ const HealthCheckDetail = () => {
       if (error.response) {
         console.error("Lỗi từ server:", error.response.data);
         notifyError(
-          "Có lỗi xảy ra khi lưu thông tin: " + error.response.data.message
+          "儲存健康檢查資料失敗：" + error.response.data.message
         );
       } else {
-        notifyError("Có lỗi xảy ra khi gửi yêu cầu!");
+        notifyError("送出資料時發生錯誤。");
       }
     } finally {
       setModalLoading(false);
@@ -111,11 +111,11 @@ const HealthCheckDetail = () => {
 
     try {
       const response = await axios.put(
-        `https://swp-school-medical-management.onrender.com/api/health-checks/summaries/${selectedRecord.recordId}`,
+        `http://127.0.0.1:5080/api/health-checks/summaries/${selectedRecord.recordId}`,
         dataToUpdate
       );
       console.log("Dữ liệu đã được cập nhật:", response.data);
-      notifySuccess("Cập nhật thông tin sức khỏe thành công!");
+      notifySuccess("健康檢查資料更新成功。");
       setShowModal(false); // Đóng modal sau khi cập nhật thành công
       // Reload data
       fetchData();
@@ -123,10 +123,10 @@ const HealthCheckDetail = () => {
       console.error("Lỗi khi cập nhật dữ liệu:", error);
       if (error.response) {
         notifyError(
-          "Có lỗi xảy ra khi cập nhật: " + error.response.data.message
+          "更新健康檢查資料失敗：" + error.response.data.message
         );
       } else {
-        notifyError("Có lỗi xảy ra khi gửi yêu cầu cập nhật!");
+        notifyError("送出更新資料時發生錯誤。");
       }
     } finally {
       setModalLoading(false);
@@ -137,7 +137,7 @@ const HealthCheckDetail = () => {
   const sendEmailToParent = async (userId, subject, body) => {
     try {
       await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+        "http://127.0.0.1:5080/api/Email/send-by-userid",
         {
           userId,
           subject,
@@ -162,11 +162,11 @@ const HealthCheckDetail = () => {
           if (!student.parentId) return;
           // Gửi notification
           await axios.post(
-            "https://swp-school-medical-management.onrender.com/api/Notification/send",
+            "http://127.0.0.1:5080/api/Notification/send",
             {
               receiverId: student.parentId,
-              title: "Thông báo kiểm tra sức khỏe",
-              message: `Học sinh ${student.fullName} sẽ tham gia chiến dịch kiểm tra sức khỏe: ${campaign.title}.\nMô tả: ${campaign.description}.\nNgày kiểm tra: ${campaign.date}`,
+              title: "健康檢查通知",
+              message: `Học sinh ${student.fullName} sẽ tham gia chiến dịch kiểm tra sức khỏe: ${campaign.title}.\n說明： ${campaign.description}.\nNgày kiểm tra: ${campaign.date}`,
               typeId: 2,
               isRead: false,
             },
@@ -178,8 +178,8 @@ const HealthCheckDetail = () => {
           try {
             await sendEmailToParent(
               student.parentId,
-              "Thông báo kiểm tra sức khỏe học sinh",
-              `Học sinh ${student.fullName} sẽ tham gia chiến dịch kiểm tra sức khỏe: ${campaign.title}.\nMô tả: ${campaign.description}.\nNgày kiểm tra: ${campaign.date}`
+              "健康檢查通知 học sinh",
+              `Học sinh ${student.fullName} sẽ tham gia chiến dịch kiểm tra sức khỏe: ${campaign.title}.\n說明： ${campaign.description}.\nNgày kiểm tra: ${campaign.date}`
             );
           } catch {
             hasError = true;
@@ -187,31 +187,31 @@ const HealthCheckDetail = () => {
         })
       );
       if (hasError) {
-        notifyError("Một số email gửi thất bại. Vui lòng kiểm tra lại!");
+        notifyError("部分本機通知建立失敗，請確認。");
       } else {
-        notifySuccess("Đã gửi thông báo và email cho tất cả phụ huynh!");
+        notifySuccess("已為家長建立本機通知。");
       }
     } catch (error) {
       console.error("Lỗi khi gửi thông báo/email hàng loạt:", error);
-      notifyError("Gửi thông báo/email thất bại. Vui lòng thử lại!");
+      notifyError("建立本機通知失敗，請稍後再試。");
     }
   };
 
   const fetchData = async () => {
     try {
       const campaignRes = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/HealthCheckCampaign/${campaignId}`
+        `http://127.0.0.1:5080/api/HealthCheckCampaign/${campaignId}`
       );
       console.log("Campaign data:", campaignRes.data); // Kiểm tra dữ liệu chiến dịch
-      setCampaign(campaignRes.data.data); // Lưu chiến dịch
+      setCampaign(campaignRes.data.data); // 儲存 chiến dịch
       // Lấy danh sách học sinh tham gia chiến dịch
       const studentsRes = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/student/`
+        `http://127.0.0.1:5080/api/student/`
       );
       setStudents(studentsRes.data.data || []);
       // Lấy toàn bộ health check summaries
       const summariesRes = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/health-checks/summaries`
+        `http://127.0.0.1:5080/api/health-checks/summaries`
       );
       setHealthCheckSummaries(summariesRes.data.data || []);
     } catch (error) {
@@ -278,7 +278,7 @@ const HealthCheckDetail = () => {
   return (
     <div className={styles.container}>
       <h1 id="page-title" className={styles.title}>
-        Danh sách học sinh - Chiến dịch số {campaignId}
+        學生名單－健康檢查活動 {campaignId}
       </h1>
 
       <button
@@ -286,33 +286,33 @@ const HealthCheckDetail = () => {
         className={styles.backButton}
         onClick={() => navigate(-1)}
       >
-        ⬅ Quay lại
+        ⬅ 返回
       </button>
 
       {campaign && (
         <div id="campaign-info">
           <p>
-            <strong>Tên chiến dịch:</strong> {campaign.title}
+            <strong>活動名稱：</strong> {campaign.title}
           </p>
           <p>
-            <strong>Ngày tiêm:</strong> {campaign.date}
+            <strong>檢查日期：</strong> {campaign.date}
           </p>
           <p>
-            <strong>Mô tả:</strong> {campaign.description}
+            <strong>說明：</strong> {campaign.description}
           </p>
           <p>
-            <strong>Trạng thái:</strong> {campaign.statusName}
+            <strong>狀態：</strong> {campaign.statusName}
           </p>
-          {campaign.statusName === "Chưa bắt đầu" && (
+          {campaign.statusName === "尚未開始" && (
             <button
               id="btn-notify"
               onClick={sendNotificationToAll}
               className={styles.notifyButton}
             >
-              Gửi thông báo
+              建立本機通知
             </button>
           )}
-          {campaign.statusName === "Đang diễn ra" && (
+          {campaign.statusName === "進行中" && (
             <button
               id="btn-complete"
               className={styles.saveButton}
@@ -320,20 +320,20 @@ const HealthCheckDetail = () => {
               onClick={async () => {
                 try {
                   await axios.put(
-                    `https://swp-school-medical-management.onrender.com/api/HealthCheckCampaign/${campaignId}`,
+                    `http://127.0.0.1:5080/api/HealthCheckCampaign/${campaignId}`,
                     { statusId: 3 }
                   );
-                  notifySuccess("Đã chuyển sang trạng thái Đã hoàn thành!");
+                  notifySuccess("活動已標記為完成。");
                   fetchData();
                 } catch {
-                  notifyError("Lỗi khi cập nhật trạng thái!");
+                  notifyError("更新活動狀態失敗。");
                 }
               }}
             >
-              Hoàn thành
+              標記完成
             </button>
           )}
-          {campaign.statusName === "Đã hoàn thành" && (
+          {campaign.statusName === "已完成" && (
             <button
               id="btn-send-result"
               className={styles.saveButton}
@@ -353,31 +353,31 @@ const HealthCheckDetail = () => {
                       );
                       if (!student || !student.parentId) return;
                       // Soạn nội dung kết quả
-                      const result = `Kết quả khám sức khỏe của học sinh ${
+                      const result = `學生健康檢查結果：${
                         student.fullName
-                      } trong chiến dịch "${campaign.title}":\n- Huyết áp: ${
+                      } trong chiến dịch "${campaign.title}":\n- 血壓： ${
                         summary.bloodPressure
-                      }\n- Nhịp tim: ${summary.heartRate}\n- Chiều cao: ${
+                      }\n- 心率： ${summary.heartRate}\n- 身高： ${
                         summary.height
-                      } cm\n- Cân nặng: ${summary.weight} kg\n- BMI: ${
+                      } cm\n- 體重： ${summary.weight} kg\n- BMI: ${
                         summary.bmi
-                      }\n- Mắt: ${summary.visionSummary}\n- Tai-Mũi-Họng: ${
+                      }\n- 視力／眼睛： ${summary.visionSummary}\n- 耳鼻喉： ${
                         summary.ent
-                      } (${summary.entNotes || ""})\n- Miệng: ${
+                      } (${summary.entNotes || ""})\n- 口腔： ${
                         summary.mouth
-                      }\n- Họng: ${summary.throat}\n- Sâu răng: ${
+                      }\n- 咽喉： ${summary.throat}\n- 齲齒： ${
                         summary.toothDecay
-                      } (${summary.toothNotes || ""})\n- Sức khỏe chung: ${
+                      } (${summary.toothNotes || ""})\n- 整體健康： ${
                         summary.generalNote
-                      }\n- Khuyến nghị: ${
-                        summary.followUpNote || "Không có"
-                      }\nNgày khám: ${campaign.date}`;
+                      }\n- 後續建議： ${
+                        summary.followUpNote || "無"
+                      }\n檢查日期： ${campaign.date}`;
                       // Gửi notification
                       await axios.post(
-                        "https://swp-school-medical-management.onrender.com/api/Notification/send",
+                        "http://127.0.0.1:5080/api/Notification/send",
                         {
                           receiverId: student.parentId,
-                          title: `Kết quả khám sức khỏe học sinh ${student.fullName}`,
+                          title: `學生健康檢查結果－${student.fullName}`,
                           message: result,
                           typeId: 2,
                           isRead: false,
@@ -389,10 +389,10 @@ const HealthCheckDetail = () => {
                       // Gửi email
                       try {
                         await axios.post(
-                          "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+                          "http://127.0.0.1:5080/api/Email/send-by-userid",
                           {
                             userId: student.parentId,
-                            subject: `Kết quả khám sức khỏe học sinh ${student.fullName}`,
+                            subject: `學生健康檢查結果－${student.fullName}`,
                             body: result,
                           },
                           {
@@ -406,35 +406,35 @@ const HealthCheckDetail = () => {
                   );
                   if (hasError) {
                     notifyError(
-                      "Một số email gửi thất bại. Vui lòng kiểm tra lại!"
+                      "部分本機通知建立失敗，請確認。"
                     );
                   } else {
                     notifySuccess(
-                      "Đã gửi kết quả sức khỏe cho tất cả phụ huynh!"
+                      "已建立所有學生的本機結果通知。"
                     );
                   }
                   // eslint-disable-next-line no-unused-vars
                 } catch (err) {
-                  notifyError("Lỗi khi gửi kết quả hàng loạt!");
+                  notifyError("批次建立結果通知失敗。");
                 }
               }}
             >
-              Gửi kết quả
+              建立結果通知
             </button>
           )}
         </div>
       )}
 
       {students.length === 0 ? (
-        <p>Không có học sinh trong chiến dịch này.</p>
+        <p>無 học sinh trong chiến dịch này.</p>
       ) : (
         <>
           <table id="student-table" className={styles.table}>
             <thead>
               <tr>
                 <th>STT</th>
-                <th>Họ tên học sinh</th>
-                <th>Hành động</th>
+                <th>學生姓名</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -449,7 +449,7 @@ const HealthCheckDetail = () => {
                 return (
                   <tr key={student.studentId}>
                     <td>{indexOfFirstItem + index + 1}</td>
-                    <td>{student.fullName || "Tên học sinh không có"}</td>
+                    <td>{student.fullName || "未填寫姓名"}</td>
                     <td className={styles.actionButtons}>
                       {recordId ? (
                         <>
@@ -457,27 +457,27 @@ const HealthCheckDetail = () => {
                             <button
                               className={`${styles.viewButton} btn-view-record`}
                             >
-                              Xem chi tiết
+                              查看詳細資料
                             </button>
                           </Link>
                           {campaign &&
-                            campaign.statusName === "Đang diễn ra" && (
+                            campaign.statusName === "進行中" && (
                               <button
                                 className={`${styles.editButton} btn-edit-health`}
                                 onClick={() => openEditModal(student, summary)}
                               >
-                                Chỉnh sửa
+                                編輯
                               </button>
                             )}
                         </>
                       ) : (
                         campaign &&
-                        campaign.statusName === "Đang diễn ra" && (
+                        campaign.statusName === "進行中" && (
                           <button
                             className={`${styles.editButton} btn-add-edit`}
                             onClick={() => openAddModal(student)}
                           >
-                            Ghi nhận
+                            登錄
                           </button>
                         )
                       )}
@@ -490,7 +490,7 @@ const HealthCheckDetail = () => {
 
           <div id="pagination" className={styles.pagination}>
             <button onClick={handlePrev} disabled={currentPage === 1}>
-              ⬅ Trang trước
+              ⬅ 上一頁
             </button>
             {Array.from({ length: totalPages }, (_, i) => (
               <button
@@ -514,8 +514,8 @@ const HealthCheckDetail = () => {
         onClose={closeModal}
         title={
           modalType === "add"
-            ? "Ghi nhận thông tin sức khỏe"
-            : "Chỉnh sửa thông tin sức khỏe"
+            ? "登錄健康檢查資料"
+            : "編輯健康檢查資料"
         }
       >
         <form
@@ -523,7 +523,7 @@ const HealthCheckDetail = () => {
           className={styles.modalForm}
         >
           <div className={styles.formGroup}>
-            <label htmlFor="bloodPressure">Huyết áp (mmHg):</label>
+            <label htmlFor="bloodPressure">血壓（mmHg）：</label>
             <input
               type="number"
               step="any"
@@ -532,13 +532,13 @@ const HealthCheckDetail = () => {
               defaultValue={
                 modalType === "edit" ? selectedRecord?.bloodPressure : ""
               }
-              placeholder="Nhập huyết áp"
+              placeholder="輸入血壓"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="heartRate">Nhịp tim (bpm):</label>
+            <label htmlFor="heartRate">心率（bpm）：</label>
             <input
               type="number"
               id="heartRate"
@@ -546,33 +546,33 @@ const HealthCheckDetail = () => {
               defaultValue={
                 modalType === "edit" ? selectedRecord?.heartRate : ""
               }
-              placeholder="Nhập nhịp tim"
+              placeholder="輸入心率"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="height">Chiều cao (cm):</label>
+            <label htmlFor="height">身高（cm）：</label>
             <input
               type="number"
               step="any"
               id="height"
               name="height"
               defaultValue={modalType === "edit" ? selectedRecord?.height : ""}
-              placeholder="Nhập chiều cao"
+              placeholder="輸入身高"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="weight">Cân nặng (kg):</label>
+            <label htmlFor="weight">體重（kg）：</label>
             <input
               type="number"
               step="any"
               id="weight"
               name="weight"
               defaultValue={modalType === "edit" ? selectedRecord?.weight : ""}
-              placeholder="Nhập cân nặng"
+              placeholder="輸入體重"
               required
             />
           </div>
@@ -585,13 +585,13 @@ const HealthCheckDetail = () => {
               id="bmi"
               name="bmi"
               defaultValue={modalType === "edit" ? selectedRecord?.bmi : ""}
-              placeholder="Nhập BMI"
+              placeholder="輸入 BMI"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="vision">Mắt:</label>
+            <label htmlFor="vision">視力／眼睛：</label>
             <input
               type="text"
               id="vision"
@@ -599,25 +599,25 @@ const HealthCheckDetail = () => {
               defaultValue={
                 modalType === "edit" ? selectedRecord?.visionSummary : ""
               }
-              placeholder="Mắt"
+              placeholder="視力／眼睛"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="ent">Tai-Mũi-Họng:</label>
+            <label htmlFor="ent">耳鼻喉：</label>
             <input
               type="text"
               id="ent"
               name="ent"
               defaultValue={modalType === "edit" ? selectedRecord?.ent : ""}
-              placeholder="Tai-Mũi-Họng"
+              placeholder="耳鼻喉"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="entNotes">Ghi chú TMH:</label>
+            <label htmlFor="entNotes">耳鼻喉備註:</label>
             <input
               type="text"
               id="entNotes"
@@ -625,36 +625,36 @@ const HealthCheckDetail = () => {
               defaultValue={
                 modalType === "edit" ? selectedRecord?.entNotes : ""
               }
-              placeholder="Ghi chú TMH"
+              placeholder="耳鼻喉備註"
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="mouth">Miệng:</label>
+            <label htmlFor="mouth">口腔：</label>
             <input
               type="text"
               id="mouth"
               name="mouth"
               defaultValue={modalType === "edit" ? selectedRecord?.mouth : ""}
-              placeholder="Miệng"
+              placeholder="口腔"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="throat">Họng:</label>
+            <label htmlFor="throat">咽喉：</label>
             <input
               type="text"
               id="throat"
               name="throat"
               defaultValue={modalType === "edit" ? selectedRecord?.throat : ""}
-              placeholder="Họng"
+              placeholder="咽喉"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="teeth">Sâu răng:</label>
+            <label htmlFor="teeth">齲齒：</label>
             <input
               type="text"
               id="teeth"
@@ -662,12 +662,12 @@ const HealthCheckDetail = () => {
               defaultValue={
                 modalType === "edit" ? selectedRecord?.toothDecay : ""
               }
-              placeholder="Sâu răng"
+              placeholder="齲齒"
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="teethNotes">Ghi chú răng:</label>
+            <label htmlFor="teethNotes">牙齒備註:</label>
             <input
               type="text"
               id="teethNotes"
@@ -675,12 +675,12 @@ const HealthCheckDetail = () => {
               defaultValue={
                 modalType === "edit" ? selectedRecord?.toothNotes : ""
               }
-              placeholder="Ghi chú răng"
+              placeholder="牙齒備註"
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="overallHealth">Sức khỏe chung:</label>
+            <label htmlFor="overallHealth">整體健康：</label>
             <input
               type="text"
               id="overallHealth"
@@ -688,13 +688,13 @@ const HealthCheckDetail = () => {
               defaultValue={
                 modalType === "edit" ? selectedRecord?.generalNote : ""
               }
-              placeholder="Sức khỏe chung"
+              placeholder="整體健康"
               required
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label htmlFor="recommendation">Khuyến nghị:</label>
+            <label htmlFor="recommendation">後續建議：</label>
             <input
               type="text"
               id="recommendation"
@@ -702,7 +702,7 @@ const HealthCheckDetail = () => {
               defaultValue={
                 modalType === "edit" ? selectedRecord?.followUpNote : ""
               }
-              placeholder="Khuyến nghị"
+              placeholder="後續建議"
             />
           </div>
 
@@ -712,10 +712,10 @@ const HealthCheckDetail = () => {
               onClick={closeModal}
               className={styles.cancelButton}
             >
-              Hủy
+              取消
             </button>
             <button type="submit" className={styles.saveButton}>
-              {modalType === "add" ? "Lưu" : "Cập nhật"}
+              {modalType === "add" ? "儲存" : "更新"}
             </button>
           </div>
         </form>

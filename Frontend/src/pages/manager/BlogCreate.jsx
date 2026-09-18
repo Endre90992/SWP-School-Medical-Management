@@ -19,7 +19,7 @@ function getQueryParam(name) {
   return url.searchParams.get(name);
 }
 
-const apiUrl = "https://swp-school-medical-management.onrender.com/api/BlogPost";
+const apiUrl = "http://127.0.0.1:5080/api/BlogPost";
 
 const BlogCreate = () => {
   const [title, setTitle] = useState("");
@@ -48,7 +48,7 @@ const BlogCreate = () => {
           setTitle(blog.title);
           setContent(blog.content);
         })
-        .catch(() => notifyError('Không thể tải dữ liệu bài viết!'))
+        .catch(() => notifyError('無法載入文章資料。'))
         .finally(() => setLoading(false));
     }
   }, []);
@@ -65,7 +65,7 @@ const BlogCreate = () => {
           content,
           isActive: true
         });
-        notifySuccess('Cập nhật bài viết thành công!');
+        notifySuccess('文章更新成功。');
       } else {
         await axios.post(apiUrl, {
           title,
@@ -74,11 +74,11 @@ const BlogCreate = () => {
           postedDate,
           isActive: true
         });
-        notifySuccess('Tạo bài viết thành công!');
+        notifySuccess('文章新增成功。');
       }
 
     } catch {
-      notifyError('Lưu bài viết thất bại!');
+      notifyError('儲存文章失敗。');
     } finally {
       setLoading(false);
     }
@@ -91,8 +91,8 @@ const BlogCreate = () => {
         <header className={blogStyle.dashboardHeaderBar}>
           <div className={blogStyle.titleGroup}>
             <h1>
-              <span className={blogStyle.textBlack}>{editId ? "Chỉnh sửa" : "Tạo"}</span>
-              <span className={blogStyle.textAccent}> bài viết mới</span>
+              <span className={blogStyle.textBlack}>{editId ? "編輯" : "新增"}</span>
+              <span className={blogStyle.textAccent}>健康資訊</span>
             </h1>
           </div>
           <button
@@ -100,14 +100,14 @@ const BlogCreate = () => {
             className={blogStyle.backBtn}
 
           >
-            ← Quay lại trang Blog
+            ← 返回健康資訊管理
           </button>
         </header>
-        {loading && <LoadingOverlay text="Đang tải dữ liệu..." />}
-        <Spin spinning={loading} tip={editId ? "Đang lưu..." : "Đang tạo..."}>
+        {loading && <LoadingOverlay text="資料載入中..." />}
+        <Spin spinning={loading} tip={editId ? "儲存中..." : "建立中..."}>
         <form className={blogStyle.blogForm} onSubmit={handleSubmit}>
           <div className={blogStyle.formGroup}>
-            <label>Tiêu đề bài viết</label>
+            <label>文章標題</label>
             <input
               type="text"
               value={title}
@@ -117,7 +117,7 @@ const BlogCreate = () => {
             />
           </div>
           <div className={blogStyle.formGroup}>
-            <label>Nội dung</label>
+            <label>內容</label>
             <textarea
               value={content}
               onChange={e => setContent(e.target.value)}
@@ -127,7 +127,7 @@ const BlogCreate = () => {
             />
           </div>
           <button type="submit" className={blogStyle.createBtn} style={{marginTop: 16}} disabled={loading}>
-            {loading ? (editId ? 'Đang lưu...' : 'Đang tạo...') : (editId ? "Lưu thay đổi" : "Tạo bài viết")}
+            {loading ? (editId ? '儲存中...' : '建立中...') : (editId ? "儲存變更" : "新增 bài viết")}
           </button>
         </form>
         </Spin>

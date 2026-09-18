@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolMedicalManagement.Models.Request;
 using SchoolMedicalManagement.Service.Interface;
+using System.Security.Claims;
 
 namespace School_Medical_Management.API.Controllers
 {
@@ -18,7 +19,7 @@ namespace School_Medical_Management.API.Controllers
             _userService = userService;
         }
 
-        // Đăng nhập
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginUserRequest loginRequest)
         {
@@ -26,7 +27,6 @@ namespace School_Medical_Management.API.Controllers
             return StatusCode(int.Parse(response.Status), response);
         }
 
-        // Lấy toàn bộ user (chỉ cho Manager)
         [Authorize(Roles = "Manager")]
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -35,7 +35,6 @@ namespace School_Medical_Management.API.Controllers
             return StatusCode(int.Parse(response.Status ?? "200"), response);
         }
 
-        // Lấy thông tin 1 user theo ID
         [Authorize(Roles = "Manager")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUserById([FromRoute] Guid id)
@@ -44,7 +43,6 @@ namespace School_Medical_Management.API.Controllers
             return StatusCode(int.Parse(response.Status), response);
         }
 
-        // Tạo user mới
         [Authorize(Roles = "Manager")]
         [HttpPost]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
@@ -53,7 +51,6 @@ namespace School_Medical_Management.API.Controllers
             return StatusCode(int.Parse(response.Status), response);
         }
 
-        // Xóa user
         [Authorize(Roles = "Manager")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(Guid id)
@@ -62,7 +59,6 @@ namespace School_Medical_Management.API.Controllers
             return StatusCode(int.Parse(response.Status), response);
         }
 
-        // Cập nhật user
         [Authorize(Roles = "Manager")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserRequest request)
@@ -71,28 +67,38 @@ namespace School_Medical_Management.API.Controllers
             return StatusCode(int.Parse(response.Status), response);
         }
 
-        // Đổi mật khẩu sau lần đăng nhập đầu tiên
+        // 首次登入改密碼只能修改自己的帳號。
+        [Authorize]
         [HttpPost("change-password-firstlogin/{id}")]
-        public async Task<IActionResult> ChangePasswordAfterFirstLogin([FromRoute] Guid id, [FromBody] ChangePasswordUserRequest request)
+        public async Task<IActionResult> ChangePasswordAfterFirstLogin(
+            [FromRoute] Guid id,
+            [FromBody] ChangePasswordUserRequest request)
         {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(currentUserId, out var authenticatedUserId) || authenticatedUserId != id)
+                return Forbid();
+
             var response = await _authService.ChangePasswordAfterFirstLogin(id, request);
             return StatusCode(int.Parse(response.Status), response);
         }
 
-        // Gửi OTP quên mật khẩu đến email
+        // 單機離線版不使用 Email/OTP 重設密碼，避免任何不必要的網路依賴。
+        [AllowAnonymous]
         [HttpPost("forgot-password")]
-        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
-        {
-            var response = await _authService.ForgotPasswordAsync(request);
-            return StatusCode(int.Parse(response.Status), response);
-        }
+        public IActionResult ForgotPassword()
+            => StatusCode(StatusCodes.Status410Gone, new
+            {
+                status = "410",
+                message = "離線版已停用 Email 密碼重設。請由本機管理者處理帳號。"
+            });
 
-        // Gộp xác thực OTP và đặt lại mật khẩu
+        [AllowAnonymous]
         [HttpPost("verify-otp-reset-password")]
-        public async Task<IActionResult> VerifyOtpAndResetPassword([FromBody] VerifyOtpAndResetPasswordRequest request)
-        {
-            var response = await _authService.VerifyOtpAndResetPasswordAsync(request);
-            return StatusCode(int.Parse(response.Status), response);
-        }
+        public IActionResult VerifyOtpAndResetPassword()
+            => StatusCode(StatusCodes.Status410Gone, new
+            {
+                status = "410",
+                message = "離線版已停用 OTP 密碼重設。"
+            });
     }
 }

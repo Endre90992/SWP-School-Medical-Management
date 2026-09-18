@@ -79,7 +79,7 @@ public partial class SwpEduHealV5Context : DbContext
             entity.Property(e => e.LogId).HasColumnName("LogID");
             entity.Property(e => e.Action).HasMaxLength(100);
             entity.Property(e => e.ActionDate)
-                .HasDefaultValueSql("(getdate())")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(255);
             entity.Property(e => e.TargetId).HasColumnName("TargetID");
@@ -230,7 +230,7 @@ public partial class SwpEduHealV5Context : DbContext
 
             entity.Property(e => e.ProfileId).HasColumnName("ProfileID");
             entity.Property(e => e.CreatedDate)
-                .HasDefaultValueSql("(getdate())")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("datetime");
             entity.Property(e => e.Height).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
@@ -370,7 +370,7 @@ public partial class SwpEduHealV5Context : DbContext
             entity.Property(e => e.IsRead).HasDefaultValue(false);
             entity.Property(e => e.ReceiverId).HasColumnName("ReceiverID");
             entity.Property(e => e.SentDate)
-                .HasDefaultValueSql("(getdate())")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("datetime");
             entity.Property(e => e.Title).HasMaxLength(255);
             entity.Property(e => e.TypeId).HasColumnName("TypeID");
@@ -406,7 +406,7 @@ public partial class SwpEduHealV5Context : DbContext
 
             entity.Property(e => e.FeedbackId).HasColumnName("FeedbackID");
             entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("datetime");
             entity.Property(e => e.ParentId).HasColumnName("ParentID");
             entity.Property(e => e.RelatedId).HasColumnName("RelatedID");

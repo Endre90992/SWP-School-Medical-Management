@@ -49,7 +49,7 @@ const SendMedicine = () => {
     const trimmedNote = note.trim();
 
     if (!parentId || parentId === 'null') {
-      return toast.error("Không tìm thấy thông tin phụ huynh! Vui lòng đăng nhập lại.", { 
+      return toast.error("找不到家長登入資料，請重新登入。", { 
         position: "top-center", 
         autoClose: 2500, 
         theme: "colored" 
@@ -57,20 +57,20 @@ const SendMedicine = () => {
     }
 
     if (!studentId) {
-      return toast.error("Vui lòng chọn học sinh!", { position: "top-center", autoClose: 2500, theme: "colored" });
+      return toast.error("請選擇學生。", { position: "top-center", autoClose: 2500, theme: "colored" });
     }
 
     if (!trimmedTitle) {
-      return toast.error("Vui lòng nhập tên thuốc!", { position: "top-center", autoClose: 2500, theme: "colored" });
+      return toast.error("請輸入藥物名稱。", { position: "top-center", autoClose: 2500, theme: "colored" });
     }
 
     if (trimmedTitle.length < 3) {
-      return toast.error("Tên thuốc phải có ít nhất 3 ký tự!", { position: "top-center", autoClose: 2500, theme: "colored" });
+      return toast.error("藥物名稱至少需要 3 個字元。", { position: "top-center", autoClose: 2500, theme: "colored" });
     }
 
     const titleRegex = /^[\p{L}0-9\s\-+®.™]+$/u;
     if (!titleRegex.test(trimmedTitle)) {
-      return toast.error("Tên thuốc chỉ được chứa chữ, số và các ký tự hợp lệ như -, +, ®, ™, .", {
+      return toast.error("藥物名稱包含不支援的字元。", {
         position: "top-center",
         autoClose: 3000,
         theme: "colored",
@@ -78,16 +78,16 @@ const SendMedicine = () => {
     }
 
     if (!trimmedUsage) {
-      return toast.error("Vui lòng nhập liều dùng!", { position: "top-center", autoClose: 2500, theme: "colored" });
+      return toast.error("請輸入劑量。", { position: "top-center", autoClose: 2500, theme: "colored" });
     }
 
     if (trimmedUsage.length < 3) {
-      return toast.error("Liều dùng phải có ít nhất 3 ký tự!", { position: "top-center", autoClose: 2500, theme: "colored" });
+      return toast.error("劑量說明至少需要 3 個字元。", { position: "top-center", autoClose: 2500, theme: "colored" });
     }
 
     const dosageRegex = /^[\p{L}0-9\s/\-×]+$/u;
     if (!dosageRegex.test(trimmedUsage)) {
-      return toast.error("Liều dùng chỉ được chứa chữ, số và ký tự hợp lệ như /, -, ×", {
+      return toast.error("劑量說明包含不支援的字元。", {
         position: "top-center",
         autoClose: 3000,
         theme: "colored",
@@ -96,7 +96,7 @@ const SendMedicine = () => {
 
     const noteRegex = /^[\p{L}0-9\s.,;:()\-\u2013\u2014]+$/u;
     if (trimmedNote && !noteRegex.test(trimmedNote)) {
-      return toast.error("Ghi chú chỉ được chứa chữ, số và các ký tự như dấu chấm, phẩy, ngoặc đơn.", {
+      return toast.error("備註包含不支援的字元。", {
         position: "top-center",
         autoClose: 3000,
         theme: "colored",
@@ -114,14 +114,14 @@ const SendMedicine = () => {
       ];
       const maxSizeMB = 10;
       if (!allowedTypes.includes(file.type)) {
-        return toast.error("Định dạng file không hợp lệ! Chỉ hỗ trợ PDF, DOC, DOCX, PNG, JPG.", {
+        return toast.error("檔案格式不支援；請上傳 PDF、DOC、DOCX、PNG 或 JPG。", {
           position: "top-center",
           autoClose: 3000,
           theme: "colored",
         });
       }
       if (file.size > maxSizeMB * 1024 * 1024) {
-        return toast.error("Kích thước file vượt quá 10MB!", {
+        return toast.error("檔案不可超過 10MB。", {
           position: "top-center",
           autoClose: 3000,
           theme: "colored",
@@ -141,12 +141,12 @@ const SendMedicine = () => {
       });
 
       await axios.post(
-        `https://swp-school-medical-management.onrender.com/api/MedicationRequest/create?parentId=${parentId}`,
+        `http://127.0.0.1:5080/api/MedicationRequest/create?parentId=${parentId}`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
 
-      toast.success("Đã gửi đơn thuốc!", {
+      toast.success("用藥申請已送出。", {
         position: "top-center",
         autoClose: 2500,
         theme: "colored",
@@ -161,7 +161,7 @@ const SendMedicine = () => {
       fetchHistory();
     } catch (err) {
       console.error(err);
-      toast.error("Gửi đơn thuốc thất bại!", {
+      toast.error("送出用藥申請失敗。", {
         position: "top-center",
         autoClose: 2500,
         theme: "colored",
@@ -177,10 +177,10 @@ const SendMedicine = () => {
     try {
       setLoading(true);
       await axios.put(
-        `https://swp-school-medical-management.onrender.com/api/MedicationRequest/${requestId}/status`,
-        { statusId: 3 } // 6 là trạng thái "Đã hủy"
+        `http://127.0.0.1:5080/api/MedicationRequest/${requestId}/status`,
+        { statusId: 6 } // 6 là trạng thái "Đã hủy"
       );
-      toast.success("Đã hủy đơn thuốc thành công!", {
+      toast.success("用藥申請已取消。", {
         position: "top-center",
         autoClose: 2500,
         theme: "colored",
@@ -189,13 +189,13 @@ const SendMedicine = () => {
       setHistory(prevHistory =>
         prevHistory.map(item =>
           item.requestID === requestId
-            ? { ...item, status: "Đã huỷ" }
+            ? { ...item, status: "已取消" }
             : item
         )
       );
     } catch (err) {
       console.error("Lỗi khi hủy đơn thuốc:", err);
-      toast.error("Hủy đơn thuốc thất bại! Vui lòng thử lại.", {
+      toast.error("取消用藥申請失敗，請稍後再試。", {
         position: "top-center",
         autoClose: 2500,
         theme: "colored",
@@ -229,7 +229,7 @@ const SendMedicine = () => {
 
     try {
       const res = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/Student/by-parent/${parentId}`
+        `http://127.0.0.1:5080/api/Student/by-parent/${parentId}`
       );
       const data = res.data.data;
       setStudentList(data);
@@ -257,7 +257,7 @@ const SendMedicine = () => {
         
         // Chỉ hiển thị toast lỗi 1 lần duy nhất
         if (!hasShownNoStudentToastRef.current) {
-          toast.warn("Tài khoản chưa được liên kết với học sinh nào. Vui lòng liên hệ nhà trường!", {
+          toast.warn("此帳號尚未連結學生，請聯絡學校。", {
             position: "top-center",
             autoClose: 3000,
             theme: "colored"
@@ -268,7 +268,7 @@ const SendMedicine = () => {
       }
       
       // Các lỗi khác vẫn log như bình thường
-      console.error("Không lấy được danh sách học sinh:", err);
+      console.error("無法取得學生名單：", err);
       setStudentList([]);
     }
   }, [parentId]); // Chỉ depend vào parentId
@@ -283,7 +283,7 @@ const SendMedicine = () => {
     try {
       // Fetch student name inline thay vì gọi fetchStudentName để tránh dependency
       const studentRes = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/Student/${studentId}`
+        `http://127.0.0.1:5080/api/Student/${studentId}`
       );
       const studentName = studentRes.data.data.fullName;
       setStudentName(studentName);
@@ -294,7 +294,7 @@ const SendMedicine = () => {
       }
       
       const res = await axios.get(
-        "https://swp-school-medical-management.onrender.com/api/MedicationRequest/all"
+        "http://127.0.0.1:5080/api/MedicationRequest/all"
       );
       // Sửa ở đây: lấy đúng mảng data
       const all = Array.isArray(res.data) ? res.data : res.data.data || [];
@@ -335,16 +335,16 @@ const SendMedicine = () => {
 
   const getStatusInfo = (status) => {
     switch (status) {
-      case "Đã duyệt":
-        return { text: "Đã duyệt", className: styles.statusApproved };
-      case "Chờ duyệt":
-        return { text: "Chờ duyệt", className: styles.statusPending };
-      case "Đã huỷ":
-        return { text: "Đã huỷ", className: styles.statusCancelled };
-      case "Bị từ chối":
-        return { text: "Bị từ chối", className: styles.statusRejected };
-      case "Đã hoàn thành":
-        return { text: "Đã lên lịch", className: styles.statusCompleted };
+      case "已核准":
+        return { text: "已核准", className: styles.statusApproved };
+      case "待審核":
+        return { text: "待審核", className: styles.statusPending };
+      case "已取消":
+        return { text: "已取消", className: styles.statusCancelled };
+      case "已拒絕":
+        return { text: "已拒絕", className: styles.statusRejected };
+      case "已完成":
+        return { text: "已排程", className: styles.statusCompleted };
       default:
         return { text: status, className: styles.statusNormal };
     }
@@ -365,13 +365,13 @@ const SendMedicine = () => {
         <h2 className={styles.title}>Prescription |</h2>
         <div className={styles.marquee}>
           <span className={styles.marqueeText}>
-            Xin chào, bạn đang đăng nhập với tư cách phụ huynh em{" "}
+            目前登入的家長帳號：{" "}
             {hasStudent ? (studentName || "...") : "..."}
           </span>
         </div>
 
         <div style={{ marginTop: 20, marginBottom: 20 }}>
-          <label style={{ fontWeight: 600, fontSize: "16px", color: "#1e3a8a" }}>Chọn học sinh:</label>
+          <label style={{ fontWeight: 600, fontSize: "16px", color: "#1e3a8a" }}>選擇學生：</label>
           <select
             value={studentId || ""}
             onChange={(e) => {
@@ -388,7 +388,7 @@ const SendMedicine = () => {
                 </option>
               ))
             ) : (
-              <option value="">Chưa có học sinh</option>
+              <option value="">尚未連結學生</option>
             )}
           </select>
         </div>
@@ -431,7 +431,7 @@ const SendMedicine = () => {
               marginBottom: '16px',
               lineHeight: '1.3'
             }}>
-              Chưa có liên kết học sinh
+              尚未連結學生
             </h2>
 
             {/* Description */}
@@ -442,7 +442,7 @@ const SendMedicine = () => {
               maxWidth: '500px',
               marginBottom: '32px'
             }}>
-              Tài khoản của bạn chưa được liên kết với học sinh nào. Vui lòng liên hệ nhà trường để được hỗ trợ liên kết với con em mình.
+              此帳號尚未連結學生，請聯絡學校協助。
             </p>
 
             {/* Steps */}
@@ -461,7 +461,7 @@ const SendMedicine = () => {
                 marginBottom: '16px',
                 textAlign: 'center'
               }}>
-                Các bước để gửi thuốc cho y tế:
+                如需使用用藥申請：
               </h3>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -480,7 +480,7 @@ const SendMedicine = () => {
                     flexShrink: 0
                   }}>1</div>
                   <span style={{ color: '#475569', fontSize: '15px' }}>
-                    Liên hệ với nhà trường qua số điện thoại hoặc email
+                    聯絡學校健康中心
                   </span>
                 </div>
                 
@@ -499,7 +499,7 @@ const SendMedicine = () => {
                     flexShrink: 0
                   }}>2</div>
                   <span style={{ color: '#475569', fontSize: '15px' }}>
-                    Cung cấp thông tin cá nhân và thông tin con em
+                    提供學生與聯絡人資料
                   </span>
                 </div>
                 
@@ -518,7 +518,7 @@ const SendMedicine = () => {
                     flexShrink: 0
                   }}>3</div>
                   <span style={{ color: '#475569', fontSize: '15px' }}>
-                    Đợi nhà trường xác nhận và liên kết tài khoản
+                    由學校確認並完成連結
                   </span>
                 </div>
               </div>
@@ -538,7 +538,7 @@ const SendMedicine = () => {
                 fontWeight: '500',
                 margin: 0
               }}>
-                💡 Sau khi liên kết thành công, bạn sẽ có thể gửi thuốc cho y tế trường tại đây.
+                完成連結後即可建立學生用藥申請。
               </p>
             </div>
           </div>
@@ -546,30 +546,30 @@ const SendMedicine = () => {
           <>
             <div className={styles.mainSection}>
               <div className={styles.medicineInfo}>
-                <div className={styles.medicineSectionTitle}>Thông tin thuốc</div>
+                <div className={styles.medicineSectionTitle}>用藥資料</div>
                 <div className={`${styles.box} ${styles.boxYellow}`}>
-                  <h3><FiInfo style={{ marginRight: 8, color: "#f59e42" }} /> Thông tin bệnh</h3>
+                  <h3><FiInfo style={{ marginRight: 8, color: "#f59e42" }} /> 藥物／疾病資訊</h3>
                   <textarea
-                    placeholder="Nhập tên thuốc hoặc thông tin bệnh..."
+                    placeholder="輸入藥物名稱或相關疾病資訊..."
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className={styles.inputField}
                   ></textarea>
                 </div>
                 <div className={`${styles.box} ${styles.boxBlue}`}>
-                  <h3><FiEdit style={{ marginRight: 8, color: "#3b82f6" }} /> Liều dùng</h3>
+                  <h3><FiEdit style={{ marginRight: 8, color: "#3b82f6" }} /> 劑量</h3>
                   <input
                     type="text"
-                    placeholder="3 lần/ngày..."
+                    placeholder="例如：每日 3 次"
                     value={usage}
                     onChange={(e) => setUsage(e.target.value)}
                     className={styles.inputField}
                   />
                 </div>
                 <div className={`${styles.box} ${styles.boxGreen}`}>
-                  <h3><FiClipboard style={{ marginRight: 8, color: "#10b981" }} /> Ghi chú thêm</h3>
+                  <h3><FiClipboard style={{ marginRight: 8, color: "#10b981" }} /> 用藥方式／備註</h3>
                   <textarea
-                    placeholder="Uống sau khi ăn 30 phút"
+                    placeholder="例如：餐後 30 分鐘服用"
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     className={styles.inputField}
@@ -580,8 +580,8 @@ const SendMedicine = () => {
                   <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
                     {!files.length > 0 && (
                       <>
-                        <p className={styles.uploadText}>Tải lên tài liệu hoặc kéo thả file vào đây</p>
-                        <p>PDF, DOC, JPG, PNG - tối đa 10MB</p>
+                        <p className={styles.uploadText}>上傳藥袋、處方或相關文件</p>
+                        <p>PDF, DOC, JPG, PNG - 上限 10MB</p>
                       </>
                     )}
                     <input
@@ -627,23 +627,23 @@ const SendMedicine = () => {
                 </div>
 
                 <button className={styles.sendBtn} onClick={handleSend} disabled={loading}>
-                  {loading ? "Đang gửi..." : "Gửi"}
+                  {loading ? "送出中..." : "送出"}
                 </button>
               </div>
 
               <div className={styles.historySection}>
                 <div className={styles.historyHeader}>
-                  <span>Lịch sử gửi thuốc {history.length > 0 && `(${history.length})`}</span>
+                  <span>用藥申請紀錄 {history.length > 0 && `(${history.length})`}</span>
                   <button
                     className={styles.reviewBtn}
                     onClick={() => setShowPopup(true)}
                   >
-                    Xem thêm
+                    查看更多
                   </button>
                 </div>
                 <input
                   type="text"
-                  placeholder="🔍 Tìm theo tên thuốc hoặc ghi chú..."
+                  placeholder="🔍 依藥物名稱或備註搜尋..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className={styles.searchBox}
@@ -659,12 +659,12 @@ const SendMedicine = () => {
                       </div>
                       <div className={styles.medicationDetails}>
                         <strong>{item.medicationName}</strong>
-                        <p>Liều dùng: {item.dosage}</p>
-                        <p>Ghi chú: {item.instructions || 'Không có'}</p>
-                        <p>Ngày gửi: {new Date(item.requestDate).toLocaleDateString("vi-VN")}</p>
+                        <p>劑量: {item.dosage}</p>
+                        <p>備註： {item.instructions || '否 có'}</p>
+                        <p>申請日期： {new Date(item.requestDate).toLocaleDateString("zh-TW")}</p>
                         {item.imagePath && (
                           <p>
-                            <a href={`https://swp-school-medical-management.onrender.com${item.imagePath}`} target="_blank" rel="noopener noreferrer">Xem file đính kèm</a>
+                            <a href={`http://127.0.0.1:5080${item.imagePath}`} target="_blank" rel="noopener noreferrer">查看附件</a>
                           </p>
                         )}
                       </div>
@@ -672,12 +672,12 @@ const SendMedicine = () => {
                         <span className={`${styles.statusBadge} ${statusInfo.className}`}>
                           {statusInfo.text}
                         </span>
-                        {(item.status === "Chờ duyệt" || item.status === "Đã duyệt") && (
+                        {(item.status === "待審核" || item.status === "已核准") && (
                           <button
                             onClick={() => openConfirmModal(item.requestID)}
                             className={styles.cancelBtn}
                           >
-                            Hủy
+                            取消
                           </button>
                         )}
                       </div>
@@ -692,12 +692,12 @@ const SendMedicine = () => {
               <div className={styles.popupOverlay}>
                 <div className={styles.popupContent}>
                   <div className={styles.popupHeader}>
-                    <span>Lịch sử gửi thuốc ({filteredHistory.length})</span>
+                    <span>用藥申請紀錄 ({filteredHistory.length})</span>
                     <button className={styles.closeBtn} onClick={() => setShowPopup(false)}>✖</button>
                   </div>
                   <input
                     type="text"
-                    placeholder="🔍 Tìm theo tên thuốc hoặc ghi chú..."
+                    placeholder="🔍 依藥物名稱或備註搜尋..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className={styles.searchBox}
@@ -715,12 +715,12 @@ const SendMedicine = () => {
                           </div>
                           <div className={styles.medicationDetails}>
                             <strong>{item.medicationName}</strong>
-                            <p>Liều dùng: {item.dosage}</p>
-                            <p>Ghi chú: {item.instructions || 'Không có'}</p>
-                             <p>Ngày gửi: {new Date(item.requestDate).toLocaleDateString("vi-VN")}</p>
+                            <p>劑量: {item.dosage}</p>
+                            <p>備註： {item.instructions || '否 có'}</p>
+                             <p>申請日期： {new Date(item.requestDate).toLocaleDateString("zh-TW")}</p>
                             {item.imagePath && (
                               <p>
-                                <a href={`https://swp-school-medical-management.onrender.com${item.imagePath}`} target="_blank" rel="noopener noreferrer">Xem file đính kèm</a>
+                                <a href={`http://127.0.0.1:5080${item.imagePath}`} target="_blank" rel="noopener noreferrer">查看附件</a>
                               </p>
                             )}
                           </div>
@@ -728,12 +728,12 @@ const SendMedicine = () => {
                             <span className={`${styles.statusBadge} ${statusInfo.className}`}>
                               {statusInfo.text}
                             </span>
-                            {(item.status === "Chờ duyệt" || item.status === "Đã duyệt") && (
+                            {(item.status === "待審核" || item.status === "已核准") && (
                               <button
                                 onClick={() => openConfirmModal(item.requestID)}
                                 className={styles.cancelBtn}
                               >
-                                Hủy
+                                取消
                               </button>
                             )}
                           </div>
@@ -748,11 +748,11 @@ const SendMedicine = () => {
         )}
       </div>
 
-      <Modal isOpen={showConfirmModal} onClose={closeConfirmModal} title="Xác nhận hủy">
-        <p>Bạn có chắc chắn muốn hủy đơn thuốc này không?</p>
+      <Modal isOpen={showConfirmModal} onClose={closeConfirmModal} title="確認取消">
+        <p>確定要取消這筆用藥申請嗎？</p>
         <div className={styles.confirmActions}>
-          <button onClick={closeConfirmModal} className={`${styles.btn} ${styles.btnSecondary}`}>Không</button>
-          <button onClick={() => handleCancel(cancelingRequestId)} className={`${styles.btn} ${styles.btnDanger}`}>Có, hủy</button>
+          <button onClick={closeConfirmModal} className={`${styles.btn} ${styles.btnSecondary}`}>否</button>
+          <button onClick={() => handleCancel(cancelingRequestId)} className={`${styles.btn} ${styles.btnDanger}`}>是，取消</button>
         </div>
       </Modal>
     </div>
