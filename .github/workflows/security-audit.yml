@@ -3,12 +3,17 @@ name: Security audit
 on:
   push:
     branches:
+      - main
       - security/exe-package
+  pull_request:
+    branches:
+      - main
 
 jobs:
   audit:
     runs-on: windows-latest
     timeout-minutes: 20
+
     steps:
       - uses: actions/checkout@v4
 
@@ -20,19 +25,16 @@ jobs:
         working-directory: Frontend
         run: npm ci
 
-      - name: Frontend audit
+      - name: Require clean frontend dependency audit
         shell: pwsh
         working-directory: Frontend
-        continue-on-error: true
         run: |
           npm audit --json | Out-File -Encoding utf8 npm-audit.json
           $audit = Get-Content npm-audit.json -Raw | ConvertFrom-Json
-          Write-Host ("AUDIT_COUNTS=" + ($audit.metadata.vulnerabilities | ConvertTo-Json -Compress))
-          if ($audit.vulnerabilities) {
-            $audit.vulnerabilities.PSObject.Properties | ForEach-Object {
-              $v = $_.Value
-              Write-Host ("VULN package=" + $_.Name + " severity=" + $v.severity + " direct=" + $v.isDirect + " fixAvailable=" + ($v.fixAvailable | ConvertTo-Json -Compress))
-            }
+          $counts = $audit.metadata.vulnerabilities
+          Write-Host ("AUDIT_COUNTS=" + ($counts | ConvertTo-Json -Compress))
+          if ($counts.total -ne 0) {
+            throw "Frontend dependency audit is not clean."
           }
 
       - uses: actions/setup-dotnet@v4
@@ -42,6 +44,11 @@ jobs:
       - name: Restore backend
         run: dotnet restore Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln
 
-      - name: Backend vulnerable packages
+      - name: Require clean backend dependency audit
         shell: pwsh
-        run: dotnet list Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln package --vulnerable --include-transitive
+        run: |
+          $output = dotnet list Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln package --vulnerable --include-transitive
+          $output | ForEach-Object { Write-Host $_ }
+          if (($output -join "`n") -match "has the following vulnerable packages") {
+            throw "Backend dependency audit found vulnerable packages."
+          }
