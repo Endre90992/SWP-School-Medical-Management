@@ -16,7 +16,7 @@ import { notifySuccess, notifyError } from "../../utils/notification";
 import LoadingOverlay from "../../components/LoadingOverlay";
 
 
-const apiUrl = "https://swp-school-medical-management.onrender.com/api/BlogPost";
+const apiUrl = "http://127.0.0.1:5080/api/BlogPost";
 
 const Blog = () => {
   const [blogs, setBlogs] = useState([]);
