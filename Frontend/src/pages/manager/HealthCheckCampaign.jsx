@@ -14,15 +14,15 @@ import { ExclamationCircleOutlined } from "@ant-design/icons";
 const API_BASE = "/api";
 const PAGE_SIZE = 10;
 const statusOptions = [
-  { value: 1, label: "Chưa bắt đầu" },
-  { value: 2, label: "Đang diễn ra" },
-  { value: 3, label: "Đã hoàn thành" },
-  { value: 4, label: "Đã huỷ" },
+  { value: 1, label: "尚未開始" },
+  { value: 2, label: "進行中" },
+  { value: 3, label: "已完成" },
+  { value: 4, label: "已取消" },
 ];
 
 const HealthCheckCampaign = () => {
   // Bộ lọc thời gian và trạng thái
-  // yearFilter: 0 = năm hiện tại, 1 = 1 năm gần nhất, 2 = 2 năm gần nhất, 3 = 3 năm gần nhất
+  // yearFilter: 0 = năm hiện tại, 1 = 最近 1 年, 2 = 最近 2 年, 3 = 最近 3 年
   const [yearFilter, setYearFilter] = useState(1);
   const [statusFilter, setStatusFilter] = useState(0); // 0: tất cả
   const [quickFilter, setQuickFilter] = useState('all'); // 'all', 'latest', 'custom'
@@ -84,13 +84,13 @@ const HealthCheckCampaign = () => {
       }
     } catch (error) {
       if (error.response && error.response.status === 401) {
-        notifyError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        notifyError("登入已逾時，請重新登入。");
         localStorage.removeItem("token");
         setTimeout(() => {
           window.location.href = "/login";
         }, 1500);
       } else {
-        notifyError("Không thể tải dữ liệu chiến dịch!");
+        notifyError("無法載入健康檢查活動。");
       }
       setCampaigns([]);
     }
@@ -125,14 +125,14 @@ const HealthCheckCampaign = () => {
       const values = await formAntd.validateFields();
       let dateValue = values.date;
       if (!dateValue) {
-        formAntd.setFields([{ name: "date", errors: ["Vui lòng chọn ngày!"] }]);
+        formAntd.setFields([{ name: "date", errors: ["請選擇日期。"] }]);
         return;
       }
       if (typeof dateValue === "string") {
         dateValue = dayjs(dateValue);
       }
       if (!dayjs(dateValue).isValid()) {
-        formAntd.setFields([{ name: "date", errors: ["Ngày không hợp lệ!"] }]);
+        formAntd.setFields([{ name: "date", errors: ["日期無效。"] }]);
         return;
       }
       let payload = {
@@ -152,12 +152,12 @@ const HealthCheckCampaign = () => {
             },
           }
         );
-        notifySuccess("Cập nhật thành công!");
+        notifySuccess("更新成功。");
       } else {
         await axios.post(`${API_BASE}/HealthCheckCampaign`, payload, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        notifySuccess("Tạo mới thành công!");
+        notifySuccess("新增成功。");
       }
       setShowModal(false);
       fetchCampaigns();
@@ -168,10 +168,10 @@ const HealthCheckCampaign = () => {
 
   const handleDelete = async (id) => {
   Modal.confirm({
-    title: "Bạn chắc chắn muốn xóa chiến dịch này?",
+    title: "確定要刪除此健康檢查活動嗎？",
     icon: <ExclamationCircleOutlined />,
-    okText: "Xóa",
-    cancelText: "Hủy",
+    okText: "刪除",
+    cancelText: "取消",
     async onOk() {
       try {
         await axios.delete(`${API_BASE}/HealthCheckCampaign/${id}`, {
@@ -179,10 +179,10 @@ const HealthCheckCampaign = () => {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        notifySuccess("Xóa thành công!");
+        notifySuccess("刪除成功。");
         fetchCampaigns();
       } catch {
-        notifyError("Xóa thất bại!");
+        notifyError("刪除失敗。");
       }
     },
   });
@@ -230,10 +230,10 @@ const HealthCheckCampaign = () => {
         <header className={campaignStyle.dashboardHeaderBar}>
           <div className={campaignStyle.titleGroup}>
             <h1>
-              <span className={campaignStyle.textBlack}>Danh sách</span>
+              <span className={campaignStyle.textBlack}>健康檢查</span>
               <span className={campaignStyle.textAccent}>
                 {" "}
-                chiến dịch kiểm tra sức khỏe
+                活動清單
               </span>
             </h1>
           </div>
@@ -242,7 +242,7 @@ const HealthCheckCampaign = () => {
           <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
             <input
               type="text"
-              placeholder="Tìm kiếm chiến dịch..."
+              placeholder="搜尋健康檢查活動..."
               className={campaignStyle.searchBar}
               value={searchText}
               onChange={e => { setSearchText(e.target.value); setQuickFilter('custom'); setCurrentPage(1); }}
@@ -263,22 +263,22 @@ const HealthCheckCampaign = () => {
               onBlur={e => e.target.style.borderColor = '#23b7b7'}
             />
             <select value={yearFilter} onChange={e => { setYearFilter(Number(e.target.value)); setQuickFilter('custom'); setCurrentPage(1); }} style={{ border: '2px solid #23b7b7', borderRadius: 12, padding: '8px 12px', fontSize: 16, background: '#f9fefe', marginRight: 8 }}>
-              <option value={0}>Năm hiện tại</option>
-              <option value={1}>1 năm gần nhất</option>
-              <option value={2}>2 năm gần nhất</option>
-              <option value={3}>3 năm gần nhất</option>
+              <option value={0}>本年度</option>
+              <option value={1}>最近 1 年</option>
+              <option value={2}>最近 2 年</option>
+              <option value={3}>最近 3 年</option>
             </select>
             <select value={statusFilter} onChange={e => { setStatusFilter(Number(e.target.value)); setQuickFilter('custom'); setCurrentPage(1); }} style={{ border: '2px solid #23b7b7', borderRadius: 12, padding: '8px 12px', fontSize: 16, background: '#f9fefe', marginRight: 8 }}>
-              <option value={0}>Tất cả trạng thái</option>
+              <option value={0}>全部狀態</option>
               {statusOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
             <button className={campaignStyle.addBtn} onClick={() => openModal()}>
-              <Plus size={16} style={{ marginRight: 6, marginBottom: -2 }} /> Thêm chiến dịch
+              <Plus size={16} style={{ marginRight: 6, marginBottom: -2 }} /> 新增健康檢查活動
             </button>
-            <button className={campaignStyle.addBtn} style={{ background: quickFilter === 'all' ? '#23b7b7' : '#eee', color: quickFilter === 'all' ? '#fff' : '#333', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 500, cursor: 'pointer' }} onClick={() => { setQuickFilter('all'); setCurrentPage(1); }}>Hiển thị tất cả</button>
-            <button className={campaignStyle.addBtn} style={{ background: quickFilter === 'latest' ? '#23b7b7' : '#eee', color: quickFilter === 'latest' ? '#fff' : '#333', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 500, cursor: 'pointer' }} onClick={() => { setQuickFilter('latest'); setCurrentPage(1); }}>Chiến dịch vừa tạo</button>
+            <button className={campaignStyle.addBtn} style={{ background: quickFilter === 'all' ? '#23b7b7' : '#eee', color: quickFilter === 'all' ? '#fff' : '#333', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 500, cursor: 'pointer' }} onClick={() => { setQuickFilter('all'); setCurrentPage(1); }}>顯示全部</button>
+            <button className={campaignStyle.addBtn} style={{ background: quickFilter === 'latest' ? '#23b7b7' : '#eee', color: quickFilter === 'latest' ? '#fff' : '#333', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 500, cursor: 'pointer' }} onClick={() => { setQuickFilter('latest'); setCurrentPage(1); }}>最新建立的活動</button>
           </div>
         </div>
         <div className={campaignStyle.table}>
@@ -286,12 +286,12 @@ const HealthCheckCampaign = () => {
             <thead>
               <tr>
                 <th>STT</th>
-                <th>Tiêu đề</th>
-                <th>Mô tả</th>
-                <th>Ngày tổ chức</th>
-                <th>Người tạo</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th>活動名稱</th>
+                <th>說明</th>
+                <th>檢查日期</th>
+                <th>建立者</th>
+                <th>狀態</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -306,7 +306,7 @@ const HealthCheckCampaign = () => {
               ) : pagedCampaigns.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: "center" }}>
-                    Không có dữ liệu
+                    目前沒有資料
                   </td>
                 </tr>
               ) : (
@@ -324,13 +324,13 @@ const HealthCheckCampaign = () => {
                           className={campaignStyle.editBtn}
                           onClick={() => openModal(c)}
                         >
-                          <Edit2 size={16} style={{ marginRight: 4 }} /> Sửa
+                          <Edit2 size={16} style={{ marginRight: 4 }} /> 編輯
                         </button>
                         <button
                           className={campaignStyle.deleteBtn}
                           onClick={() => handleDelete(c.campaignId)}
                         >
-                          <Trash2 size={16} style={{ marginRight: 4 }} /> Xóa
+                          <Trash2 size={16} style={{ marginRight: 4 }} /> 刪除
                         </button>
                       </div>
                     </td>
@@ -360,14 +360,14 @@ const HealthCheckCampaign = () => {
         </div>
         <Modal
           open={showModal}
-          title={pendingCampaign ? "Chỉnh sửa chiến dịch" : "Thêm chiến dịch"}
+          title={pendingCampaign ? "編輯健康檢查活動" : "新增健康檢查活動"}
           onCancel={() => {
             setShowModal(false);
             setPendingCampaign(null);
           }}
           onOk={handleSubmit}
-          okText={pendingCampaign ? "Lưu" : "Tạo mới"}
-          cancelText="Hủy"
+          okText={pendingCampaign ? "儲存" : "新增"}
+          cancelText="取消"
           className={campaignStyle.modalForm}
         >
           <AntForm
@@ -378,22 +378,22 @@ const HealthCheckCampaign = () => {
           >
             <AntForm.Item
               name="title"
-              label="Tiêu đề"
-              rules={[{ required: true, message: "Vui lòng nhập tiêu đề!" }]}
+              label="活動名稱"
+              rules={[{ required: true, message: "請輸入活動名稱。" }]}
             >
               <Input className={campaignStyle.input} />
             </AntForm.Item>
             <AntForm.Item
               name="description"
-              label="Mô tả"
-              rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}
+              label="說明"
+              rules={[{ required: true, message: "請輸入活動說明。" }]}
             >
               <Input.TextArea rows={3} className={campaignStyle.input} />
             </AntForm.Item>
             <AntForm.Item
               name="date"
-              label="Ngày tổ chức"
-              rules={[{ required: true, message: "Vui lòng chọn ngày!" }]}
+              label="檢查日期"
+              rules={[{ required: true, message: "請選擇日期。" }]}
             >
               <DatePicker
                 style={{ width: "100%" }}
@@ -408,9 +408,9 @@ const HealthCheckCampaign = () => {
             {pendingCampaign && (
               <AntForm.Item
                 name="statusId"
-                label="Trạng thái"
+                label="狀態"
                 rules={[
-                  { required: true, message: "Vui lòng chọn trạng thái!" },
+                  { required: true, message: "請選擇狀態。" },
                 ]}
               >
                 <select
@@ -438,7 +438,7 @@ const HealthCheckCampaign = () => {
             )}
           </AntForm>
         </Modal>
-        {loading && <LoadingOverlay text="Đang tải dữ liệu..." />}
+        {loading && <LoadingOverlay text="資料載入中..." />}
         <Notification />
       </main>
     </div>
