@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Sidebar from "../../components/sidebar/Sidebar";
 import style from "../../assets/css/incidentPage.module.css";
 import axios from "axios";
@@ -41,16 +41,8 @@ const COLORS = ["#F4C430", "#FF6B6B", "#4D96FF", "#9AE6B4", "#FFA500"];
 const Incident = () => {
   const [search, setSearch] = useState("");
   const [events, setEvents] = useState([]);
-  const [filteredEvents, setFilteredEvents] = useState([]);
   const [eventTypeFilter, setEventTypeFilter] = useState("全部");
   const [dateFilter, setDateFilter] = useState("");
-  const [summary, setSummary] = useState({
-    total: 0,
-    sent: 0,
-    draft: 0,
-    pending: 0,
-  });
-  const [distributionData, setDistributionData] = useState([]);
   const [groupBy, setGroupBy] = useState("day");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -371,8 +363,8 @@ const Incident = () => {
     }
   }, [selectedEvent]);
 
-  useEffect(() => {
-    const filtered = events.filter((event) => {
+  const filteredEvents = useMemo(() => {
+    return events.filter((event) => {
       const matchType =
         eventTypeFilter === "全部" || event.eventType === eventTypeFilter;
       const matchSearch = event.studentName
@@ -383,20 +375,15 @@ const Incident = () => {
         new Date(event.eventDate).toISOString().split("T")[0] === dateFilter;
       return matchType && matchSearch && matchDate;
     });
-    setFilteredEvents(filtered);
-    updateStats(filtered);
-    setCurrentPage(1);
-  }, [search, eventTypeFilter, dateFilter, events, groupBy]);
+  }, [events, eventTypeFilter, search, dateFilter]);
 
-  const updateStats = (data) => {
-    const typeMap = {},
-      dateMap = {};
-    let sent = 0,
-      draft = 0,
-      pending = 0;
+  const { summary, distributionData } = useMemo(() => {
+    const dateMap = {};
+    let sent = 0;
+    let draft = 0;
+    let pending = 0;
 
-    data.forEach((event) => {
-      typeMap[event.eventType] = (typeMap[event.eventType] || 0) + 1;
+    filteredEvents.forEach((event) => {
       const status = event.status?.toLowerCase() || "";
       if (status.includes("gửi")) sent++;
       else if (status.includes("nháp")) draft++;
@@ -412,13 +399,17 @@ const Incident = () => {
       dateMap[groupKey] = (dateMap[groupKey] || 0) + 1;
     });
 
-    setDistributionData(
-      Object.entries(dateMap)
-        .map(([key, value]) => ({ date: key, value }))
-        .sort((a, b) => a.date.localeCompare(b.date))
-    );
-    setSummary({ total: data.length, sent, draft, pending });
-  };
+    return {
+      summary: { total: filteredEvents.length, sent, draft, pending },
+      distributionData: Object.entries(dateMap)
+        .map(([date, value]) => ({ date, value }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    };
+  }, [filteredEvents, groupBy]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, eventTypeFilter, dateFilter, groupBy]);
 
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
