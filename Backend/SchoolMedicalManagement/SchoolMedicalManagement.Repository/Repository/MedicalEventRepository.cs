@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore;
 using SchoolMedicalManagement.Models.Entity;
+using SchoolMedicalManagement.Models.Response;
 using SchoolMedicalManagement.Repository.Repository;
 
 public class MedicalEventRepository : GenericRepository<MedicalEvent>
@@ -21,6 +22,7 @@ public class MedicalEventRepository : GenericRepository<MedicalEvent>
     // Đề xuất: lọc IsActive == true để tránh load những sự kiện đã xoá mềm
     public async Task<List<MedicalEvent>> GetAllMedicalEvents() =>
         await _context.MedicalEvents
+            .AsNoTracking()
             .Where(e => e.IsActive != false)
             .Include(e => e.Student)
                 .ThenInclude(pr => pr.Parent)
@@ -29,7 +31,38 @@ public class MedicalEventRepository : GenericRepository<MedicalEvent>
             .Include(e => e.Severity)
             .Include(e => e.HandleRecords)
                 .ThenInclude(hr => hr.Supply)
-            .Include(e => e.Student.MedicalHistories)
+            .ToListAsync();
+
+
+    public Task<int> GetActiveMedicalEventsCountAsync()
+        => _context.MedicalEvents
+            .AsNoTracking()
+            .CountAsync(e => e.IsActive != false);
+
+    public Task<List<RecentMedicalEventResponse>> GetRecentMedicalEventsAsync(int count)
+        => _context.MedicalEvents
+            .AsNoTracking()
+            .Where(e => e.IsActive != false)
+            .OrderByDescending(e => e.EventDate)
+            .Select(e => new RecentMedicalEventResponse
+            {
+                EventId = e.EventId.ToString(),
+                StudentName = e.Student != null ? e.Student.FullName ?? string.Empty : string.Empty,
+                EventType = e.EventType != null ? e.EventType.EventTypeName ?? string.Empty : string.Empty,
+                EventDate = e.EventDate,
+                Severity = e.Severity != null ? e.Severity.SeverityName ?? string.Empty : string.Empty
+            })
+            .Take(count)
+            .ToListAsync();
+
+    public Task<List<MedicalEvent>> GetMedicalEventsByStudentIdsAsync(IReadOnlyCollection<int> studentIds)
+        => _context.MedicalEvents
+            .AsNoTracking()
+            .Where(e => e.IsActive != false && e.StudentId.HasValue && studentIds.Contains(e.StudentId.Value))
+            .Include(e => e.Student)
+            .Include(e => e.EventType)
+            .Include(e => e.Severity)
+            .OrderByDescending(e => e.EventDate)
             .ToListAsync();
 
     // Tạo và trả về bản ghi đã tạo với đầy đủ liên kết
