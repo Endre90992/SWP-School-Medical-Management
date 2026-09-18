@@ -49,7 +49,7 @@ const CampaignDetail = () => {
   useEffect(() => {
     const fetchCampaignDetail = async () => {
       const res = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns`
+        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns`
       );
       const campaignData = res.data.data.find(
         (item) => item.campaignId.toString() === id
@@ -59,7 +59,7 @@ const CampaignDetail = () => {
 
     const fetchConsents = async () => {
       const res = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${id}/consent-requests`
+        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${id}/consent-requests`
       );
       setConsents(res.data.data);
     };
@@ -135,7 +135,7 @@ const CampaignDetail = () => {
         return;
       }
       const res = await axios.post(
-        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${campaign.campaignId}/send-consent-to-all-parents`,
+        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${campaign.campaignId}/send-consent-to-all-parents`,
         null,
         { params: { autoDeclineAfterDays } }
       );
@@ -143,7 +143,7 @@ const CampaignDetail = () => {
       notifySuccess("Đã gửi thông báo đến cho phụ huynh.");
       setShowModal(true);
       const consentsRes = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${campaign.campaignId}/consent-requests`
+        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${campaign.campaignId}/consent-requests`
       );
       setConsents(consentsRes.data.data);
       // Gửi email cho từng phụ huynh
@@ -185,7 +185,7 @@ const CampaignDetail = () => {
       }
 
       await axios.put(
-        "https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns",
+        "http://127.0.0.1:5080/api/VaccinationCampaign/campaigns",
         {
           vaccineName: campaign.vaccineName,
           date: campaign.date,
@@ -225,7 +225,7 @@ const CampaignDetail = () => {
     }
     try {
       await axios.put(
-        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${id}/deactivate`
+        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${id}/deactivate`
       );
       notifySuccess("Chiến dịch đã được đánh dấu hoàn thành.");
       setCampaign((prev) => ({
@@ -548,14 +548,14 @@ const CampaignDetail = () => {
                   try {
                     for (const cls of selectedClasses) {
                       await axios.post(
-                        `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${campaign.campaignId}/send-consent-by-class`,
+                        `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${campaign.campaignId}/send-consent-by-class`,
                         { className: cls, autoDeclineAfterDays }
                       );
                     }
                     notifySuccess("Đã gửi phiếu xác nhận cho các lớp đã chọn.");
                     // Load lại consents nếu cần
                     const consentsRes = await axios.get(
-                      `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${campaign.campaignId}/consent-requests`
+                      `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${campaign.campaignId}/consent-requests`
                     );
                     setConsents(consentsRes.data.data);
                     // Gửi email cho từng phụ huynh với thông tin học sinh cụ thể
