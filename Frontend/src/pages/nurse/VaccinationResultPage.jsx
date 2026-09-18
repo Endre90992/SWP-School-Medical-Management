@@ -93,11 +93,11 @@ const VaccineResult = () => {
         },
         { headers: { "Content-Type": "application/json" } }
       );
-      notifySuccess("儲存 thành công!");
+      notifySuccess("儲存成功！");
       setEditingIndex(null);
     } catch (error) {
       notifyError(
-        "Lỗi khi lưu dữ liệu: " + JSON.stringify(error.response?.data)
+        "儲存資料失敗：" + JSON.stringify(error.response?.data)
       );
     }
   };
@@ -235,10 +235,10 @@ const VaccineResult = () => {
     }
     if (successCount > 0)
       notifySuccess(
-        `Đã gửi thông báo & email cho ${successCount} phụ huynh thành công!`
+        `已成功建立 ${successCount} 筆家長通知！`
       );
     if (failCount > 0)
-      notifyError(`Không gửi được cho ${failCount} phụ huynh.`);
+      notifyError(`有 ${failCount} 筆家長通知建立失敗。`);
   };
 
   return (
@@ -373,7 +373,7 @@ const VaccineResult = () => {
             </p>
             <p>
               <strong>備註:</strong>{" "}
-              {records[viewingIndex].followUpNote || "Không có"}
+              {records[viewingIndex].followUpNote || "無"}
             </p>
             <button
               onClick={() => setViewingIndex(null)}
