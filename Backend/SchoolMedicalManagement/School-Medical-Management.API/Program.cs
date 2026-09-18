@@ -2,6 +2,7 @@ using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -11,8 +12,10 @@ using SchoolMedicalManagement.Repository.Repository;
 using SchoolMedicalManagement.Service.Implement;
 using SchoolMedicalManagement.Service.Interface;
 using System.Net;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -96,6 +99,18 @@ builder.Services.AddSwaggerGen(option =>
         Type = SecuritySchemeType.Http,
         BearerFormat = "JWT",
         Scheme = "Bearer"
+    });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("login", limiter =>
+    {
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+        limiter.AutoReplenishment = true;
     });
 });
 
@@ -216,6 +231,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseRateLimiter();
 app.UseCors("LocalOnly");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -239,6 +255,32 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
     await LocalDatabaseOptimizer.OptimizeAsync(db);
     await LocalDbSeeder.SeedAsync(db, builder.Configuration);
+}
+
+if (!string.Equals(
+        Environment.GetEnvironmentVariable("EDUHEALTH_DISABLE_BROWSER"),
+        "1",
+        StringComparison.Ordinal))
+{
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(500);
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "http://127.0.0.1:5080",
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+                // 瀏覽器無法自動開啟時，伺服器仍可正常使用。
+            }
+        });
+    });
 }
 
 app.Run();
