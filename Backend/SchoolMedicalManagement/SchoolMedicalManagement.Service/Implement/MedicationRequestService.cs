@@ -33,13 +33,13 @@ namespace SchoolMedicalManagement.Service.Implement
         {
             return statusId switch
             {
-                PendingStatus => "Chờ duyệt",
-                ApprovedStatus => "Đã duyệt",
-                RejectedStatus => "Bị từ chối",
-                ScheduledStatus => "Đã lên lịch",
-                CompletedStatus => "Đã hoàn thành",
-                CancelledStatus => "Đã hủy",
-                _ => "Không xác định"
+                PendingStatus => "待審核",
+                ApprovedStatus => "已核准",
+                RejectedStatus => "已拒絕",
+                ScheduledStatus => "已排程",
+                CompletedStatus => "已完成",
+                CancelledStatus => "已取消",
+                _ => "未知狀態"
             };
         }
 
@@ -50,8 +50,8 @@ namespace SchoolMedicalManagement.Service.Implement
             var responseList = list.Select(r => new MedicationRequestResponse
             {   
                 RequestID = r.RequestId,
-                StudentName = r.Student?.FullName ?? "Unknown",
-                ParentName = r.Parent?.FullName ?? "Unknown",
+                StudentName = r.Student?.FullName ?? "未填寫",
+                ParentName = r.Parent?.FullName ?? "未填寫",
                 MedicationName = r.MedicationName,
                 Dosage = r.Dosage,
                 Instructions = r.Instructions,
@@ -63,7 +63,7 @@ namespace SchoolMedicalManagement.Service.Implement
             return new BaseResponse
             {
                 Status = StatusCodes.Status200OK.ToString(),
-                Message = "Lấy danh sách đơn thuốc chờ duyệt thành công.",
+                Message = "已取得待審核用藥申請。",
                 Data = responseList
             };
         }
@@ -76,7 +76,7 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status404NotFound.ToString(),
-                    Message = "Không tìm thấy đơn thuốc với ID được cung cấp.",
+                    Message = "找不到指定的用藥申請。",
                     Data = null
                 };
             }
@@ -97,12 +97,12 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status200OK.ToString(),
-                    Message = "Cập nhật trạng thái đơn thuốc thành công.",
+                    Message = "用藥申請狀態已更新。",
                     Data = new MedicationRequestResponse
                     {
                         RequestID = updatedEntity.RequestId,
-                        StudentName = updatedEntity.Student?.FullName ?? "Unknown",
-                        ParentName = updatedEntity.Parent?.FullName ?? "Unknown",
+                        StudentName = updatedEntity.Student?.FullName ?? "未填寫",
+                        ParentName = updatedEntity.Parent?.FullName ?? "未填寫",
                         MedicationName = updatedEntity.MedicationName,
                         Dosage = updatedEntity.Dosage,
                         Instructions = updatedEntity.Instructions,
@@ -118,7 +118,7 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status500InternalServerError.ToString(),
-                    Message = "Lỗi khi cập nhật trạng thái đơn thuốc.",
+                    Message = "更新用藥申請狀態失敗。",
                     Data = null
                 };
             }
@@ -153,19 +153,19 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status404NotFound.ToString(),
-                    Message = "Không tìm thấy đơn thuốc vừa tạo.",
+                    Message = "找不到剛建立的用藥申請。",
                     Data = null
                 };
             }
             return new BaseResponse
             {
                 Status = StatusCodes.Status200OK.ToString(),
-                Message = "Tạo đơn thuốc thành công.",
+                Message = "用藥申請建立成功。",
                 Data = new MedicationRequestResponse
                 {
                     RequestID = createdRequest.RequestId,
-                    StudentName = createdRequest.Student?.FullName ?? "Unknown",
-                    ParentName = createdRequest.Parent?.FullName ?? "Unknown",
+                    StudentName = createdRequest.Student?.FullName ?? "未填寫",
+                    ParentName = createdRequest.Parent?.FullName ?? "未填寫",
                     MedicationName = createdRequest.MedicationName,
                     Dosage = createdRequest.Dosage,
                     Instructions = createdRequest.Instructions,
@@ -182,8 +182,8 @@ namespace SchoolMedicalManagement.Service.Implement
             var responseList = list.Select(item => new MedicationRequestResponse
             {
                 RequestID = item.RequestId,
-                StudentName = item.Student?.FullName ?? "Unknown",
-                ParentName = item.Parent?.FullName ?? "Unknown",
+                StudentName = item.Student?.FullName ?? "未填寫",
+                ParentName = item.Parent?.FullName ?? "未填寫",
                 MedicationName = item.MedicationName,
                 Dosage = item.Dosage,
                 Instructions = item.Instructions,
@@ -195,7 +195,7 @@ namespace SchoolMedicalManagement.Service.Implement
             return new BaseResponse
             {
                 Status = StatusCodes.Status200OK.ToString(),
-                Message = "Lấy danh sách tất cả đơn thuốc thành công.",
+                Message = "已取得全部用藥申請。",
                 Data = responseList
             };
         }
@@ -209,19 +209,19 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status404NotFound.ToString(),
-                    Message = "Không tìm thấy yêu cầu thuốc cho học sinh này",
+                    Message = "找不到此學生的用藥申請",
                     Data = null
                 };
             }
             return new BaseResponse
             {
                 Status = StatusCodes.Status200OK.ToString(),
-                Message = "Lấy thông tin yêu cầu thuốc thành công",
+                Message = "已取得用藥申請資料",
                 Data = new MedicationRequestResponse
                 {
                     RequestID = response.RequestId,
-                    StudentName = response.Student?.FullName ?? "Unknown",
-                    ParentName = response.Parent?.FullName ?? "Unknown",
+                    StudentName = response.Student?.FullName ?? "未填寫",
+                    ParentName = response.Parent?.FullName ?? "未填寫",
                     MedicationName = response.MedicationName,
                     Dosage = response.Dosage,
                     Instructions = response.Instructions,
@@ -239,8 +239,8 @@ namespace SchoolMedicalManagement.Service.Implement
             var responseList = requests.Select(r => new MedicationRequestResponse
             {
                 RequestID = r.RequestId,
-                StudentName = r.Student?.FullName ?? "Unknown",
-                ParentName = r.Parent?.FullName ?? "Unknown",
+                StudentName = r.Student?.FullName ?? "未填寫",
+                ParentName = r.Parent?.FullName ?? "未填寫",
                 MedicationName = r.MedicationName,
                 Dosage = r.Dosage,
                 Instructions = r.Instructions,
@@ -252,7 +252,7 @@ namespace SchoolMedicalManagement.Service.Implement
             return new BaseResponse
             {
                 Status = StatusCodes.Status200OK.ToString(),
-                Message = "Lấy danh sách đơn thuốc theo phụ huynh thành công.",
+                Message = "已取得家長的用藥申請。",
                 Data = responseList
             };
         }
@@ -266,7 +266,7 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status404NotFound.ToString(),
-                    Message = "Không tìm thấy yêu cầu thuốc",
+                    Message = "找不到用藥申請",
                     Data = null
                 };
             }
@@ -274,12 +274,12 @@ namespace SchoolMedicalManagement.Service.Implement
             return new BaseResponse
             {
                 Status = StatusCodes.Status200OK.ToString(),
-                Message = "Lấy thông tin yêu cầu thuốc thành công",
+                Message = "已取得用藥申請資料",
                 Data = new MedicationRequestResponse
                 {
                     RequestID = request.RequestId,
-                    StudentName = request.Student?.FullName ?? "Unknown",
-                    ParentName = request.Parent?.FullName ?? "Unknown",
+                    StudentName = request.Student?.FullName ?? "未填寫",
+                    ParentName = request.Parent?.FullName ?? "未填寫",
                     MedicationName = request.MedicationName,
                     Dosage = request.Dosage,
                     Instructions = request.Instructions,
@@ -299,7 +299,7 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status404NotFound.ToString(),
-                    Message = "Không tìm thấy yêu cầu thuốc.",
+                    Message = "找不到用藥申請.",
                     Data = null
                 };
             }
@@ -308,7 +308,7 @@ namespace SchoolMedicalManagement.Service.Implement
             return new BaseResponse
             {
                 Status = StatusCodes.Status200OK.ToString(),
-                Message = "Cập nhật trạng thái thành công.",
+                Message = "狀態更新成功。",
                 Data = null
             };
         }
@@ -320,8 +320,8 @@ namespace SchoolMedicalManagement.Service.Implement
             var data = list.Select(r => new MedicationRequestResponse
             {
                 RequestID = r.RequestId,
-                StudentName = r.Student?.FullName ?? "Unknown",
-                ParentName = r.Parent?.FullName ?? "Unknown",
+                StudentName = r.Student?.FullName ?? "未填寫",
+                ParentName = r.Parent?.FullName ?? "未填寫",
                 MedicationName = r.MedicationName,
                 Dosage = r.Dosage,
                 Instructions = r.Instructions,
@@ -333,7 +333,7 @@ namespace SchoolMedicalManagement.Service.Implement
             return new BaseResponse
             {
                 Status = StatusCodes.Status200OK.ToString(),
-                Message = "Lấy danh sách đơn thuốc theo trạng thái thành công.",
+                Message = "已取得指定狀態的用藥申請。",
                 Data = data
             };
         }
