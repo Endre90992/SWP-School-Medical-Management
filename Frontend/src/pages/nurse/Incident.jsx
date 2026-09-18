@@ -820,20 +820,21 @@ const Incident = () => {
     );
   };
 
-  // Hàm lấy dữ liệu cho BarChart: top 10 loại 筆傷病
-  const getBarChartData = (data) => {
-    if (!Array.isArray(data) || data.length === 0) return [];
+  const barChartData = useMemo(() => {
+    if (!Array.isArray(filteredEvents) || filteredEvents.length === 0) return [];
+
     const typeMap = {};
-    data.forEach((event) => {
+    filteredEvents.forEach((event) => {
       if (event.eventType) {
         typeMap[event.eventType] = (typeMap[event.eventType] || 0) + 1;
       }
     });
-    const sorted = Object.entries(typeMap)
+
+    return Object.entries(typeMap)
       .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-    return sorted.slice(0, 10);
-  };
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  }, [filteredEvents]);
 
   // Skeleton loading rows
   const skeletonRows = Array.from({ length: itemsPerPage }, (_, i) => (
@@ -979,7 +980,7 @@ const Incident = () => {
             <h4>依傷病類型統計</h4>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart
-                data={getBarChartData(filteredEvents)}
+                data={barChartData}
                 layout="vertical"
                 margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
               >
@@ -988,7 +989,7 @@ const Incident = () => {
                 <Tooltip formatter={(value) => [`${value} 筆傷病`]} />
                 <Legend />
                 <Bar dataKey="value" fill="#4D96FF">
-                  {getBarChartData(filteredEvents).map((entry, index) => (
+                  {barChartData.map((entry, index) => (
                     <Cell key={`cell-bar-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
