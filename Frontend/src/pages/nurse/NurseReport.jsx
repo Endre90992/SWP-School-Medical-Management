@@ -16,6 +16,25 @@ import LoadingOverlay from "../../components/LoadingOverlay";
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f7f"];
 const OVERVIEW_API = "http://127.0.0.1:5080/api/Dashboard/overview";
 
+const escapeCsv = (value) => {
+  const text = String(value ?? "");
+  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+};
+
+const downloadCsv = (rows, fileName) => {
+  const csv = "\uFEFF" + rows.map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+
 const NurseReport = () => {
   const [stats, setStats] = useState({
     vaccination: null,
@@ -90,30 +109,25 @@ const NurseReport = () => {
     },
   ];
 
-  const exportToExcel = async () => {
-    const XLSX = await import("xlsx");
-    const wb = XLSX.utils.book_new();
-
-    const overviewData = [
+  const exportToExcel = () => {
+    const rows = [
       ["類別", "數量"],
       ["預防接種活動", stats.vaccination.totalCampaigns],
       ["傷病紀錄", stats.medical.totalMedicalEvents],
       ["用藥申請", stats.medication.totalMedicationRequests],
       ["健康檢查活動", stats.health.totalHealthCheckCampaigns],
+      [],
+      ["近期用藥"],
+      ["學生", "藥物", "狀態", "時間"],
+      ...stats.medication.recentMedicationRequests.map((item) => [
+        item.studentName,
+        item.medicationName,
+        item.status,
+        new Date(item.requestDate).toLocaleString("zh-TW"),
+      ]),
     ];
-    const overviewSheet = XLSX.utils.aoa_to_sheet(overviewData);
-    XLSX.utils.book_append_sheet(wb, overviewSheet, "總覽");
 
-    const meds = stats.medication.recentMedicationRequests.map((item) => ({
-      學生: item.studentName,
-      藥物: item.medicationName,
-      狀態: item.status,
-      時間: new Date(item.requestDate).toLocaleString("zh-TW"),
-    }));
-    const medsSheet = XLSX.utils.json_to_sheet(meds);
-    XLSX.utils.book_append_sheet(wb, medsSheet, "近期用藥");
-
-    XLSX.writeFile(wb, "健康中心報表.xlsx");
+    downloadCsv(rows, "健康中心報表.csv");
   };
 
   const exportToPDF = async () => {
@@ -141,7 +155,7 @@ const NurseReport = () => {
         </div>
 
         <div className={style.exportControls}>
-          <button onClick={exportToExcel} className={style.btnExport}>📥 匯出 Excel</button>
+          <button onClick={exportToExcel} className={style.btnExport}>📥 匯出試算表</button>
           <button onClick={exportToPDF} className={style.btnExport}>📄 匯出 PDF</button>
         </div>
 
