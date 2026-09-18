@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { FiHeart, FiShield, FiAlertTriangle, FiInbox, FiSearch } from 'react-icons/fi';
 
 // Constants
-const API_BASE_URL = "https://swp-school-medical-management.onrender.com/api";
+const API_BASE_URL = "http://127.0.0.1:5080/api";
 const FILTERS = {
   ALL: "all",
   HEALTH: "health",
