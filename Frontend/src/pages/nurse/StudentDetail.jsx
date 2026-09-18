@@ -243,7 +243,7 @@ const StudentDetail = () => {
       if (studentRes.status === "fulfilled") {
         setStudent(studentRes.value.data.data);
       } else {
-        console.error("Lỗi tải thông tin詳細資料:", studentRes.reason);
+        console.error("載入學生詳細資料失敗：", studentRes.reason);
         notifyError("無法載入學生資料。");
         navigate("/students");
         return;
@@ -277,7 +277,7 @@ const StudentDetail = () => {
         notifySuccess("學生基本資料更新成功。");
         await fetchData(); // Refetch all data
     } catch (error) {
-        console.error("Lỗi cập nhật thông tin詳細資料:", error);
+        console.error("更新學生詳細資料失敗：", error);
         notifyError("更新學生資料失敗：" + (error.response?.data?.message || ""));
         throw error; // Propagate error to child to stop submitting state
     } finally {
@@ -292,7 +292,7 @@ const StudentDetail = () => {
         notifySuccess("健康資料更新成功。");
         await fetchData(); // Refetch all data
     } catch (error) {
-        console.error("Lỗi cập nhật hồ sơ sức khỏe:", error);
+        console.error("更新健康資料失敗：", error);
         notifyError("更新健康資料失敗：" + (error.response?.data?.message || ""));
         throw error; // Propagate error to child
     } finally {
