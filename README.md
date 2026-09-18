@@ -1,165 +1,90 @@
-# 🏫 EduHealth - Hệ thống y tế học đường thông minh
+# EduHealth Local TW
 
-## 📌 Giới thiệu
-EduHealth là hệ thống phần mềm hỗ trợ quản lý toàn diện các hoạt động y tế trong trường học. Hệ thống giúp phụ huynh, nhân viên y tế và nhà trường phối hợp hiệu quả trong việc chăm sóc sức khỏe học sinh – từ khai báo thông tin y tế, xử lý các tình huống khẩn cấp, đến quản lý tiêm chủng và kiểm tra sức khỏe định kỳ.
+臺灣學校健康中心單機離線版，改造自原始專案 `30Sativa/SWP-School-Medical-Management`。
 
-## 👤 Các vai trò người dùng
+> 本專案設計目標是「單一健康中心 Windows 電腦、本機使用、不對外連線」。
+> 原始專案目前未標示明確開源 LICENSE；本 fork 保留原始來源與作者資訊，正式散布或商用前請另行確認授權。
 
-1. **Parent** - Phụ huynh, có thể khai báo sức khỏe và theo dõi tình trạng của con
-2. **School Nurse** - Nhân viên y tế, xử lý sự kiện y tế và theo dõi hồ sơ sức khỏe
-3. **Admin** -  Quản lý nhà trường, giám sát hoạt động y tế học đường
+## 主要改進
 
-## Chức năng chính
+- 介面與主要操作訊息改為繁體中文。
+- 健康中心護理師導向的側邊欄與工作流程。
+- 前後端固定綁定 `127.0.0.1`，拒絕非本機來源。
+- 移除 Render、Vercel、Redis Cloud、Gmail SMTP 等外部服務依賴。
+- 資料庫改為 SQLite：`data/eduhealth-local-tw.db`。
+- 密碼由舊 SHA-256 升級為 BCrypt（舊資料登入成功後自動升級）。
+- API 採全域「預設需要登入」策略，只有登入與健康檢查端點可匿名使用。
+- 停用離線版 Email/OTP 密碼重設。
+- 第一次啟動自動產生一次性護理師密碼，寫入 `data/初始登入資訊.txt`；首次改密碼後自動刪除。
+- 移除公開 Blog HTML 注入路徑與外部網路依賴。
+- 清理重複路由與大量越南文介面文字。
 
-1. **Trang chủ & thông tin y tế học đường**
-- Giới thiệu trường học, phòng y tế, dịch vụ hỗ trợ
-- Chia sẻ tài liệu & blog về chăm sóc sức khỏe học đường
+## 執行需求
 
-2. **Khai báo hồ sơ sức khỏe học sinh (dành cho phụ huynh)**
-- Dị ứng, bệnh nền, thị lực, thính lực, tiền sử tiêm chủng
-- Gửi thuốc cho y tế trường kèm hướng dẫn sử dụng
+- Windows 10/11
+- .NET 8 SDK
+- Node.js 18 以上
 
-3. **Ghi nhận & xử lý sự kiện y tế tại trường**
-- Ghi nhận các sự kiện: sốt, té ngã, tai nạn, dịch bệnh,...
-- Quản lý sơ cứu, điều trị và theo dõi sau can thiệp
+## 啟動後端
 
-4. **Quản lý thuốc & vật tư y tế**
-- Kiểm kê thuốc men, thiết bị và vật tư y tế
-- Xuất - nhập kho theo tình huống hoặc định kỳ
-
-5. **Quản lý tiêm chủng học đường**
-- Gửi phiếu xin ý kiến phụ huynh
-- Tạo danh sách học sinh tham gia
-- Ghi nhận kết quả tiêm và theo dõi sau tiêm
-
-6. **Quản lý kiểm tra sức khỏe định kỳ**
-- Thông báo nội dung & thời gian kiểm tra cho phụ huynh
-- Lập danh sách kiểm tra, ghi nhận kết quả
-- Gửi kết quả về phụ huynh, đặt lịch tư vấn nếu cần
-
-7. **Hồ sơ y tế học sinh & lịch sử chăm sóc**
-- Tổng hợp hồ sơ sức khỏe, quá trình khám chữa bệnh
-- Quản lý theo năm học hoặc cấp học
-
-8. **Báo cáo & Dashboard**
-- Thống kê sự kiện y tế, tiêm chủng, kiểm tra định kỳ
-- Xuất báo cáo phục vụ công tác tổng hợp & đánh giá
-
-## 🗂️ Cấu trúc thư mục
-
-```
-SWP-School-Medical-Management/
-│
-├── Backend/
-│   └── SchoolMedicalManagement/
-│       ├── School-Medical-Management.API/        # Lớp API: Controllers, cấu hình, entrypoint backend
-│       ├── SchoolMedicalManagement.Models/        # Lớp Models: Entity, DTO, request/response, utils
-│       ├── SchoolMedicalManagement.Repository/    # Lớp Repository: Truy cập dữ liệu, repository pattern
-│       └── SchoolMedicalManagement.Service/       # Lớp Service: Logic nghiệp vụ, interface & implement
-│
-├── Frontend/
-│   ├── public/                                   # Tài nguyên tĩnh (ảnh, favicon, ...)
-│   ├── src/
-│   │   ├── assets/                               # Ảnh, icon, css
-│   │   ├── components/                           # Các component React tái sử dụng
-│   │   ├── layouts/                              # Layout tổng thể
-│   │   ├── pages/                                # Các trang chức năng (dashboard, login, ...)
-│   │   └── routes/                               # Định tuyến ứng dụng
-│   ├── package.json                              # Thông tin, dependencies frontend
-│   └── vite.config.js                            # Cấu hình Vite
-│
-├── Docs/                                         # Tài liệu dự án, hướng dẫn, đặc tả
-│
-└── README.md
+```powershell
+cd Backend/SchoolMedicalManagement/School-Medical-Management.API
+dotnet restore
+dotnet run
 ```
 
-## 💻 Công nghệ sử dụng
+後端僅監聽：
 
-### Frontend
-- **React**: Thư viện JavaScript để xây dựng giao diện người dùng hiện đại
-- **Vite**: Công cụ build và phát triển frontend nhanh, tối ưu
-- **CSS Modules**: Quản lý style theo từng component, tránh xung đột
-- **React Router**: Định tuyến các trang trong ứng dụng
-- **Axios**: Giao tiếp API với backend
+```text
+http://127.0.0.1:5080
+```
 
-### Backend
-- **.NET 8.0 (ASP.NET Core)**: Nền tảng phát triển Web API mạnh mẽ, hiện đại
-- **Entity Framework Core**: ORM thao tác với cơ sở dữ liệu SQL Server
-- **JWT Bearer Authentication**: Xác thực người dùng bảo mật
-- **Redis**: Lưu trữ cache, OTP, dữ liệu tạm thời
-- **Swagger / OpenAPI**: Sinh tài liệu API tự động, hỗ trợ test API
-- **Docker**: Đóng gói và triển khai backend
+第一次啟動會在程式執行目錄的 `data` 資料夾建立：
 
-### Database
-- **SQL Server on Linux (Docker)**: Chạy trên máy ảo Azure (Linux VM), sử dụng image `mcr.microsoft.com/azure-sql-edge`.
+```text
+eduhealth-local-tw.db
+初始登入資訊.txt
+```
 
-### DevOps & Testing
-- **Git**: Quản lý phiên bản mã nguồn
-- **Docker**: Đóng gói ứng dụng cho việc triển khai.
-- **Render**: Nền tảng CI/CD, tự động triển khai backend (Dockerized).
-- **Vercel**: Nền tảng triển khai và hosting cho frontend.
-- **Swagger UI**: Test và kiểm thử API trực tiếp trên trình duyệt
+使用該檔案內的一次性帳密登入，系統會要求立即設定新密碼。
 
-## 🔐 Bảo mật & Quyền riêng tư
+## 啟動前端
 
-- **Xác thực & Phân quyền**: Hệ thống sử dụng JWT Bearer Authentication để xác thực người dùng và phân quyền dựa trên vai trò (Admin, School Nurse, Parent).
-- **Mã hóa mật khẩu**: Mật khẩu người dùng được mã hóa bằng thuật toán mạnh (BCrypt) trước khi lưu trữ.
-- **Bảo vệ dữ liệu cá nhân**: Thông tin sức khỏe, hồ sơ học sinh và dữ liệu cá nhân được bảo vệ nghiêm ngặt, chỉ những người có quyền mới được truy cập.
-- **Kiểm soát truy cập API**: Các endpoint API được bảo vệ, chỉ cho phép truy cập với token hợp lệ và đúng vai trò.
-- **Kiểm tra đầu vào**: Tất cả dữ liệu đầu vào đều được kiểm tra, xác thực để phòng tránh tấn công injection, XSS, CSRF.
-- **Chính sách bảo mật**: Cam kết tuân thủ các quy định về bảo mật và quyền riêng tư dữ liệu theo pháp luật hiện hành.
+```powershell
+cd Frontend
+npm install
+npm run dev
+```
 
-## 🛡️ Yêu cầu phi chức năng
+瀏覽器開啟：
 
-- **Hiệu năng**: Hệ thống đáp ứng nhanh, có khả năng mở rộng để phục vụ nhiều người dùng đồng thời.
-- **Khả năng mở rộng**: Thiết kế kiến trúc nhiều lớp, dễ dàng mở rộng thêm tính năng hoặc tích hợp hệ thống khác.
-- **Khả năng bảo trì**: Codebase rõ ràng, tuân thủ SOLID, Clean Code, dễ bảo trì và nâng cấp.
-- **Khả năng kiểm thử**: Hỗ trợ kiểm thử tự động (unit test, integration test), dễ dàng kiểm thử các thành phần riêng biệt.
-- **Tính di động**: Ứng dụng có thể triển khai trên nhiều môi trường (Windows, Linux, Docker...).
-- **Bảo mật**: Đảm bảo an toàn dữ liệu, bảo vệ thông tin cá nhân, tuân thủ các tiêu chuẩn bảo mật.
-- **Khả năng sử dụng**: Giao diện thân thiện, dễ sử dụng cho cả phụ huynh, nhân viên y tế và quản trị viên.
+```text
+http://127.0.0.1:5173
+```
 
-## 👥 Author & Contributors
+## 備份
 
----
+執行：
 
-### 🧑‍💼 Mai Văn Thành  
-**Team Leader** | Full-Stack Developer | DevOps | SQL Server DB Designer  
+```powershell
+.\scripts\backup-db.ps1
+```
 
-- Led the development of the SchoolMedicalManager project  
-- Built both frontend (ReactJS) and backend (.NET 8 Web API)  
-- Designed and optimized SQL Server database (schema, procedures, seed data)  
-- Deployed backend & DB using Docker; frontend to Vercel, backend to Render  
-- Registered custom domain and configured DNS for production  
-- Managed team progress, code quality, and final delivery
+備份會存到 `backups`，檔名包含日期時間。建議每週再把備份複製到使用 BitLocker To Go 加密的 USB。
 
----
+## 本機資安建議
 
-### 👨‍💻 Nguyễn Ngọc Viên  
-**Full-Stack Developer** | DevOps | SQL Server DB Designer  
+1. Windows 健康中心帳號請設定強密碼。
+2. 開啟 BitLocker 全碟加密。
+3. 5 分鐘無操作自動鎖定 Windows。
+4. 不要把 `data` 或 `backups` 放入 OneDrive、Google Drive、Dropbox 等同步資料夾。
+5. 定期執行備份，並測試還原。
+6. 學生真實健康資料僅應存放在受控的健康中心電腦。
 
-- Contributed to frontend and backend development  
-- Co-designed and optimized SQL Server database  
-- Wrote stored procedures, seed/migration scripts  
-- Deployed SQL Server on Linux via Docker  
-- Handled backup, remote access, and DB performance tuning
+## 開發分支
 
----
+主要改造分支：
 
-### 🎨 Lạc Đông  
-**Frontend Developer** | SQL Server DB Designer  
-
-- Developed UI components with ReactJS  
-- Participated in UI/UX design and user flow  
-- Assisted in SQL Server schema design and seed data
-
----
-
-### 💻 Anh Quốc  
-**Frontend Developer**  
-
-- Developed and styled frontend components (ReactJS)  
-- Participated in UI/UX design
-
-
-
+```text
+feature/tw-local-health-center
+```
