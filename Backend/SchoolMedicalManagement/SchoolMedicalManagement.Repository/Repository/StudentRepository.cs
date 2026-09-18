@@ -21,6 +21,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<List<Student>> GetAllStudents()
         {
             return await _context.Students
+                .AsNoTracking()
                 .Include(s => s.Parent)
                 .Include(s => s.Gender)
                 .Where(s => s.IsActive == true) // chỉ lấy học sinh đang hoạt động
@@ -40,6 +41,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<List<Student>> GetStudentsByParentId(Guid parentId)
         {
             return await _context.Students
+                .AsNoTracking()
                 .Include(s => s.Parent)
                 .Include(s => s.Gender)
                 .Where(s => s.ParentId == parentId && s.IsActive == true)
@@ -88,6 +90,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<List<HealthProfile>> GetAllHealthProfiles()
         {
             return await _context.HealthProfiles
+                .AsNoTracking()
                 .Where(h => h.IsActive == true)
                 .ToListAsync();
         }
@@ -104,6 +107,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<List<Student>> GetStudentsByClass(string className)
         {
             return await _context.Students
+                .AsNoTracking()
                 .Include(s => s.Parent)
                 .Include(s => s.Gender)
                 .Where(s => s.Class == className && s.IsActive == true)
