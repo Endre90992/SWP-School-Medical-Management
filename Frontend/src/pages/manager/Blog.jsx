@@ -42,7 +42,7 @@ const Blog = () => {
         .sort((a, b) => new Date(b.postedDate) - new Date(a.postedDate));
       setBlogs(sortedBlogs);
     } catch (err) {
-      notifyError("Không thể tải danh sách blog!");
+      notifyError("無法載入健康資訊文章。");
       setBlogs([]);
       // Log lỗi chi tiết để debug
       if (err && err.response) {
@@ -71,16 +71,16 @@ const Blog = () => {
   // Xóa mềm bài viết
   const handleDelete = (id) => {
     Modal.confirm({
-      title: "Bạn có chắc muốn xóa bài viết này?",
+      title: "確定要刪除這篇健康資訊嗎？",
       icon: <ExclamationCircleOutlined />,
       onOk: async () => {
         setLoading(true);
         try {
           await axios.put(`${apiUrl}/${id}`, { title: '', content: '', isActive: false });
-          notifySuccess("Đã xóa bài viết!");
+          notifySuccess("文章已刪除。");
           fetchBlogs();
         } catch {
-          notifyError("Xóa thất bại!");
+          notifyError("刪除失敗。");
         } finally {
           setLoading(false);
         }
@@ -120,8 +120,8 @@ const Blog = () => {
         <header className={blogStyle.dashboardHeaderBar}>
           <div className={blogStyle.titleGroup}>
             <h1>
-              <span className={blogStyle.textBlack}>Quản lý</span>
-              <span className={blogStyle.textAccent}> Blog sức khỏe học đường</span>
+              <span className={blogStyle.textBlack}>健康資訊</span>
+              <span className={blogStyle.textAccent}>管理</span>
             </h1>
           </div>
         </header>
@@ -130,24 +130,24 @@ const Blog = () => {
             <div className={blogStyle.statIcon}><BookOutlined style={{ fontSize: 32, color: "#6a8dff" }} /></div>
             <div>
               <div className={blogStyle.statValue}>{blogs.length}</div>
-              <div className={blogStyle.statLabel}>Tổng số bài viết</div>
-              <div className={blogStyle.statChangePositive}>+12.3% so với tháng trước</div>
+              <div className={blogStyle.statLabel}>文章總數</div>
+              <div className={blogStyle.statChangePositive}>本機文章統計</div>
             </div>
           </div>
           <div className={blogStyle.statCard}>
             <div className={blogStyle.statIcon}><EyeOutlined style={{ fontSize: 32, color: "#059669" }} /></div>
             <div>
               <div className={blogStyle.statValue}>45,986</div>
-              <div className={blogStyle.statLabel}>Lượt xem</div>
-              <div className={blogStyle.statChangePositive}>+8.7% so với tháng trước</div>
+              <div className={blogStyle.statLabel}>瀏覽次數</div>
+              <div className={blogStyle.statChangePositive}>僅供本機參考</div>
             </div>
           </div>
           <div className={blogStyle.statCard}>
             <div className={blogStyle.statIcon}><MessageOutlined style={{ fontSize: 32, color: "#d97706" }} /></div>
             <div>
               <div className={blogStyle.statValue}>1,245</div>
-              <div className={blogStyle.statLabel}>Bình luận</div>
-              <div className={blogStyle.statChangePositive}>+15.2% so với tháng trước</div>
+              <div className={blogStyle.statLabel}>留言</div>
+              <div className={blogStyle.statChangePositive}>離線模式</div>
             </div>
           </div>
         </section>
@@ -159,7 +159,7 @@ const Blog = () => {
               <input
                 className={blogStyle.blogSearch}
                 style={{ paddingLeft: 38, minWidth: 260, fontSize: '1.05rem', border: '1.5px solid #20b2aa', boxShadow: '0 1px 6px rgba(32,178,170,0.07)' }}
-                placeholder="Tìm kiếm bài viết..."
+                placeholder="搜尋文章..."
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape') setSearchText(''); }}
@@ -168,7 +168,7 @@ const Blog = () => {
                 <span
                   style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#aaa', cursor: 'pointer', fontSize: 18 }}
                   onClick={() => setSearchText('')}
-                  title="Xóa tìm kiếm"
+                  title="清除搜尋"
                 >&#10005;</span>
               )}
             </div>
@@ -177,21 +177,21 @@ const Blog = () => {
               style={{marginLeft: 12}}
               onClick={() => navigate('/manager/blog/create')}
             >
-              <span style={{fontWeight:700, fontSize:'1.1rem', letterSpacing:0.5, padding:'0 2px'}}>+ Tạo bài viết mới</span>
+              <span style={{fontWeight:700, fontSize:'1.1rem', letterSpacing:0.5, padding:'0 2px'}}>+ 新增健康資訊</span>
             </button>
           </div>
         </section>
-        {loading && <LoadingOverlay text="Đang tải dữ liệu..." />}
+        {loading && <LoadingOverlay text="資料載入中..." />}
         <section className={blogStyle.blogListSection}>
           {paginatedBlogs.length === 0 && !loading && (
-            <div style={{textAlign: 'center', color: '#888', margin: '32px 0'}}>Không tìm thấy bài viết nào.</div>
+            <div style={{textAlign: 'center', color: '#888', margin: '32px 0'}}>目前沒有符合條件的文章。</div>
           )}
           {paginatedBlogs.map((blog) => (
             <div className={blogStyle.blogCard} key={blog.postId}>
               <div className={blogStyle.blogCardContent}>
                 <div className={blogStyle.blogMetaRow}>
                   <span className={blogStyle.blogDate}>{blog.postedDate}</span>
-                  <span className={blogStyle.blogAuthor}>Tác giả: {blog.authorName}</span>
+                  <span className={blogStyle.blogAuthor}>作者： {blog.authorName}</span>
                 </div>
                 <h2 className={blogStyle.blogTitle}>{blog.title}</h2>
                 <div
@@ -232,7 +232,7 @@ const Blog = () => {
           )}
         </section>
         <footer className={blogStyle.footerBlog}>
-          EduHealth © 2025 - Hệ thống quản lý sức khỏe học đường
+          EduHealth Local TW｜校園健康中心管理系統
         </footer>
       </main>
       <Notification />
