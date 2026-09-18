@@ -34,10 +34,10 @@ const NurseReport = () => {
       setLoading(true);
       try {
         const [vaccine, medical, health, medication] = await Promise.all([
-          axios.get("https://swp-school-medical-management.onrender.com/api/Dashboard/vaccination-campaigns/statistics"),
-          axios.get("https://swp-school-medical-management.onrender.com/api/Dashboard/medical-events-statistics"),
-          axios.get("https://swp-school-medical-management.onrender.com/api/Dashboard/health-statistics"),
-          axios.get("https://swp-school-medical-management.onrender.com/api/Dashboard/medication-statistics"),
+          axios.get("http://127.0.0.1:5080/api/Dashboard/vaccination-campaigns/statistics"),
+          axios.get("http://127.0.0.1:5080/api/Dashboard/medical-events-statistics"),
+          axios.get("http://127.0.0.1:5080/api/Dashboard/health-statistics"),
+          axios.get("http://127.0.0.1:5080/api/Dashboard/medication-statistics"),
         ]);
         setStats({
           vaccination: vaccine.data.data,
