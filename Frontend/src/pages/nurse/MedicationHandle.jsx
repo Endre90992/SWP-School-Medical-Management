@@ -41,7 +41,7 @@ const MedicationHandle = () => {
     setLoading(true);
     try {
       const res = await axios.get(
-        "https://swp-school-medical-management.onrender.com/api/MedicationRequest/all"
+        "http://127.0.0.1:5080/api/MedicationRequest/all"
       );
       const all = Array.isArray(res.data?.data) ? res.data.data : [];
       setPendingRequests(all.filter((item) => item.status === "Chờ duyệt"));
@@ -86,7 +86,7 @@ const MedicationHandle = () => {
 
     try {
       await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/MedicationRequest/handle",
+        "http://127.0.0.1:5080/api/MedicationRequest/handle",
         payload,
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
@@ -114,7 +114,7 @@ const MedicationHandle = () => {
     const payload = { statusId: 4, nurseId: nurseID }; // 4: Đã lên lịch, gửi kèm nurseId
     try {
       await axios.put(
-        `https://swp-school-medical-management.onrender.com/api/MedicationRequest/${requestID}/status`,
+        `http://127.0.0.1:5080/api/MedicationRequest/${requestID}/status`,
         payload,
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
@@ -137,7 +137,7 @@ const MedicationHandle = () => {
     const payload = { statusId: 5 }; // 5: Đã hoàn thành
     try {
       await axios.put(
-        `https://swp-school-medical-management.onrender.com/api/MedicationRequest/${requestID}/status`,
+        `http://127.0.0.1:5080/api/MedicationRequest/${requestID}/status`,
         payload,
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
@@ -250,13 +250,13 @@ const MedicationHandle = () => {
           <b></b>{" "}
           {req.imagePath ? (
             <img
-              src={`https://swp-school-medical-management.onrender.com${req.imagePath}`}
+              src={`http://127.0.0.1:5080${req.imagePath}`}
               alt="Ảnh thuốc"
               className={style.miniImage}
               onClick={() =>
                 setImageModal({
                   open: true,
-                  url: `https://swp-school-medical-management.onrender.com${req.imagePath}`,
+                  url: `http://127.0.0.1:5080${req.imagePath}`,
                 })
               }
               style={{ cursor: "pointer" }}
