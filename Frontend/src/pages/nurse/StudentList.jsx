@@ -1,152 +1,122 @@
-import React, { useState, useEffect } from "react";
-import Sidebar from "../../components/sidebar/Sidebar";
-import style from "../../assets/css/studentList.module.css";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import Sidebar from "../../components/sidebar/Sidebar";
 import Notification from "../../components/Notification";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import style from "../../assets/css/studentList.module.css";
+
+const API_URL = "http://127.0.0.1:5080/api/Student";
 
 const StudentList = () => {
   const [students, setStudents] = useState([]);
-  const [filteredStudents, setFilteredStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [classFilter, setClassFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [sortConfig, setSortConfig] = useState({ key: 'studentId', direction: 'ascending' });
-  const [classFilter, setClassFilter] = useState(""); // lọc theo lớp
+  const [sortConfig, setSortConfig] = useState({ key: "studentId", direction: "ascending" });
   const studentsPerPage = 13;
   const navigate = useNavigate();
 
-  const handleViewDetail = (id) => {
-    navigate(`/students/${id}`);
-  };
-
-  const fetchStudents = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(
-        "http://127.0.0.1:5080/api/Student"
-      );
-      let studentArray = response.data?.data || [];
-      setStudents(studentArray);
-      setLoading(false);
-    } catch (error) {
-      setLoading(false);
-      console.error("Có lỗi khi gọi API:", error);
-    }
-  };
-
   useEffect(() => {
+    const fetchStudents = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(API_URL, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        setStudents(Array.isArray(response.data?.data) ? response.data.data : []);
+      } catch (error) {
+        console.error("無法載入學生資料：", error);
+        setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchStudents();
   }, []);
 
-  useEffect(() => {
-    let sortableItems = [...students];
+  const classOptions = useMemo(
+    () => [...new Set(students.map((s) => s.className).filter(Boolean))].sort(),
+    [students]
+  );
 
-    // Filter first
-    if (searchTerm) {
-      const lowercasedFilter = searchTerm.toLowerCase();
-      sortableItems = sortableItems.filter((student) => {
-        const nameMatch = student.fullName.toLowerCase().includes(lowercasedFilter);
-        const idMatch = student.studentId.toString().includes(lowercasedFilter);
-        const classMatch = student.className.toLowerCase().includes(lowercasedFilter);
-        const parentMatch = student.parentName ? student.parentName.toLowerCase().includes(lowercasedFilter) : false;
-        return nameMatch || idMatch || classMatch || parentMatch;
-      });
-    }
-    if (classFilter) {
-      sortableItems = sortableItems.filter(
-        (student) => student.className === classFilter
-      );
-    }
+  const filteredStudents = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    let result = students.filter((student) => {
+      if (classFilter && student.className !== classFilter) return false;
+      if (!keyword) return true;
+      return [student.fullName, student.studentId, student.className, student.parentName]
+        .filter((value) => value !== null && value !== undefined)
+        .some((value) => String(value).toLowerCase().includes(keyword));
+    });
 
-    // Then sort
-    if (sortConfig.key !== null) {
-      sortableItems.sort((a, b) => {
-        let aValue = a[sortConfig.key];
-        let bValue = b[sortConfig.key];
-
-        // Handle numeric sorting for studentId
-        if (sortConfig.key === 'studentId') {
-          aValue = Number(aValue);
-          bValue = Number(bValue);
-        }
-
-        if (aValue < bValue) {
-          return sortConfig.direction === 'ascending' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'ascending' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-
-    setFilteredStudents(sortableItems);
-    setCurrentPage(1);
+    return [...result].sort((a, b) => {
+      let aValue = a[sortConfig.key] ?? "";
+      let bValue = b[sortConfig.key] ?? "";
+      if (sortConfig.key === "studentId") {
+        aValue = Number(aValue);
+        bValue = Number(bValue);
+      }
+      if (aValue < bValue) return sortConfig.direction === "ascending" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "ascending" ? 1 : -1;
+      return 0;
+    });
   }, [students, searchTerm, classFilter, sortConfig]);
 
+  useEffect(() => setCurrentPage(1), [searchTerm, classFilter]);
+
   const requestSort = (key) => {
-    let direction = 'ascending';
-    if (
-      sortConfig.key === key &&
-      sortConfig.direction === 'ascending'
-    ) {
-      direction = 'descending';
-    }
-    setSortConfig({ key, direction });
+    setSortConfig((prev) => ({
+      key,
+      direction:
+        prev.key === key && prev.direction === "ascending"
+          ? "descending"
+          : "ascending",
+    }));
   };
 
+  const sortIndicator = (key) =>
+    sortConfig.key === key
+      ? sortConfig.direction === "ascending"
+        ? " ▲"
+        : " ▼"
+      : "";
 
-  const indexOfLastStudent = currentPage * studentsPerPage;
-  const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
-  const currentStudents = filteredStudents.slice(
-    indexOfFirstStudent,
-    indexOfLastStudent
-  );
-  const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
-
-  const getSortIndicator = (key) => {
-    if (sortConfig.key === key) {
-      return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼';
-    }
-    return null;
-  };
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / studentsPerPage));
+  const start = (currentPage - 1) * studentsPerPage;
+  const currentStudents = filteredStudents.slice(start, start + studentsPerPage);
 
   return (
     <div className={style.layoutContainer}>
       <Sidebar />
-
       <main className={style.layoutContent}>
         <header className={style.dashboardHeaderBar}>
           <div className={style.titleGroup}>
             <h1>
-              <span className={style.textBlack}>Danh sách</span>
-              <span className={style.textAccent}> học sinh</span>
+              <span className={style.textBlack}>學生</span>
+              <span className={style.textAccent}> 名單</span>
             </h1>
           </div>
         </header>
 
-        <div
-          className={style.header}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, flexWrap: "wrap", marginBottom: 16 }}
-        >
+        <div className={style.header} style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
           <input
             type="text"
-            placeholder="Tìm kiếm học sinh..."
+            placeholder="搜尋姓名、學生編號、班級或家長..."
             className={style.searchBar}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ minWidth: 220, maxWidth: 300 }}
+            style={{ minWidth: 280, maxWidth: 380 }}
           />
           <select
             className={style.classFilter}
-            style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #bdbdbd", fontSize: 15, color: "#333" }}
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
           >
-            <option value="">Tất cả lớp</option>
-            {[...new Set(students.map(s => s.className))].sort().map((className) => (
+            <option value="">全部班級</option>
+            {classOptions.map((className) => (
               <option key={className} value={className}>{className}</option>
             ))}
           </select>
@@ -155,72 +125,65 @@ const StudentList = () => {
         <table className={style.studentTable}>
           <thead>
             <tr>
-              <th>STT</th>
-              <th onClick={() => requestSort('studentId')} className={style.sortableHeader}>
-                Mã học sinh{getSortIndicator('studentId')}
+              <th>序號</th>
+              <th onClick={() => requestSort("studentId")} className={style.sortableHeader}>
+                學生編號{sortIndicator("studentId")}
               </th>
-              <th onClick={() => requestSort('fullName')} className={style.sortableHeader}>
-                Họ và tên{getSortIndicator('fullName')}
+              <th onClick={() => requestSort("fullName")} className={style.sortableHeader}>
+                姓名{sortIndicator("fullName")}
               </th>
-              <th onClick={() => requestSort('className')} className={style.sortableHeader}>
-                Lớp{getSortIndicator('className')}
+              <th onClick={() => requestSort("className")} className={style.sortableHeader}>
+                班級{sortIndicator("className")}
               </th>
-              <th>Phụ huynh</th>
-              <th>Thao tác</th>
+              <th>家長／聯絡人</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              Array.from({ length: 8 }).map((_, idx) => (
-                <tr key={idx} className={style.skeletonRow}>
-                  {Array.from({ length: 6 }).map((_, cidx) => (
-                    <td key={cidx}>
-                      <div className={style.skeletonCell}></div>
-                    </td>
+              Array.from({ length: 8 }).map((_, row) => (
+                <tr key={row} className={style.skeletonRow}>
+                  {Array.from({ length: 6 }).map((__, col) => (
+                    <td key={col}><div className={style.skeletonCell} /></td>
                   ))}
                 </tr>
               ))
-            ) : currentStudents.length > 0 ? (
+            ) : currentStudents.length ? (
               currentStudents.map((student, index) => (
-                <tr key={student.studentId || index} className={style.studentRow}>
-                  <td>{indexOfFirstStudent + index + 1}</td>
-                  <td> HS{student.studentId}</td>
+                <tr key={student.studentId} className={style.studentRow}>
+                  <td>{start + index + 1}</td>
+                  <td>{student.studentId}</td>
                   <td>{student.fullName}</td>
-                  <td>{student.className}</td>
-                  <td>{student.parentName}</td>
+                  <td>{student.className || "—"}</td>
+                  <td>{student.parentName || "—"}</td>
                   <td>
-                    <button
-                      className={style.btn}
-                      onClick={() => handleViewDetail(student.studentId)}
-                    >
-                      Xem chi tiết
+                    <button className={style.btn} onClick={() => navigate(`/students/${student.studentId}`)}>
+                      查看詳細資料
                     </button>
                   </td>
                 </tr>
               ))
             ) : (
-              <tr>
-                <td colSpan="6" style={{ textAlign: "center" }}>
-                  Không có dữ liệu học sinh
-                </td>
-              </tr>
+              <tr><td colSpan="6" style={{ textAlign: "center" }}>目前沒有符合條件的學生資料</td></tr>
             )}
           </tbody>
         </table>
 
-        {loading && <LoadingOverlay text="Đang tải dữ liệu..." />}
+        {loading && <LoadingOverlay text="資料載入中..." />}
 
-        <div className={style.pagination}>
-          {[...Array(totalPages)].map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentPage(index + 1)}
-              className={currentPage === index + 1 ? style.activePage : ""}
-            >
-              {index + 1}
-            </button>
-          ))}
-        </div>
+        {totalPages > 1 && (
+          <div className={style.pagination}>
+            {Array.from({ length: totalPages }, (_, index) => (
+              <button
+                key={index + 1}
+                onClick={() => setCurrentPage(index + 1)}
+                className={currentPage === index + 1 ? style.activePage : ""}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+        )}
       </main>
       <Notification />
     </div>
