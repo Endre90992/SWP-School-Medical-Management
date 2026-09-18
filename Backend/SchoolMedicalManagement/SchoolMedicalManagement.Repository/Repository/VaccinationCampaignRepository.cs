@@ -23,6 +23,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         // ✅ Tối ưu: Lấy danh sách campaign active KHÔNG include collections
         public async Task<List<VaccinationCampaign>> GetAllActiveCampaignsLightweight()
             => await _context.VaccinationCampaigns
+                .AsNoTracking()
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Status)
                 .Where(c => c.StatusId == 2) // 2: Đang diễn ra
@@ -31,6 +32,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         // ✅ Tối ưu: Lấy campaign theo status KHÔNG include collections
         public async Task<List<VaccinationCampaign>> GetCampaignsByStatusLightweight(int statusId)
             => await _context.VaccinationCampaigns
+                .AsNoTracking()
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Status)
                 .Where(c => c.StatusId == statusId)
@@ -39,6 +41,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         // ✅ Tối ưu: Lấy campaign theo creator KHÔNG include collections
         public async Task<List<VaccinationCampaign>> GetCampaignsByCreatorLightweight(Guid creatorId)
             => await _context.VaccinationCampaigns
+                .AsNoTracking()
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Status)
                 .Where(c => c.CreatedBy == creatorId)
@@ -167,6 +170,15 @@ namespace SchoolMedicalManagement.Repository.Repository
             _context.VaccinationConsentRequests.Update(request);
             await _context.SaveChangesAsync();
             return await GetConsentRequestById(request.RequestId);
+        }
+
+        public async Task<Dictionary<int, int>> GetStatusCountsAsync()
+        {
+            return await _context.VaccinationCampaigns
+                .AsNoTracking()
+                .GroupBy(c => c.StatusId ?? 0)
+                .Select(g => new { StatusId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.StatusId, x => x.Count);
         }
 
         // Get total count of vaccination campaigns
