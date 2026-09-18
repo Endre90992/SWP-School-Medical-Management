@@ -62,7 +62,7 @@ const VaccineResult = () => {
         );
         setRecords(allRecords);
       } catch (error) {
-        console.error("Lỗi lấy kết quả tiêm chủng:", error);
+        console.error("取得接種結果失敗：", error);
         setRecords([]);
       } finally {
         setLoading(false);
@@ -135,7 +135,7 @@ const VaccineResult = () => {
       );
       notifySuccess("已建立家長本機通知。");
     } catch (error) {
-      console.error("Lỗi khi gửi thông báo/email:", error);
+      console.error("建立通知失敗：", error);
       notifyError(
         "無法建立本機通知：" + error.response?.data?.message
       );
@@ -162,7 +162,7 @@ const VaccineResult = () => {
           r.parentId === undefined)
       ) {
         console.warn(
-          "Không có parentId hợp lệ cho học sinh:",
+          "學生缺少有效的家長識別碼：",
           r.studentName,
           r
         );
