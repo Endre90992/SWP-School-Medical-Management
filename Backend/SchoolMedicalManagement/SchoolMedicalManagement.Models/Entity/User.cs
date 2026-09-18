@@ -5,7 +5,7 @@ namespace SchoolMedicalManagement.Models.Entity;
 
 public partial class User
 {
-    public Guid UserId { get; set; }
+    public Guid UserId { get; set; } = Guid.NewGuid();
 
     public string Username { get; set; } = null!;
 
