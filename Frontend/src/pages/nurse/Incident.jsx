@@ -32,7 +32,6 @@ import { useNavigate } from "react-router-dom";
 const MEDICAL_EVENT_API = "http://127.0.0.1:5080/api/MedicalEvent";
 const MEDICAL_EVENT_TYPE_API = "http://127.0.0.1:5080/api/MedicalEventType";
 const STUDENT_API = "http://127.0.0.1:5080/api/Student";
-const USER_API = "http://127.0.0.1:5080/api/User";
 const MEDICAL_SUPPLIES_API = "http://127.0.0.1:5080/api/MedicalSupplies";
 const NOTIFICATION_API = "http://127.0.0.1:5080/api/Notification/send";
 
@@ -81,7 +80,6 @@ const Incident = () => {
   const [supplies, setSupplies] = useState([]);
   const [suppliesUsed, setSuppliesUsed] = useState([]);
   const [bulkSuppliesUsed, setBulkSuppliesUsed] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true); // loading fetch list
   const [modalLoading, setModalLoading] = useState(false);
   const [showSendOption, setShowSendOption] = useState(false);
@@ -316,19 +314,6 @@ const Incident = () => {
       });
 
     axios
-      .get(USER_API, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((res) => {
-        setUsers(res.data);
-      })
-      .catch((err) => {
-        console.error("❌ Lỗi lấy danh sách user:", err);
-      });
-
-    axios
       .get(MEDICAL_SUPPLIES_API, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -341,27 +326,32 @@ const Incident = () => {
       });
   }, []);
 
-  useEffect(() => {
-    if (selectedEvent?.studentId) {
-      const token = getTokenOrRedirect();
-      if (!token) return;
-      axios
-        .get(`${STUDENT_API}/${selectedEvent.studentId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        .then((res) => {
-          setSelectedMedicalHistory(res.data);
-        })
-        .catch((err) => {
-          console.error("❌ Lỗi lấy tiền sử bệnh:", err);
-          setSelectedMedicalHistory([]);
-        });
-    } else {
-      setSelectedMedicalHistory([]);
+  const handleOpenEvent = async (eventId) => {
+    const token = getTokenOrRedirect();
+    if (!token) return;
+
+    setModalLoading(true);
+    try {
+      const response = await axios.get(`${MEDICAL_EVENT_API}/${eventId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const detail = response.data?.data;
+      if (!detail) {
+        notifyError("找不到此傷病紀錄的詳細資料。");
+        return;
+      }
+
+      setSelectedEvent(detail);
+      setSelectedMedicalHistory(
+        Array.isArray(detail.medicalHistory) ? detail.medicalHistory : []
+      );
+    } catch (error) {
+      console.error("載入傷病詳細資料失敗：", error);
+      notifyError("載入傷病詳細資料失敗。");
+    } finally {
+      setModalLoading(false);
     }
-  }, [selectedEvent]);
+  };
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
@@ -963,7 +953,7 @@ const Incident = () => {
                       <td>
                         <button
                           className={style.viewDetail}
-                          onClick={() => setSelectedEvent(event)}
+                          onClick={() => handleOpenEvent(event.eventId)}
                         >
                           查看詳細資料
                         </button>
