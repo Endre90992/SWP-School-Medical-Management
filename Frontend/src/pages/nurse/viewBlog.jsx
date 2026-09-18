@@ -72,11 +72,11 @@ const ViewBlog = () => {
       <main className={style.dashboardWrapper}>
         {/* LOADING OVERLAY */}
         {(loading || expandLoading) && (
-          <LoadingOverlay text="Đang tải dữ liệu..." />
+          <LoadingOverlay text="資料載入中..." />
         )}
         <div className={style.header}>
           <h2>Bài viết y tế</h2>
-          <p>Các chia sẻ hữu ích từ y tá trường mầm non</p>
+          <p>健康中心衛教與照護資訊</p>
         </div>
         <div className={style.cardList}>
           {loading
@@ -88,7 +88,7 @@ const ViewBlog = () => {
                     <>
                       <div>{blog.content}</div>
                       <p style={{ fontStyle: "italic", marginTop: "1rem" }}>
-                        🖊️ Người viết: {blog.authorName} — Ngày đăng:{" "}
+                        作者：{blog.authorName}　發布日期：{" "}
                         {new Date(blog.postedDate).toLocaleDateString("vi-VN")}
                       </p>
                     </>
@@ -97,7 +97,7 @@ const ViewBlog = () => {
                       className={style.btnViewMore}
                       onClick={() => toggleExpand(blog.postId)}
                     >
-                      Xem thêm
+                      閱讀全文
                     </button>
                   )}
                   {expandedPostId === blog.postId && (
