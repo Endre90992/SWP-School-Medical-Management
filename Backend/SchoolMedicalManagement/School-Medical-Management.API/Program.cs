@@ -1,5 +1,6 @@
 using Hangfire;
 using Hangfire.MemoryStorage;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -82,9 +83,9 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Windows 單機版使用 SQL Server LocalDB，不需要帳號密碼或網路資料庫。
+// 單機版使用 SQLite 單一檔案資料庫，不需安裝 SQL Server，也不會連外。
 builder.Services.AddDbContext<SwpEduHealV5Context>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // 離線模式使用記憶體快取，不連 Redis Cloud。
 builder.Services.AddDistributedMemoryCache();
@@ -131,7 +132,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // 預設所有 MVC/API 端點都必須登入；只有明確標示 AllowAnonymous 的端點可匿名使用。
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 // 保留既有排程能力，但全部只在本機記憶體執行。
 builder.Services.AddHangfire(config =>
@@ -162,8 +169,8 @@ app.MapGet("/api/health", () => Results.Ok(new
     status = "healthy",
     mode = "local-offline",
     timestamp = DateTime.UtcNow
-}));
-app.MapMethods("/api/health", new[] { "HEAD" }, () => Results.Ok());
+})).AllowAnonymous();
+app.MapMethods("/api/health", new[] { "HEAD" }, () => Results.Ok()).AllowAnonymous();
 
 app.UseStaticFiles();
 
