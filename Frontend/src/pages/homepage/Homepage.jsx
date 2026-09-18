@@ -82,7 +82,7 @@ const Homepage = () => {
 
   useEffect(() => {
     fetch(
-      "https://swp-school-medical-management.onrender.com/api/ParentFeedback"
+      "http://127.0.0.1:5080/api/ParentFeedback"
     )
       .then((res) => res.json())
       .then((data) => {
