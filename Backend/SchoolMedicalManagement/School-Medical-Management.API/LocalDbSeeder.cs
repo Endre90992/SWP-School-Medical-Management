@@ -83,10 +83,10 @@ namespace School_Medical_Management.API
             if (!await db.CampaignStatuses.AnyAsync())
             {
                 await db.CampaignStatuses.AddRangeAsync(
-                    new CampaignStatus { StatusName = "規劃中" },
+                    new CampaignStatus { StatusName = "尚未開始" },
                     new CampaignStatus { StatusName = "進行中" },
                     new CampaignStatus { StatusName = "已完成" },
-                    new CampaignStatus { StatusName = "已停用" });
+                    new CampaignStatus { StatusName = "已取消" });
                 await db.SaveChangesAsync();
             }
 
