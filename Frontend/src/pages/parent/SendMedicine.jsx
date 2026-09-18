@@ -141,7 +141,7 @@ const SendMedicine = () => {
       });
 
       await axios.post(
-        `https://swp-school-medical-management.onrender.com/api/MedicationRequest/create?parentId=${parentId}`,
+        `http://127.0.0.1:5080/api/MedicationRequest/create?parentId=${parentId}`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -177,7 +177,7 @@ const SendMedicine = () => {
     try {
       setLoading(true);
       await axios.put(
-        `https://swp-school-medical-management.onrender.com/api/MedicationRequest/${requestId}/status`,
+        `http://127.0.0.1:5080/api/MedicationRequest/${requestId}/status`,
         { statusId: 3 } // 6 là trạng thái "Đã hủy"
       );
       toast.success("Đã hủy đơn thuốc thành công!", {
@@ -229,7 +229,7 @@ const SendMedicine = () => {
 
     try {
       const res = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/Student/by-parent/${parentId}`
+        `http://127.0.0.1:5080/api/Student/by-parent/${parentId}`
       );
       const data = res.data.data;
       setStudentList(data);
@@ -283,7 +283,7 @@ const SendMedicine = () => {
     try {
       // Fetch student name inline thay vì gọi fetchStudentName để tránh dependency
       const studentRes = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/Student/${studentId}`
+        `http://127.0.0.1:5080/api/Student/${studentId}`
       );
       const studentName = studentRes.data.data.fullName;
       setStudentName(studentName);
@@ -294,7 +294,7 @@ const SendMedicine = () => {
       }
       
       const res = await axios.get(
-        "https://swp-school-medical-management.onrender.com/api/MedicationRequest/all"
+        "http://127.0.0.1:5080/api/MedicationRequest/all"
       );
       // Sửa ở đây: lấy đúng mảng data
       const all = Array.isArray(res.data) ? res.data : res.data.data || [];
@@ -664,7 +664,7 @@ const SendMedicine = () => {
                         <p>Ngày gửi: {new Date(item.requestDate).toLocaleDateString("vi-VN")}</p>
                         {item.imagePath && (
                           <p>
-                            <a href={`https://swp-school-medical-management.onrender.com${item.imagePath}`} target="_blank" rel="noopener noreferrer">Xem file đính kèm</a>
+                            <a href={`http://127.0.0.1:5080${item.imagePath}`} target="_blank" rel="noopener noreferrer">Xem file đính kèm</a>
                           </p>
                         )}
                       </div>
@@ -720,7 +720,7 @@ const SendMedicine = () => {
                              <p>Ngày gửi: {new Date(item.requestDate).toLocaleDateString("vi-VN")}</p>
                             {item.imagePath && (
                               <p>
-                                <a href={`https://swp-school-medical-management.onrender.com${item.imagePath}`} target="_blank" rel="noopener noreferrer">Xem file đính kèm</a>
+                                <a href={`http://127.0.0.1:5080${item.imagePath}`} target="_blank" rel="noopener noreferrer">Xem file đính kèm</a>
                               </p>
                             )}
                           </div>
