@@ -514,8 +514,8 @@ const HealthCheckDetail = () => {
         onClose={closeModal}
         title={
           modalType === "add"
-            ? "登錄 thông tin sức khỏe"
-            : "編輯 thông tin sức khỏe"
+            ? "登錄健康檢查資料"
+            : "編輯健康檢查資料"
         }
       >
         <form
