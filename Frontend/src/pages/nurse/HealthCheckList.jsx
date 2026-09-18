@@ -17,13 +17,13 @@ import { notifySuccess, notifyError } from "../../utils/notification";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import HealthCheckTour from "../../utils/HealthCheckTour";
 // API URL constants
-const HEALTH_CHECK_CAMPAIGN_API = "https://swp-school-medical-management.onrender.com/api/HealthCheckCampaign";
+const HEALTH_CHECK_CAMPAIGN_API = "http://127.0.0.1:5080/api/HealthCheckCampaign";
 
 // Hàm gửi email cho phụ huynh
 const sendEmailToParent = async (userId, subject, body) => {
   try {
     await axios.post(
-      "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+      "http://127.0.0.1:5080/api/Email/send-by-userid",
       {
         userId,
         subject,
@@ -45,7 +45,7 @@ const sendNotificationToAll = async (campaign) => {
   try {
     // Lấy danh sách học sinh tham gia chiến dịch
     const studentsRes = await axios.get(
-      `https://swp-school-medical-management.onrender.com/api/student/`
+      `http://127.0.0.1:5080/api/student/`
     );
     const students = studentsRes.data.data || [];
     await Promise.all(
@@ -53,7 +53,7 @@ const sendNotificationToAll = async (campaign) => {
         if (!student.parentId) return;
         // Gửi notification
         await axios.post(
-          "https://swp-school-medical-management.onrender.com/api/Notification/send",
+          "http://127.0.0.1:5080/api/Notification/send",
           {
             receiverId: student.parentId,
             title: "Thông báo kiểm tra sức khỏe",
