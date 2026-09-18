@@ -40,7 +40,23 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status400BadRequest.ToString(),
-                    Message = "Đổi mật khẩu thất bại",
+                    Message = "目前帳號不需要執行首次登入改密碼。",
+                    Data = null
+                };
+
+            if (string.IsNullOrWhiteSpace(Request.NewPassword) || Request.NewPassword.Length < 10)
+                return new BaseResponse
+                {
+                    Status = StatusCodes.Status400BadRequest.ToString(),
+                    Message = "新密碼至少需要 10 個字元。",
+                    Data = null
+                };
+
+            if (HashPassword.VerifyPassword(Request.NewPassword, user.Password))
+                return new BaseResponse
+                {
+                    Status = StatusCodes.Status400BadRequest.ToString(),
+                    Message = "新密碼不可與一次性密碼相同。",
                     Data = null
                 };
 
