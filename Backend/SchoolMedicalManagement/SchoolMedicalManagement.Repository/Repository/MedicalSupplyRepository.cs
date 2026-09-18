@@ -16,7 +16,7 @@ namespace SchoolMedicalManagement.Repository.Repository
 
         public async Task<List<MedicalSupply>> GetAllMedicalSupply()
         {
-            return await _context.MedicalSupplies.ToListAsync();
+            return await _context.MedicalSupplies.AsNoTracking().ToListAsync();
         }
 
         public async Task<MedicalSupply?> GetByIdMedicalSupply(int id)
