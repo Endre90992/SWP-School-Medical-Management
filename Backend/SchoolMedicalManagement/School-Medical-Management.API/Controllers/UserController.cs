@@ -19,6 +19,7 @@ namespace School_Medical_Management.API.Controllers
             _userService = userService;
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginUserRequest loginRequest)
         {
@@ -81,19 +82,23 @@ namespace School_Medical_Management.API.Controllers
             return StatusCode(int.Parse(response.Status), response);
         }
 
-        // 離線版保留相容端點，但不建議使用 Email OTP。
+        // 單機離線版不使用 Email/OTP 重設密碼，避免任何不必要的網路依賴。
+        [AllowAnonymous]
         [HttpPost("forgot-password")]
-        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
-        {
-            var response = await _authService.ForgotPasswordAsync(request);
-            return StatusCode(int.Parse(response.Status), response);
-        }
+        public IActionResult ForgotPassword()
+            => StatusCode(StatusCodes.Status410Gone, new
+            {
+                status = "410",
+                message = "離線版已停用 Email 密碼重設。請由本機管理者處理帳號。"
+            });
 
+        [AllowAnonymous]
         [HttpPost("verify-otp-reset-password")]
-        public async Task<IActionResult> VerifyOtpAndResetPassword([FromBody] VerifyOtpAndResetPasswordRequest request)
-        {
-            var response = await _authService.VerifyOtpAndResetPasswordAsync(request);
-            return StatusCode(int.Parse(response.Status), response);
-        }
+        public IActionResult VerifyOtpAndResetPassword()
+            => StatusCode(StatusCodes.Status410Gone, new
+            {
+                status = "410",
+                message = "離線版已停用 OTP 密碼重設。"
+            });
     }
 }
