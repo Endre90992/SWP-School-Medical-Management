@@ -59,7 +59,7 @@ const HealthCheckDetail = () => {
 
     try {
       const response = await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/health-checks/summaries",
+        "http://127.0.0.1:5080/api/health-checks/summaries",
         dataToSubmit
       );
       console.log("Dữ liệu đã được lưu:", response.data);
@@ -111,7 +111,7 @@ const HealthCheckDetail = () => {
 
     try {
       const response = await axios.put(
-        `https://swp-school-medical-management.onrender.com/api/health-checks/summaries/${selectedRecord.recordId}`,
+        `http://127.0.0.1:5080/api/health-checks/summaries/${selectedRecord.recordId}`,
         dataToUpdate
       );
       console.log("Dữ liệu đã được cập nhật:", response.data);
@@ -137,7 +137,7 @@ const HealthCheckDetail = () => {
   const sendEmailToParent = async (userId, subject, body) => {
     try {
       await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+        "http://127.0.0.1:5080/api/Email/send-by-userid",
         {
           userId,
           subject,
@@ -162,7 +162,7 @@ const HealthCheckDetail = () => {
           if (!student.parentId) return;
           // Gửi notification
           await axios.post(
-            "https://swp-school-medical-management.onrender.com/api/Notification/send",
+            "http://127.0.0.1:5080/api/Notification/send",
             {
               receiverId: student.parentId,
               title: "Thông báo kiểm tra sức khỏe",
@@ -200,18 +200,18 @@ const HealthCheckDetail = () => {
   const fetchData = async () => {
     try {
       const campaignRes = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/HealthCheckCampaign/${campaignId}`
+        `http://127.0.0.1:5080/api/HealthCheckCampaign/${campaignId}`
       );
       console.log("Campaign data:", campaignRes.data); // Kiểm tra dữ liệu chiến dịch
       setCampaign(campaignRes.data.data); // Lưu chiến dịch
       // Lấy danh sách học sinh tham gia chiến dịch
       const studentsRes = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/student/`
+        `http://127.0.0.1:5080/api/student/`
       );
       setStudents(studentsRes.data.data || []);
       // Lấy toàn bộ health check summaries
       const summariesRes = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/health-checks/summaries`
+        `http://127.0.0.1:5080/api/health-checks/summaries`
       );
       setHealthCheckSummaries(summariesRes.data.data || []);
     } catch (error) {
@@ -320,7 +320,7 @@ const HealthCheckDetail = () => {
               onClick={async () => {
                 try {
                   await axios.put(
-                    `https://swp-school-medical-management.onrender.com/api/HealthCheckCampaign/${campaignId}`,
+                    `http://127.0.0.1:5080/api/HealthCheckCampaign/${campaignId}`,
                     { statusId: 3 }
                   );
                   notifySuccess("Đã chuyển sang trạng thái Đã hoàn thành!");
@@ -374,7 +374,7 @@ const HealthCheckDetail = () => {
                       }\nNgày khám: ${campaign.date}`;
                       // Gửi notification
                       await axios.post(
-                        "https://swp-school-medical-management.onrender.com/api/Notification/send",
+                        "http://127.0.0.1:5080/api/Notification/send",
                         {
                           receiverId: student.parentId,
                           title: `Kết quả khám sức khỏe học sinh ${student.fullName}`,
@@ -389,7 +389,7 @@ const HealthCheckDetail = () => {
                       // Gửi email
                       try {
                         await axios.post(
-                          "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+                          "http://127.0.0.1:5080/api/Email/send-by-userid",
                           {
                             userId: student.parentId,
                             subject: `Kết quả khám sức khỏe học sinh ${student.fullName}`,
