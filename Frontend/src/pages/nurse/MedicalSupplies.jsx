@@ -37,7 +37,7 @@ const MedicalSupplies = () => {
   const [modalLoading, setModalLoading] = useState(false); // loading khi submit modal
 
   const API_URL =
-    "https://swp-school-medical-management.onrender.com/api/MedicalSupplies";
+    "http://127.0.0.1:5080/api/MedicalSupplies";
 
   useEffect(() => {
     fetchSupplies();
