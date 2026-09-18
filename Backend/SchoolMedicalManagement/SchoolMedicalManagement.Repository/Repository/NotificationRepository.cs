@@ -12,15 +12,26 @@ namespace SchoolMedicalManagement.Repository.Repository
 
         public async Task<List<Notification>> GetAllNotifications()
             => await _context.Notifications
+                .AsNoTracking()
                 .Include(n => n.Receiver)
                 .Include(n => n.Type)
                 .ToListAsync();
 
         public async Task<List<Notification>> GetNotificationsByUserId(Guid userId)
             => await _context.Notifications
+                .AsNoTracking()
                 .Include(n => n.Receiver)
                 .Include(n => n.Type)
                 .Where(n => n.ReceiverId == userId)
+                .ToListAsync();
+
+
+        public Task<List<Notification>> GetRecentNotificationsByUserIdAsync(Guid userId, int count)
+            => _context.Notifications
+                .AsNoTracking()
+                .Where(n => n.ReceiverId == userId)
+                .OrderByDescending(n => n.SentDate)
+                .Take(count)
                 .ToListAsync();
 
         public async Task<Notification?> GetNotificationById(int id)

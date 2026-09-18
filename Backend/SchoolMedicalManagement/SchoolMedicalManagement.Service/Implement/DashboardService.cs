@@ -1,12 +1,8 @@
 using Microsoft.AspNetCore.Http;
-using SchoolMedicalManagement.Models.Response;
 using SchoolMedicalManagement.Models.Entity;
+using SchoolMedicalManagement.Models.Response;
 using SchoolMedicalManagement.Repository.Repository;
 using SchoolMedicalManagement.Service.Interface;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace SchoolMedicalManagement.Service.Implement
 {
@@ -42,61 +38,24 @@ namespace SchoolMedicalManagement.Service.Implement
         {
             try
             {
-                // Lấy tổng số học sinh
-                int totalStudents = await _studentRepository.GetTotalStudentsCount();
+                // 所有統計都交由資料庫端 Count / GroupBy / LIMIT 執行，
+                // 避免將完整傷病與用藥資料表載入記憶體後再統計。
+                var totalStudents = await _studentRepository.GetTotalStudentsCount();
+                var totalUsers = await GetUserCountsByRoleAsync();
 
-                // Lấy thống kê số lượng người dùng theo vai trò
-                var totalUsers = await GetUserCountsByRole();
+                var totalMedicalEvents = await _medicalEventRepository.GetActiveMedicalEventsCountAsync();
+                var recentMedicalEvents = await _medicalEventRepository.GetRecentMedicalEventsAsync(5);
 
-                // Lấy tổng số sự kiện y tế
-                var allMedicalEvents = await _medicalEventRepository.GetAllMedicalEvents();
-                int totalMedicalEvents = allMedicalEvents.Count;
+                var totalMedicationRequests = await _medicationRequestRepository.GetActiveRequestsCountAsync();
+                var pendingMedicationRequests = await _medicationRequestRepository.GetPendingRequestsCountAsync();
+                var recentMedicationRequests = await _medicationRequestRepository.GetRecentRequestsAsync(5);
 
-                // Lấy 5 sự kiện y tế gần nhất
-                var recentMedicalEvents = allMedicalEvents
-                    .OrderByDescending(e => e.EventDate)
-                    .Take(5)
-                    .Select(e => new RecentMedicalEventResponse
-                    {
-                        EventId = e.EventId.ToString(),
-                        StudentName = e.Student?.FullName ?? "",
-                        EventType = e.EventType?.EventTypeName ?? "",
-                        EventDate = e.EventDate,
-                        Severity = e.Severity?.SeverityName ?? ""
-                    }).ToList();
+                var vaccinationStatusCounts = await _vaccinationCampaignRepository.GetStatusCountsAsync();
+                var totalVaccinationCampaigns = vaccinationStatusCounts.Values.Sum();
 
-                // Lấy tổng số yêu cầu dùng thuốc
-                var allMedicationRequests = await _medicationRequestRepository.GetAllRequestsAsync();
-                int totalMedicationRequests = allMedicationRequests.Count;
+                var healthStatusCounts = await _healthCheckCampaignRepository.GetStatusCountsAsync();
+                var totalHealthCheckCampaigns = healthStatusCounts.Values.Sum();
 
-                // Lấy số lượng yêu cầu dùng thuốc đang chờ duyệt
-                var pendingMedicationRequests = allMedicationRequests.Count(r => r.StatusId == 1); // 1: Chờ duyệt
-
-                // Lấy 5 yêu cầu dùng thuốc gần nhất
-                var recentMedicationRequests = allMedicationRequests
-                    .OrderByDescending(r => r.RequestDate)
-                    .Take(5)
-                    .Select(r => new RecentMedicationRequestResponse
-                    {
-                        RequestId = r.RequestId.ToString(),
-                        StudentName = r.Student?.FullName ?? "",
-                        MedicationName = r.MedicationName ?? "",
-                        RequestDate = r.RequestDate,
-                        Status = r.Status?.StatusName ?? ""
-                    }).ToList();
-
-                // Lấy thống kê chiến dịch tiêm chủng
-                int totalVaccinationCampaigns = await _vaccinationCampaignRepository.GetTotalVaccinationCampaignsCount();
-                int activeVaccinationCampaigns = await _vaccinationCampaignRepository.GetActiveVaccinationCampaignsCount();
-                int notStartedVaccinationCampaigns = await _vaccinationCampaignRepository.GetNotStartedVaccinationCampaignsCount();
-                int completedVaccinationCampaigns = await _vaccinationCampaignRepository.GetCompletedVaccinationCampaignsCount();
-                int cancelledVaccinationCampaigns = await _vaccinationCampaignRepository.GetCancelledVaccinationCampaignsCount();
-
-                // Lấy thống kê chiến dịch khám sức khỏe
-                int totalHealthCheckCampaigns = await _healthCheckCampaignRepository.GetTotalHealthCheckCampaignsCount();
-                int activeHealthCheckCampaigns = await _healthCheckCampaignRepository.GetActiveHealthCheckCampaignsCount();
-
-                // Tạo response tổng quan dashboard
                 var overview = new DashboardOverviewResponse
                 {
                     TotalStudents = totalStudents,
@@ -105,12 +64,12 @@ namespace SchoolMedicalManagement.Service.Implement
                     TotalMedicationRequests = totalMedicationRequests,
                     PendingMedicationRequests = pendingMedicationRequests,
                     TotalVaccinationCampaigns = totalVaccinationCampaigns,
-                    ActiveVaccinationCampaigns = activeVaccinationCampaigns,
-                    NotStartedVaccinationCampaigns = notStartedVaccinationCampaigns,
-                    CompletedVaccinationCampaigns = completedVaccinationCampaigns,
-                    CancelledVaccinationCampaigns = cancelledVaccinationCampaigns,
+                    ActiveVaccinationCampaigns = vaccinationStatusCounts.GetValueOrDefault(2),
+                    NotStartedVaccinationCampaigns = vaccinationStatusCounts.GetValueOrDefault(1),
+                    CompletedVaccinationCampaigns = vaccinationStatusCounts.GetValueOrDefault(3),
+                    CancelledVaccinationCampaigns = vaccinationStatusCounts.GetValueOrDefault(4),
                     TotalHealthCheckCampaigns = totalHealthCheckCampaigns,
-                    ActiveHealthCheckCampaigns = activeHealthCheckCampaigns,
+                    ActiveHealthCheckCampaigns = healthStatusCounts.GetValueOrDefault(2),
                     RecentMedicalEvents = recentMedicalEvents,
                     RecentMedicationRequests = recentMedicationRequests
                 };
@@ -118,232 +77,183 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status200OK.ToString(),
-                    Message = "Lấy dữ liệu tổng quan dashboard thành công.",
+                    Message = "取得健康中心總覽資料成功。",
                     Data = overview
                 };
             }
-            catch (Exception ex)
+            catch
             {
-                // Nếu có lỗi, trả về mã lỗi và message
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status500InternalServerError.ToString(),
-                    Message = "Đã xảy ra lỗi khi lấy dữ liệu dashboard.",
+                    Message = "取得健康中心總覽資料時發生錯誤。",
                     Data = null
                 };
             }
         }
 
-        private async Task<UserCountResponse> GetUserCountsByRole()
+        private async Task<UserCountResponse> GetUserCountsByRoleAsync()
         {
-            var users = await _userRepository.GetAllUser();
+            var counts = await _userRepository.GetActiveUserCountsByRoleAsync();
             return new UserCountResponse
             {
-                Admin = users.Count(u => u.RoleId == 1), // Assuming 1 is Admin role ID
-                Nurse = users.Count(u => u.RoleId == 2), // Assuming 2 is Nurse role ID
-                Parent = users.Count(u => u.RoleId == 3), // Assuming 3 is Parent role ID
-                Total = users.Count
+                Admin = counts.GetValueOrDefault(1),
+                Nurse = counts.GetValueOrDefault(2),
+                Parent = counts.GetValueOrDefault(3),
+                Total = counts.Values.Sum()
             };
         }
 
-        // Method mới để lấy thống kê chi tiết chiến dịch tiêm chủng
         public async Task<BaseResponse?> GetVaccinationCampaignStatisticsAsync()
         {
             try
             {
+                var counts = await _vaccinationCampaignRepository.GetStatusCountsAsync();
                 var statistics = new
                 {
-                    TotalCampaigns = await _vaccinationCampaignRepository.GetTotalVaccinationCampaignsCount(),
-                    NotStartedCampaigns = await _vaccinationCampaignRepository.GetNotStartedVaccinationCampaignsCount(),
-                    ActiveCampaigns = await _vaccinationCampaignRepository.GetActiveVaccinationCampaignsCount(),
-                    CompletedCampaigns = await _vaccinationCampaignRepository.GetCompletedVaccinationCampaignsCount(),
-                    CancelledCampaigns = await _vaccinationCampaignRepository.GetCancelledVaccinationCampaignsCount()
+                    TotalCampaigns = counts.Values.Sum(),
+                    NotStartedCampaigns = counts.GetValueOrDefault(1),
+                    ActiveCampaigns = counts.GetValueOrDefault(2),
+                    CompletedCampaigns = counts.GetValueOrDefault(3),
+                    CancelledCampaigns = counts.GetValueOrDefault(4)
                 };
 
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status200OK.ToString(),
-                    Message = "Lấy thống kê chiến dịch tiêm chủng thành công.",
+                    Message = "取得預防接種統計成功。",
                     Data = statistics
                 };
             }
-            catch (Exception ex)
+            catch
             {
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status500InternalServerError.ToString(),
-                    Message = "Đã xảy ra lỗi khi lấy thống kê chiến dịch tiêm chủng.",
+                    Message = "取得預防接種統計時發生錯誤。",
                     Data = null
                 };
             }
         }
 
-        // Thống kê sức khỏe học sinh
         public async Task<BaseResponse?> GetHealthStatisticsAsync()
         {
             try
             {
-                // Lấy tổng số chiến dịch khám sức khỏe
-                int totalHealthCheckCampaigns = await _healthCheckCampaignRepository.GetTotalHealthCheckCampaignsCount();
-                // Lấy số lượng chiến dịch đang diễn ra
-                int activeHealthCheckCampaigns = await _healthCheckCampaignRepository.GetActiveHealthCheckCampaignsCount();
-                // Trả về kết quả thống kê cơ bản
+                var counts = await _healthCheckCampaignRepository.GetStatusCountsAsync();
                 var data = new
                 {
-                    TotalHealthCheckCampaigns = totalHealthCheckCampaigns,
-                    ActiveHealthCheckCampaigns = activeHealthCheckCampaigns
+                    TotalHealthCheckCampaigns = counts.Values.Sum(),
+                    ActiveHealthCheckCampaigns = counts.GetValueOrDefault(2)
                 };
+
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status200OK.ToString(),
-                    Message = "Lấy thống kê sức khỏe thành công.",
+                    Message = "取得健康檢查統計成功。",
                     Data = data
                 };
             }
-            catch (Exception)
+            catch
             {
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status500InternalServerError.ToString(),
-                    Message = "Đã xảy ra lỗi khi lấy thống kê sức khỏe.",
+                    Message = "取得健康檢查統計時發生錯誤。",
                     Data = null
                 };
             }
         }
 
-        // Thống kê sự kiện y tế
         public async Task<BaseResponse?> GetMedicalEventsStatisticsAsync()
         {
             try
             {
-                // Lấy tổng số sự kiện y tế
-                var allMedicalEvents = await _medicalEventRepository.GetAllMedicalEvents();
-                int totalMedicalEvents = allMedicalEvents.Count;
-                // Lấy 5 sự kiện y tế gần nhất
-                var recentMedicalEvents = allMedicalEvents
-                    .OrderByDescending(e => e.EventDate)
-                    .Take(5)
-                    .Select(e => new RecentMedicalEventResponse
-                    {
-                        EventId = e.EventId.ToString(),
-                        StudentName = e.Student?.FullName ?? "",
-                        EventType = e.EventType?.EventTypeName ?? "",
-                        EventDate = e.EventDate,
-                        Severity = e.Severity?.SeverityName ?? ""
-                    }).ToList();
-                // Trả về kết quả thống kê cơ bản
                 var data = new
                 {
-                    TotalMedicalEvents = totalMedicalEvents,
-                    RecentMedicalEvents = recentMedicalEvents
+                    TotalMedicalEvents = await _medicalEventRepository.GetActiveMedicalEventsCountAsync(),
+                    RecentMedicalEvents = await _medicalEventRepository.GetRecentMedicalEventsAsync(5)
                 };
+
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status200OK.ToString(),
-                    Message = "Lấy thống kê sự kiện y tế thành công.",
+                    Message = "取得傷病統計成功。",
                     Data = data
                 };
             }
-            catch (Exception)
+            catch
             {
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status500InternalServerError.ToString(),
-                    Message = "Đã xảy ra lỗi khi lấy thống kê sự kiện y tế.",
+                    Message = "取得傷病統計時發生錯誤。",
                     Data = null
                 };
             }
         }
 
-        // Thống kê dùng thuốc
         public async Task<BaseResponse?> GetMedicationStatisticsAsync()
         {
             try
             {
-                // Lấy tổng số yêu cầu dùng thuốc
-                var allMedicationRequests = await _medicationRequestRepository.GetAllRequestsAsync();
-                int totalMedicationRequests = allMedicationRequests.Count;
-                // Lấy số lượng yêu cầu đang chờ duyệt
-                int pendingMedicationRequests = allMedicationRequests.Count(r => r.StatusId == 1); // 1: Chờ duyệt
-                // Lấy 5 yêu cầu gần nhất
-                var recentMedicationRequests = allMedicationRequests
-                    .OrderByDescending(r => r.RequestDate)
-                    .Take(5)
-                    .Select(r => new RecentMedicationRequestResponse
-                    {
-                        RequestId = r.RequestId.ToString(),
-                        StudentName = r.Student?.FullName ?? "",
-                        MedicationName = r.MedicationName ?? "",
-                        RequestDate = r.RequestDate,
-                        Status = r.Status?.StatusName ?? ""
-                    }).ToList();
-                // Trả về kết quả thống kê cơ bản
                 var data = new
                 {
-                    TotalMedicationRequests = totalMedicationRequests,
-                    PendingMedicationRequests = pendingMedicationRequests,
-                    RecentMedicationRequests = recentMedicationRequests
+                    TotalMedicationRequests = await _medicationRequestRepository.GetActiveRequestsCountAsync(),
+                    PendingMedicationRequests = await _medicationRequestRepository.GetPendingRequestsCountAsync(),
+                    RecentMedicationRequests = await _medicationRequestRepository.GetRecentRequestsAsync(5)
                 };
+
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status200OK.ToString(),
-                    Message = "Lấy thống kê dùng thuốc thành công.",
+                    Message = "取得用藥統計成功。",
                     Data = data
                 };
             }
-            catch (Exception)
+            catch
             {
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status500InternalServerError.ToString(),
-                    Message = "Đã xảy ra lỗi khi lấy thống kê dùng thuốc.",
+                    Message = "取得用藥統計時發生錯誤。",
                     Data = null
                 };
             }
         }
 
-        // Dashboard cho phụ huynh - Code dễ hiểu với logic thực tế
         public async Task<BaseResponse?> GetParentDashboardOverviewAsync(Guid parentId)
         {
             try
             {
-                // BƯỚC 1: Kiểm tra phụ huynh có tồn tại không
                 var parent = await _userRepository.GetUserById(parentId);
                 if (parent == null || parent.RoleId != 3)
                 {
                     return new BaseResponse
                     {
                         Status = StatusCodes.Status404NotFound.ToString(),
-                        Message = "Không tìm thấy phụ huynh.",
+                        Message = "找不到家長資料。",
                         Data = null
                     };
                 }
 
-                // BƯỚC 2: Lấy danh sách con của phụ huynh
                 var children = await _studentRepository.GetStudentsByParentId(parentId);
                 var childrenIds = children.Select(s => s.StudentId).ToList();
 
-                // BƯỚC 3: Lấy dữ liệu y tế của các con
-                var childrenMedicalEvents = await GetChildrenMedicalEvents(childrenIds);
-                var childrenMedicationRequests = await GetChildrenMedicationRequests(childrenIds);
+                var recentMedicalEvents = childrenIds.Count == 0
+                    ? new List<RecentMedicalEventResponse>()
+                    : await _medicalEventRepository.GetRecentMedicalEventsByStudentIdsAsync(childrenIds, 5);
 
-                // BƯỚC 4: Tạo thông tin tổng quan cơ bản từng con
-                var childrenOverview = CreateBasicChildrenOverview(children);
+                var recentMedicationRequests = childrenIds.Count == 0
+                    ? new List<RecentMedicationRequestResponse>()
+                    : await _medicationRequestRepository.GetRecentRequestsByStudentIdsAsync(childrenIds, 5);
 
-                // BƯỚC 5: Lấy sự kiện y tế gần đây (5 sự kiện mới nhất)
-                var recentMedicalEvents = GetRecentMedicalEvents(childrenMedicalEvents, 5);
+                var recentNotifications = await GetRecentNotificationsAsync(parentId, 3);
 
-                // BƯỚC 6: Lấy yêu cầu thuốc gần đây (5 yêu cầu mới nhất)
-                var recentMedicationRequests = GetRecentMedicationRequests(childrenMedicationRequests, 5);
-
-                // BƯỚC 7: Lấy thông báo gần đây
-                var recentNotifications = await GetRecentNotifications(parentId, 3);
-
-                // BƯỚC 8: Tạo response cuối cùng
                 var parentDashboard = new ParentDashboardOverviewResponse
                 {
                     TotalChildren = children.Count,
-                    Children = childrenOverview,
+                    Children = CreateBasicChildrenOverview(children),
                     RecentMedicalEvents = recentMedicalEvents,
                     RecentMedicationRequests = recentMedicationRequests,
                     RecentNotifications = recentNotifications
@@ -352,101 +262,44 @@ namespace SchoolMedicalManagement.Service.Implement
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status200OK.ToString(),
-                    Message = "Lấy dữ liệu tổng quan cho phụ huynh thành công.",
+                    Message = "取得家長總覽資料成功。",
                     Data = parentDashboard
                 };
             }
-            catch (Exception ex)
+            catch
             {
                 return new BaseResponse
                 {
                     Status = StatusCodes.Status500InternalServerError.ToString(),
-                    Message = $"Đã xảy ra lỗi khi lấy dữ liệu tổng quan cho phụ huynh: {ex.Message}",
+                    Message = "取得家長總覽資料時發生錯誤。",
                     Data = null
                 };
             }
         }
 
-        // ========== CÁC METHOD HỖ TRỢ - DỄ HIỂU ==========
-
-        // Lấy tất cả sự kiện y tế của các con
-        private async Task<List<MedicalEvent>> GetChildrenMedicalEvents(List<int> childrenIds)
-        {
-            var allMedicalEvents = await _medicalEventRepository.GetAllMedicalEvents();
-            return allMedicalEvents
-                .Where(e => e.StudentId.HasValue && childrenIds.Contains(e.StudentId.Value))
-                .ToList();
-        }
-
-        // Lấy tất cả yêu cầu thuốc của các con
-        private async Task<List<MedicationRequest>> GetChildrenMedicationRequests(List<int> childrenIds)
-        {
-            var allMedicationRequests = await _medicationRequestRepository.GetAllRequestsAsync();
-            return allMedicationRequests
-                .Where(r => childrenIds.Contains(r.StudentId))
-                .ToList();
-        }
-
-        // Tạo thông tin tổng quan cơ bản từng con
-        private List<ChildOverviewResponse> CreateBasicChildrenOverview(List<Student> children)
+        private static List<ChildOverviewResponse> CreateBasicChildrenOverview(List<Student> children)
         {
             return children.Select(child => new ChildOverviewResponse
             {
                 StudentId = child.StudentId,
-                StudentName = child.FullName ?? "",
-                Class = child.Class ?? "",
+                StudentName = child.FullName ?? string.Empty,
+                Class = child.Class ?? string.Empty,
                 DateOfBirth = child.DateOfBirth,
-                Gender = child.Gender?.GenderName ?? ""
+                Gender = child.Gender?.GenderName ?? string.Empty
             }).ToList();
         }
 
-        // Lấy các sự kiện y tế gần đây
-        private List<RecentMedicalEventResponse> GetRecentMedicalEvents(List<MedicalEvent> medicalEvents, int count)
+        private async Task<List<RecentNotificationResponse>> GetRecentNotificationsAsync(Guid parentId, int count)
         {
-            return medicalEvents
-                .OrderByDescending(e => e.EventDate)
-                .Take(count)
-                .Select(e => new RecentMedicalEventResponse
-                {
-                    EventId = e.EventId.ToString(),
-                    StudentName = e.Student?.FullName ?? "",
-                    EventType = e.EventType?.EventTypeName ?? "",
-                    EventDate = e.EventDate,
-                    Severity = e.Severity?.SeverityName ?? ""
-                }).ToList();
-        }
-
-        // Lấy các yêu cầu thuốc gần đây
-        private List<RecentMedicationRequestResponse> GetRecentMedicationRequests(List<MedicationRequest> medicationRequests, int count)
-        {
-            return medicationRequests
-                .OrderByDescending(r => r.RequestDate)
-                .Take(count)
-                .Select(r => new RecentMedicationRequestResponse
-                {
-                    RequestId = r.RequestId.ToString(),
-                    StudentName = r.Student?.FullName ?? "",
-                    MedicationName = r.MedicationName ?? "",
-                    RequestDate = r.RequestDate,
-                    Status = r.Status?.StatusName ?? ""
-                }).ToList();
-        }
-
-        // Lấy thông báo gần đây của phụ huynh
-        private async Task<List<RecentNotificationResponse>> GetRecentNotifications(Guid parentId, int count)
-        {
-            var notifications = await _notificationRepository.GetNotificationsByUserId(parentId);
-            return notifications
-                .OrderByDescending(n => n.SentDate)
-                .Take(count)
-                .Select(n => new RecentNotificationResponse
-                {
-                    NotificationId = n.NotificationId,
-                    Title = n.Title,
-                    Message = n.Message,
-                    CreatedDate = n.SentDate ?? DateTime.MinValue,
-                    IsRead = n.IsRead ?? false
-                }).ToList();
+            var notifications = await _notificationRepository.GetRecentNotificationsByUserIdAsync(parentId, count);
+            return notifications.Select(n => new RecentNotificationResponse
+            {
+                NotificationId = n.NotificationId,
+                Title = n.Title,
+                Message = n.Message,
+                CreatedDate = n.SentDate ?? DateTime.MinValue,
+                IsRead = n.IsRead ?? false
+            }).ToList();
         }
     }
 }

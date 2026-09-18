@@ -22,8 +22,7 @@ const SUCCESS_MESSAGES = {
 };
 
 const API_ENDPOINTS = {
-  OVERVIEW: `${API_BASE_URL}/Dashboard/overview`,
-  STUDENTS_BY_PARENT: (parentId) => `${API_BASE_URL}/Student/by-parent/${parentId}`,
+  PARENT_DASHBOARD: (parentId) => `${API_BASE_URL}/Dashboard/parent/${parentId}`,
   PARENT_FEEDBACK: `${API_BASE_URL}/ParentFeedback`
 };
 
@@ -64,153 +63,60 @@ const ParentDashboard = () => {
     return overview.recentMedicalEvents.filter(event => isMyStudent(event.studentName));
   }, [overview?.recentMedicalEvents, isMyStudent]);
 
-  const fetchOverview = useCallback(async () => {
-    const startTime = Date.now();
-    try {
-      console.log("🔄 Fetching dashboard overview...");
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-      const response = await axios.get(API_ENDPOINTS.OVERVIEW, {
-        signal: controller.signal,
-        timeout: REQUEST_TIMEOUT
-      });
-
-      clearTimeout(timeoutId);
-      const overviewData = response.data.data;
-
-      setOverview(overviewData);
-      const loadTime = Date.now() - startTime;
-      console.log(`✅ Overview loaded in ${loadTime}ms`);
-      console.log(`📊 Data: ${overviewData?.recentMedicationRequests?.length || 0} medications, ${overviewData?.recentMedicalEvents?.length || 0} events`);
-
-      return overviewData;
-    } catch (error) {
-      const loadTime = Date.now() - startTime;
-      if (error.name === 'AbortError') {
-        console.error(`⏰ Overview request timeout after ${loadTime}ms`);
-        throw new Error("要求逾時，請再試一次。");
-      }
-      console.error(`❌ Overview failed after ${loadTime}ms:`, error);
-      throw error;
-    }
-  }, []);
-
-  const fetchStudents = useCallback(async () => {
-    if (!parentId) {
-      console.error("❌ No parentId found");
-      throw new Error("找不到家長資料");
-    }
-
-    const startTime = Date.now();
-    try {
-      console.log(`🔄 Fetching students for parent: ${parentId}`);
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-      const response = await axios.get(API_ENDPOINTS.STUDENTS_BY_PARENT(parentId), {
-        signal: controller.signal,
-        timeout: REQUEST_TIMEOUT
-      });
-
-      clearTimeout(timeoutId);
-      const studentList = Array.isArray(response.data.data) ? response.data.data : [];
-
-      setMyStudents(studentList);
-      const loadTime = Date.now() - startTime;
-      console.log(`✅ Students loaded in ${loadTime}ms`);
-      console.log(`👨‍👩‍👧‍👦 Found ${studentList.length} students:`, studentList.map(s => s.fullName));
-
-      return studentList;
-    } catch (error) {
-      const loadTime = Date.now() - startTime;
-      if (error.name === 'AbortError') {
-        console.error(`⏰ Students request timeout after ${loadTime}ms`);
-        throw new Error("要求逾時，請再試一次。");
-      }
-
-      if (error.response && error.response.status === 404) {
-        console.warn(`👨‍👩‍👧‍👦 No students linked to parent ${parentId} - returning empty array`);
-        setMyStudents([]);
-        return [];
-      }
-
-      console.error(`❌ Students failed after ${loadTime}ms:`, error);
-      setMyStudents([]);
-      throw error;
-    }
-  }, [parentId]);
-
-  const fetchHealthNotifications = useCallback(async () => {
-    if (!parentId) return [];
-    try {
-      const res = await axios.get(
-        `http://127.0.0.1:5080/api/Dashboard/parent/${parentId}`
-      );
-      const notifications = res.data?.data?.recentNotifications || [];
-      setHealthNotifications(notifications);
-      return notifications;
-    } catch (err) {
-      setHealthNotifications([]);
-      return [];
-    }
-  }, [parentId]);
-
   const fetchData = useCallback(async () => {
-    const totalStartTime = Date.now();
+    if (!parentId) {
+      setMyStudents([]);
+      setOverview(null);
+      setHealthNotifications([]);
+      setDataError("找不到家長帳號資料。");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setDataError(null);
+
     try {
-      setLoading(true);
-      setDataError(null);
+      const token = localStorage.getItem("token");
+      const response = await axios.get(API_ENDPOINTS.PARENT_DASHBOARD(parentId), {
+        timeout: REQUEST_TIMEOUT,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
 
-      console.log("🚀 Starting parallel data fetch...");
+      const data = response.data?.data;
+      if (!data) throw new Error("家長首頁資料不存在");
 
-      const results = await Promise.allSettled([
-        fetchStudents(),
-        fetchOverview(),
-        fetchHealthNotifications()
-      ]);
+      const students = (data.children || []).map((child) => ({
+        studentId: child.studentId,
+        fullName: child.studentName,
+        className: child.class,
+        dateOfBirth: child.dateOfBirth,
+        gender: child.gender,
+      }));
 
-      const totalLoadTime = Date.now() - totalStartTime;
-      console.log(`⏱️ Total load time: ${totalLoadTime}ms`);
-
-      const studentResult = results[0];
-      const overviewResult = results[1];
-      const notificationResult = results[2];
-
-      if (studentResult.status === 'rejected') {
-        console.error("❌ Students fetch failed:", studentResult.reason);
-        setDataError(`無法載入學生名單：${studentResult.reason.message}`);
-      } else if (studentResult.value && studentResult.value.length === 0) {
-        console.log("👨‍👩‍👧‍👦 No students linked - this is normal for empty state");
-      }
-
-      if (overviewResult.status === 'rejected') {
-        console.error("❌ Overview fetch failed:", overviewResult.reason);
-        setDataError(prev => prev ?
-          `${prev}；總覽資料：${overviewResult.reason.message}` :
-          `無法載入總覽資料：${overviewResult.reason.message}`
-        );
-      }
-      
-      if (notificationResult.status === 'rejected') {
-        console.error("❌ Notifications fetch failed:", notificationResult.reason);
-      }
-
-      if (studentResult.status === 'fulfilled' || overviewResult.status === 'fulfilled') {
-        console.log("✅ Dashboard loaded successfully");
-      }
-
+      setMyStudents(students);
+      setOverview({
+        recentMedicationRequests: data.recentMedicationRequests || [],
+        recentMedicalEvents: data.recentMedicalEvents || [],
+      });
+      setHealthNotifications(data.recentNotifications || []);
     } catch (error) {
-      const totalLoadTime = Date.now() - totalStartTime;
-      console.error(`❌ Complete dashboard load failed after ${totalLoadTime}ms:`, error);
-      setDataError("無法載入家長首頁，請再試一次。");
-      toast.error(ERROR_MESSAGES.FETCH_DATA_FAILED);
+      if (error.response?.status === 404) {
+        setMyStudents([]);
+        setOverview({
+          recentMedicationRequests: [],
+          recentMedicalEvents: [],
+        });
+        setHealthNotifications([]);
+      } else {
+        console.error("載入家長首頁失敗：", error);
+        setDataError("無法載入家長首頁，請再試一次。");
+        toast.error(ERROR_MESSAGES.FETCH_DATA_FAILED);
+      }
     } finally {
       setLoading(false);
     }
-  }, [fetchStudents, fetchOverview, fetchHealthNotifications]);
+  }, [parentId]);
 
   const handleSubmitFeedback = useCallback(async () => {
     if (!feedbackContent.trim()) {
@@ -276,6 +182,8 @@ const ParentDashboard = () => {
               </h1>
             </div>
             <UserMenu />
+          </div>
+        </header>
 
         {dataError ? (
           <div style={{
@@ -472,7 +380,7 @@ const ParentDashboard = () => {
       {
         value: myStudents.length,
         label: "已連結學生",
-        unit: "con",
+        unit: "位",
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         ),
@@ -560,7 +468,7 @@ const ParentDashboard = () => {
   const renderMedicalEvents = () => (
     <div className={styles.contentCard}>
       <h3 className={styles.cardTitle}>近期傷病紀錄</h3>
-      <p className={styles.cardSubtitle}>5 筆 y tế mới nhất của con em</p>
+      <p className={styles.cardSubtitle}>最近 5 筆學生傷病紀錄</p>
       <div className={styles.eventList}>
         {myMedicalEvents.slice(0, 5).map((event, index) => {
           const visuals = getEventVisuals(event.eventType);
@@ -586,7 +494,7 @@ const ParentDashboard = () => {
     switch (status) {
       case "已核准": return { text: "已核准", className: styles.statusApproved };
       case "待審核": return { text: "待審核", className: styles.statusPending };
-      case "已拒絕": return { text: "Từ chối", className: styles.statusRejected };
+      case "已拒絕": return { text: "已拒絕", className: styles.statusRejected };
       case "已完成": return { text: "已完成", className: styles.statusCompleted };
       default: return { text: status, className: styles.statusNormal };
     }
@@ -621,10 +529,10 @@ const ParentDashboard = () => {
   
   const getNotificationVisuals = (notification) => {
     const title = notification.title?.toLowerCase();
-    if (title.includes('nghỉ')) {
+    if (title?.includes('nghỉ') || title?.includes('請假') || title?.includes('休息')) {
         return { icon: '⚠️', tag: '重要', color: 'red' };
     }
-    if (title.includes('họp')) {
+    if (title?.includes('họp') || title?.includes('會議') || title?.includes('通知')) {
         return { icon: 'ℹ️', tag: '資訊', color: 'blue' };
     }
     return { icon: '🔔', tag: '通知', color: 'gray' };

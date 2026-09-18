@@ -196,9 +196,8 @@ namespace SchoolMedicalManagement.Service.Implement
 
         public async Task<BaseResponse> GetHealthCheckCampaignsByStatusAsync(int statusId)
         {
-            var campaigns = await _campaignRepository.GetAllHealthCheckCampaigns();
-            var filtered = campaigns.Where(c => c.StatusId == statusId).ToList();
-            var data = filtered.Select(c => new HealthCheckCampaignManagementResponse
+            var campaigns = await _campaignRepository.GetHealthCheckCampaignsByStatusAsync(statusId);
+            var data = campaigns.Select(c => new HealthCheckCampaignManagementResponse
             {
                 CampaignId = c.CampaignId,
                 Title = c.Title,

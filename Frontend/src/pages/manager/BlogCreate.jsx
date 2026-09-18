@@ -6,7 +6,6 @@ import axios from "axios";
 
 import { message, Spin } from "antd";
 
-import { Spin } from "antd";
 import Notification from "../../components/Notification";
 import { notifySuccess, notifyError } from "../../utils/notification";
 import LoadingOverlay from "../../components/LoadingOverlay";

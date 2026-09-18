@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Sidebar from "../../components/sidebar/Sidebar";
 import style from "../../assets/css/incidentPage.module.css";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import axios from "axios";
 import {
   PieChart,
@@ -34,7 +32,6 @@ import { useNavigate } from "react-router-dom";
 const MEDICAL_EVENT_API = "http://127.0.0.1:5080/api/MedicalEvent";
 const MEDICAL_EVENT_TYPE_API = "http://127.0.0.1:5080/api/MedicalEventType";
 const STUDENT_API = "http://127.0.0.1:5080/api/Student";
-const USER_API = "http://127.0.0.1:5080/api/User";
 const MEDICAL_SUPPLIES_API = "http://127.0.0.1:5080/api/MedicalSupplies";
 const NOTIFICATION_API = "http://127.0.0.1:5080/api/Notification/send";
 
@@ -43,16 +40,8 @@ const COLORS = ["#F4C430", "#FF6B6B", "#4D96FF", "#9AE6B4", "#FFA500"];
 const Incident = () => {
   const [search, setSearch] = useState("");
   const [events, setEvents] = useState([]);
-  const [filteredEvents, setFilteredEvents] = useState([]);
   const [eventTypeFilter, setEventTypeFilter] = useState("全部");
   const [dateFilter, setDateFilter] = useState("");
-  const [summary, setSummary] = useState({
-    total: 0,
-    sent: 0,
-    draft: 0,
-    pending: 0,
-  });
-  const [distributionData, setDistributionData] = useState([]);
   const [groupBy, setGroupBy] = useState("day");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -91,7 +80,6 @@ const Incident = () => {
   const [supplies, setSupplies] = useState([]);
   const [suppliesUsed, setSuppliesUsed] = useState([]);
   const [bulkSuppliesUsed, setBulkSuppliesUsed] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true); // loading fetch list
   const [modalLoading, setModalLoading] = useState(false);
   const [showSendOption, setShowSendOption] = useState(false);
@@ -171,9 +159,7 @@ const Incident = () => {
   };
 
   const getStaffName = (id, handledByName) => {
-    if (handledByName && handledByName !== "") return handledByName;
-    const user = users.find((u) => u.userId === id || u.userID === id);
-    if (user) return user.fullName;
+    if (handledByName) return handledByName;
     if (id === localStorage.getItem("userId")) return "目前使用者";
     return "未填寫";
   };
@@ -204,28 +190,17 @@ const Incident = () => {
       // Trong sendNotificationToParent, tạo message với fallback tránh undefined/null/Invalid Date
       const message = `學生: ${studentName}\n傷病類型: ${event.eventType || "未填寫"}\n時間: ${event.eventDate ? new Date(event.eventDate).toLocaleString("zh-TW") : "未填寫"}\n嚴重程度: ${event.severityLevelName || "未填寫"}\n傷病描述: ${event.description || "無"}`;
       const subject = "校園傷病紀錄通知";
-      await Promise.all([
-        axios.post(
-          NOTIFICATION_API,
-          {
-            receiverId: parentId,
-            title: subject,
-            message,
-            typeId: 2,
-            isRead: false,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        ),
-        axios.post(
-          "http://127.0.0.1:5080/api/Email/send-by-userid",
-          {
-            userId: parentId,
-            subject,
-            body: message,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        ),
-      ]);
+      await axios.post(
+        NOTIFICATION_API,
+        {
+          receiverId: parentId,
+          title: subject,
+          message,
+          typeId: 2,
+          isRead: false,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setEvents((prev) =>
         prev.map((e) =>
           e.eventId === event.eventId ? { ...e, notificationSent: true } : e
@@ -234,7 +209,7 @@ const Incident = () => {
       console.log('[DEBUG] 已建立本機家長通知：', parentId);
       return true;
     } catch (err) {
-      notifyError("建立本機通知 hoặc email thất bại!");
+      notifyError("建立本機通知失敗！");
       console.error("❌ 建立通知失敗：", err);
       if (err.response) {
         console.error('[DEBUG] Lỗi response:', err.response.data);
@@ -326,19 +301,6 @@ const Incident = () => {
       });
 
     axios
-      .get(USER_API, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((res) => {
-        setUsers(res.data);
-      })
-      .catch((err) => {
-        console.error("❌ Lỗi lấy danh sách user:", err);
-      });
-
-    axios
       .get(MEDICAL_SUPPLIES_API, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -351,30 +313,35 @@ const Incident = () => {
       });
   }, []);
 
-  useEffect(() => {
-    if (selectedEvent?.studentId) {
-      const token = getTokenOrRedirect();
-      if (!token) return;
-      axios
-        .get(`${STUDENT_API}/${selectedEvent.studentId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        .then((res) => {
-          setSelectedMedicalHistory(res.data);
-        })
-        .catch((err) => {
-          console.error("❌ Lỗi lấy tiền sử bệnh:", err);
-          setSelectedMedicalHistory([]);
-        });
-    } else {
-      setSelectedMedicalHistory([]);
-    }
-  }, [selectedEvent]);
+  const handleOpenEvent = async (eventId) => {
+    const token = getTokenOrRedirect();
+    if (!token) return;
 
-  useEffect(() => {
-    const filtered = events.filter((event) => {
+    setModalLoading(true);
+    try {
+      const response = await axios.get(`${MEDICAL_EVENT_API}/${eventId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const detail = response.data?.data;
+      if (!detail) {
+        notifyError("找不到此傷病紀錄的詳細資料。");
+        return;
+      }
+
+      setSelectedEvent(detail);
+      setSelectedMedicalHistory(
+        Array.isArray(detail.medicalHistory) ? detail.medicalHistory : []
+      );
+    } catch (error) {
+      console.error("載入傷病詳細資料失敗：", error);
+      notifyError("載入傷病詳細資料失敗。");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const filteredEvents = useMemo(() => {
+    return events.filter((event) => {
       const matchType =
         eventTypeFilter === "全部" || event.eventType === eventTypeFilter;
       const matchSearch = event.studentName
@@ -385,20 +352,15 @@ const Incident = () => {
         new Date(event.eventDate).toISOString().split("T")[0] === dateFilter;
       return matchType && matchSearch && matchDate;
     });
-    setFilteredEvents(filtered);
-    updateStats(filtered);
-    setCurrentPage(1);
-  }, [search, eventTypeFilter, dateFilter, events, groupBy]);
+  }, [events, eventTypeFilter, search, dateFilter]);
 
-  const updateStats = (data) => {
-    const typeMap = {},
-      dateMap = {};
-    let sent = 0,
-      draft = 0,
-      pending = 0;
+  const { summary, distributionData } = useMemo(() => {
+    const dateMap = {};
+    let sent = 0;
+    let draft = 0;
+    let pending = 0;
 
-    data.forEach((event) => {
-      typeMap[event.eventType] = (typeMap[event.eventType] || 0) + 1;
+    filteredEvents.forEach((event) => {
       const status = event.status?.toLowerCase() || "";
       if (status.includes("gửi")) sent++;
       else if (status.includes("nháp")) draft++;
@@ -414,22 +376,27 @@ const Incident = () => {
       dateMap[groupKey] = (dateMap[groupKey] || 0) + 1;
     });
 
-    setDistributionData(
-      Object.entries(dateMap)
-        .map(([key, value]) => ({ date: key, value }))
-        .sort((a, b) => a.date.localeCompare(b.date))
-    );
-    setSummary({ total: data.length, sent, draft, pending });
-  };
+    return {
+      summary: { total: filteredEvents.length, sent, draft, pending },
+      distributionData: Object.entries(dateMap)
+        .map(([date, value]) => ({ date, value }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    };
+  }, [filteredEvents, groupBy]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, eventTypeFilter, dateFilter, groupBy]);
 
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
   const currentItems = filteredEvents.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (filteredEvents.length === 0) return;
 
+    const XLSX = await import("xlsx");
     const ws = XLSX.utils.json_to_sheet(
       filteredEvents.map((e) => ({
         "學生": e.studentName,
@@ -442,10 +409,7 @@ const Incident = () => {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "傷病紀錄");
-
-    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    const data = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(data, "學生傷病紀錄.xlsx");
+    XLSX.writeFile(wb, "學生傷病紀錄.xlsx");
   };
 
   const handleCreate = () => {
@@ -856,20 +820,21 @@ const Incident = () => {
     );
   };
 
-  // Hàm lấy dữ liệu cho BarChart: top 10 loại 筆傷病
-  const getBarChartData = (data) => {
-    if (!Array.isArray(data) || data.length === 0) return [];
+  const barChartData = useMemo(() => {
+    if (!Array.isArray(filteredEvents) || filteredEvents.length === 0) return [];
+
     const typeMap = {};
-    data.forEach((event) => {
+    filteredEvents.forEach((event) => {
       if (event.eventType) {
         typeMap[event.eventType] = (typeMap[event.eventType] || 0) + 1;
       }
     });
-    const sorted = Object.entries(typeMap)
+
+    return Object.entries(typeMap)
       .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-    return sorted.slice(0, 10);
-  };
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  }, [filteredEvents]);
 
   // Skeleton loading rows
   const skeletonRows = Array.from({ length: itemsPerPage }, (_, i) => (
@@ -976,7 +941,7 @@ const Incident = () => {
                       <td>
                         <button
                           className={style.viewDetail}
-                          onClick={() => setSelectedEvent(event)}
+                          onClick={() => handleOpenEvent(event.eventId)}
                         >
                           查看詳細資料
                         </button>
@@ -1015,7 +980,7 @@ const Incident = () => {
             <h4>依傷病類型統計</h4>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart
-                data={getBarChartData(filteredEvents)}
+                data={barChartData}
                 layout="vertical"
                 margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
               >
@@ -1024,7 +989,7 @@ const Incident = () => {
                 <Tooltip formatter={(value) => [`${value} 筆傷病`]} />
                 <Legend />
                 <Bar dataKey="value" fill="#4D96FF">
-                  {getBarChartData(filteredEvents).map((entry, index) => (
+                  {barChartData.map((entry, index) => (
                     <Cell key={`cell-bar-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
@@ -1248,32 +1213,21 @@ const Incident = () => {
                   const message = `學生: ${selectedEvent.studentName}\n傷病類型: ${selectedEvent.eventType}\n時間: ${selectedEvent.eventDate ? new Date(selectedEvent.eventDate).toLocaleString("zh-TW") : "未填寫"}\n嚴重程度: ${selectedEvent.severityLevelName || "未填寫"}\n傷病描述: ${selectedEvent.description || "無"}`;
                   const subject = "校園傷病紀錄通知";
                   // Gửi notification và email song song
-                  await Promise.all([
-                    axios.post(
-                      NOTIFICATION_API,
-                      {
-                        receiverId: parentId,
-                        title: subject,
-                        message,
-                        typeId: 2,
-                        isRead: false,
-                      },
-                      { headers: { Authorization: `Bearer ${token}` } }
-                    ),
-                    axios.post(
-                      "http://127.0.0.1:5080/api/Email/send-by-userid",
-                      {
-                        userId: parentId,
-                        subject,
-                        body: message,
-                      },
-                      { headers: { Authorization: `Bearer ${token}` } }
-                    ),
-                  ]);
-                  notifySuccess("已建立通知 và email cho phụ huynh!");
+                  await axios.post(
+                    NOTIFICATION_API,
+                    {
+                      receiverId: parentId,
+                      title: subject,
+                      message,
+                      typeId: 2,
+                      isRead: false,
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                  );
+                  notifySuccess("已建立家長通知！");
                   setShowSendOption(false);
                 } catch {
-                  notifyError("建立本機通知 hoặc email thất bại!");
+                  notifyError("建立本機通知失敗！");
                 }
               }}
             >

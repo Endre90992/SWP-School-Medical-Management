@@ -1,0 +1,120 @@
+name: Performance refactor CI
+
+on:
+  push:
+    branches:
+      - "perf/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: Frontend
+        run: npm run build
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore backend
+        run: dotnet restore Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln
+
+      - name: Build backend
+        run: dotnet build Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln --configuration Release --no-restore
+
+      - name: Publish single-process local edition
+        run: dotnet publish Backend/SchoolMedicalManagement/School-Medical-Management.API/SchoolMedicalManagement.API.csproj --configuration Release --output publish
+
+      - name: Verify bundled frontend
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "publish/wwwroot/index.html")) {
+            throw "Release publish did not include the Vite frontend."
+          }
+
+      - name: Smoke test published local edition
+        shell: pwsh
+        run: |
+          $proc = Start-Process dotnet -ArgumentList "SchoolMedicalManagement.API.dll" -WorkingDirectory "publish" -PassThru
+          try {
+            $healthy = $false
+            for ($i = 0; $i -lt 30; $i++) {
+              Start-Sleep -Seconds 1
+              try {
+                $response = Invoke-WebRequest -Uri "http://127.0.0.1:5080/api/health" -UseBasicParsing -TimeoutSec 2
+                if ($response.StatusCode -eq 200) {
+                  $healthy = $true
+                  break
+                }
+              } catch {
+              }
+            }
+
+            if (-not $healthy) {
+              throw "Published EduHealth Local TW did not become healthy."
+            }
+
+            $credentialFile = "publish/data/初始登入資訊.txt"
+            if (-not (Test-Path $credentialFile)) {
+              throw "First-run credential file was not created."
+            }
+
+            $credentialText = Get-Content $credentialFile -Raw
+            $usernameMatch = [regex]::Match($credentialText, "帳號：([^\r\n]+)")
+            $passwordMatch = [regex]::Match($credentialText, "一次性密碼：([^\r\n]+)")
+            if (-not $usernameMatch.Success -or -not $passwordMatch.Success) {
+              throw "Could not parse first-run credentials."
+            }
+
+            $loginBody = @{
+              username = $usernameMatch.Groups[1].Value.Trim()
+              password = $passwordMatch.Groups[1].Value.Trim()
+            } | ConvertTo-Json
+
+            $login = Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/User/login" -Method Post -ContentType "application/json" -Body $loginBody -TimeoutSec 5
+            $token = $login.data.token
+            if (-not $token) {
+              throw "Login did not return a JWT."
+            }
+
+            $headers = @{ Authorization = "Bearer $token" }
+
+            $dashboard = Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/Dashboard/overview" -Headers $headers -TimeoutSec 5
+            if ($dashboard.status -ne "200") {
+              throw "Dashboard overview smoke test failed."
+            }
+
+            Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/Student" -Headers $headers -TimeoutSec 5 | Out-Null
+            Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/MedicalEvent" -Headers $headers -TimeoutSec 5 | Out-Null
+
+            $spa = Invoke-WebRequest -Uri "http://127.0.0.1:5080/" -UseBasicParsing -TimeoutSec 5
+            if ($spa.StatusCode -ne 200 -or $spa.Content -notmatch '<div id="root"') {
+              throw "Bundled React frontend smoke test failed."
+            }
+          }
+          finally {
+            if ($proc -and -not $proc.HasExited) {
+              Stop-Process -Id $proc.Id -Force
+            }
+          }

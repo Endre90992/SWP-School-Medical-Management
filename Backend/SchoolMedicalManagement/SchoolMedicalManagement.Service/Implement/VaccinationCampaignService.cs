@@ -948,6 +948,10 @@ namespace SchoolMedicalManagement.Service.Implement
                 };
             }
 
+            var existingStudentIds = await _campaignRepository.GetExistingConsentStudentIdsAsync(
+                campaignId,
+                students.Select(s => s.StudentId).ToList());
+
             var response = new BulkConsentResponse
             {
                 TotalStudents = students.Count
@@ -966,8 +970,7 @@ namespace SchoolMedicalManagement.Service.Implement
                         continue;
                     }
 
-                    var exists = await _campaignRepository.ConsentRequestExists(campaignId, student.StudentId);
-                    if (exists)
+                    if (existingStudentIds.Contains(student.StudentId))
                     {
                         response.FailedCount++;
                         response.FailedReasons.Add($"Học sinh {student.FullName} đã có phiếu đồng ý");
@@ -1063,6 +1066,10 @@ namespace SchoolMedicalManagement.Service.Implement
                 };
             }
 
+            var existingStudentIds = await _campaignRepository.GetExistingConsentStudentIdsAsync(
+                campaignId,
+                students.Select(s => s.StudentId).ToList());
+
             var response = new BulkConsentResponse
             {
                 TotalStudents = students.Count
@@ -1074,8 +1081,7 @@ namespace SchoolMedicalManagement.Service.Implement
             {
                 try
                 {
-                    var exists = await _campaignRepository.ConsentRequestExists(campaignId, student.StudentId);
-                    if (exists)
+                    if (existingStudentIds.Contains(student.StudentId))
                     {
                         response.FailedCount++;
                         response.FailedReasons.Add($"Học sinh {student.FullName} đã có phiếu đồng ý");
@@ -1181,6 +1187,10 @@ namespace SchoolMedicalManagement.Service.Implement
                 };
             }
 
+            var existingStudentIds = await _campaignRepository.GetExistingConsentStudentIdsAsync(
+                campaignId,
+                students.Select(s => s.StudentId).ToList());
+
             var response = new BulkConsentResponse
             {
                 TotalStudents = students.Count
@@ -1199,8 +1209,7 @@ namespace SchoolMedicalManagement.Service.Implement
                         continue;
                     }
 
-                    var exists = await _campaignRepository.ConsentRequestExists(campaignId, student.StudentId);
-                    if (exists)
+                    if (existingStudentIds.Contains(student.StudentId))
                     {
                         response.FailedCount++;
                         response.FailedReasons.Add($"Học sinh {student.FullName} đã có phiếu đồng ý");

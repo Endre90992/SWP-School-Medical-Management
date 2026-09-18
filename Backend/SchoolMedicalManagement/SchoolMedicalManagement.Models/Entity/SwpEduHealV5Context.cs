@@ -471,7 +471,7 @@ public partial class SwpEduHealV5Context : DbContext
             entity.HasIndex(e => e.Username, "UQ__Users__536C85E4D319E3A1").IsUnique();
 
             entity.Property(e => e.UserId)
-                .HasDefaultValueSql("(newsequentialid())")
+                .ValueGeneratedNever()
                 .HasColumnName("UserID");
             entity.Property(e => e.Email)
                 .HasMaxLength(100)

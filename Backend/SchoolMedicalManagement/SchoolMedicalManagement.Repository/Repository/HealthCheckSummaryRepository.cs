@@ -12,6 +12,7 @@ namespace SchoolMedicalManagement.Repository.Repository
 
         public async Task<List<HealthCheckSummary>> GetAllHealthCheckSummaries()
             => await _context.HealthCheckSummaries
+                .AsNoTracking()
                 .Include(s => s.Student)
                 .Include(s => s.Campaign)
                 .ToListAsync();
@@ -44,6 +45,7 @@ namespace SchoolMedicalManagement.Repository.Repository
 
         public async Task<List<HealthCheckSummary>> GetHealthCheckSummariesByStudentId(int studentId)
             => await _context.HealthCheckSummaries
+                .AsNoTracking()
                 .Include(s => s.Student)
                 .Include(s => s.Campaign)
                 .Where(s => s.StudentId == studentId)

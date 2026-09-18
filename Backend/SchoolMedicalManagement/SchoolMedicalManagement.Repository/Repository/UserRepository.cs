@@ -35,8 +35,20 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<List<User>> GetAllUser()
         {
             return await _context.Users
+                .AsNoTracking()
                 .Include(u => u.Role)
                 .ToListAsync();
+        }
+
+
+        public async Task<Dictionary<int, int>> GetActiveUserCountsByRoleAsync()
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .Where(u => u.IsActive == true)
+                .GroupBy(u => u.RoleId)
+                .Select(g => new { RoleId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.RoleId, x => x.Count);
         }
 
         public async Task<User?> GetUserById(Guid id)

@@ -214,7 +214,6 @@ const MedicationHandle = () => {
       case "已核准":
         return <span className={style.badgeApproved}>已核准</span>;
       case "已排程":
-      case "已排程":
         return <span className={style.badgeScheduled}>已排程</span>;
       case "已完成":
       case "已給藥":

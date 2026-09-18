@@ -146,7 +146,11 @@ builder.Services.AddHangfire(config =>
           .UseSimpleAssemblyNameTypeSerializer()
           .UseRecommendedSerializerSettings()
           .UseMemoryStorage());
-builder.Services.AddHangfireServer();
+builder.Services.AddHangfireServer(options =>
+{
+    // 單機健康中心只需要一個背景工作執行緒，避免預設 worker 數量浪費資源。
+    options.WorkerCount = 1;
+});
 
 var app = builder.Build();
 
@@ -186,6 +190,14 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+// Release publish 會把 Vite build 放進 wwwroot；若存在 index.html，
+// 讓 React Router 的深層網址也能由同一個 ASP.NET 程序提供。
+var spaIndex = Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "index.html");
+if (File.Exists(spaIndex))
+{
+    app.MapFallbackToFile("index.html").AllowAnonymous();
+}
+
 // 確保 SQLite 與備份資料夾只建立在本機程式目錄。
 Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "data"));
 
@@ -194,6 +206,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SwpEduHealV5Context>();
     await db.Database.EnsureCreatedAsync();
+    await LocalDatabaseOptimizer.OptimizeAsync(db);
     await LocalDbSeeder.SeedAsync(db, builder.Configuration);
 }
 

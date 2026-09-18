@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import Sidebar from "../../components/sidebar/Sidebar";
 import style from "../../assets/css/nursedashboard.module.css";
@@ -10,14 +10,11 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import * as XLSX from "xlsx";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import Notification from "../../components/Notification";
 import LoadingOverlay from "../../components/LoadingOverlay";
-// import { notifySuccess, notifyError } from "../../utils/notification";
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f7f"];
+const OVERVIEW_API = "http://127.0.0.1:5080/api/Dashboard/overview";
 
 const NurseReport = () => {
   const [stats, setStats] = useState({
@@ -26,38 +23,55 @@ const NurseReport = () => {
     health: null,
     medication: null,
   });
-  const [loading, setLoading] = useState(true); // loading fetch list
+  const [loading, setLoading] = useState(true);
   const reportRef = useRef();
 
   useEffect(() => {
-    const fetchAll = async () => {
+    const fetchOverview = async () => {
       setLoading(true);
       try {
-        const [vaccine, medical, health, medication] = await Promise.all([
-          axios.get("http://127.0.0.1:5080/api/Dashboard/vaccination-campaigns/statistics"),
-          axios.get("http://127.0.0.1:5080/api/Dashboard/medical-events-statistics"),
-          axios.get("http://127.0.0.1:5080/api/Dashboard/health-statistics"),
-          axios.get("http://127.0.0.1:5080/api/Dashboard/medication-statistics"),
-        ]);
+        const token = localStorage.getItem("token");
+        const response = await axios.get(OVERVIEW_API, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = response.data?.data;
+        if (!data) throw new Error("報表總覽資料不存在");
+
         setStats({
-          vaccination: vaccine.data.data,
-          medical: medical.data.data,
-          health: health.data.data,
-          medication: medication.data.data,
+          vaccination: {
+            totalCampaigns: data.totalVaccinationCampaigns || 0,
+            activeCampaigns: data.activeVaccinationCampaigns || 0,
+            notStartedCampaigns: data.notStartedVaccinationCampaigns || 0,
+            completedCampaigns: data.completedVaccinationCampaigns || 0,
+            cancelledCampaigns: data.cancelledVaccinationCampaigns || 0,
+          },
+          medical: {
+            totalMedicalEvents: data.totalMedicalEvents || 0,
+            recentMedicalEvents: data.recentMedicalEvents || [],
+          },
+          health: {
+            totalHealthCheckCampaigns: data.totalHealthCheckCampaigns || 0,
+            activeHealthCheckCampaigns: data.activeHealthCheckCampaigns || 0,
+          },
+          medication: {
+            totalMedicationRequests: data.totalMedicationRequests || 0,
+            pendingMedicationRequests: data.pendingMedicationRequests || 0,
+            recentMedicationRequests: data.recentMedicationRequests || [],
+          },
         });
       } catch (err) {
-        console.error("Lỗi khi tải dữ liệu:", err);
+        console.error("載入報表資料失敗：", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchAll();
+
+    fetchOverview();
   }, []);
 
-  if (loading)
-    return <LoadingOverlay text="資料載入中..." />;
+  if (loading) return <LoadingOverlay text="資料載入中..." />;
   if (!stats.vaccination || !stats.medical || !stats.health || !stats.medication)
-    return <div>報表資料載入中...</div>;
+    return <div>目前無法載入報表資料。</div>;
 
   const vaccineData = [
     { name: "尚未開始", value: stats.vaccination.notStartedCampaigns },
@@ -69,14 +83,15 @@ const NurseReport = () => {
   const healthChartData = [
     { name: "進行中", value: stats.health.activeHealthCheckCampaigns },
     {
-      name: "尚未排程",
+      name: "其他",
       value:
         stats.health.totalHealthCheckCampaigns -
         stats.health.activeHealthCheckCampaigns,
     },
   ];
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
+    const XLSX = await import("xlsx");
     const wb = XLSX.utils.book_new();
 
     const overviewData = [
@@ -90,27 +105,30 @@ const NurseReport = () => {
     XLSX.utils.book_append_sheet(wb, overviewSheet, "總覽");
 
     const meds = stats.medication.recentMedicationRequests.map((item) => ({
-      Học_sinh: item.studentName,
-      Thuốc: item.medicationName,
-      Trạng_thái: item.status,
-      Thời_gian: new Date(item.requestDate).toLocaleString("zh-TW"),
+      學生: item.studentName,
+      藥物: item.medicationName,
+      狀態: item.status,
+      時間: new Date(item.requestDate).toLocaleString("zh-TW"),
     }));
     const medsSheet = XLSX.utils.json_to_sheet(meds);
     XLSX.utils.book_append_sheet(wb, medsSheet, "近期用藥");
 
-    XLSX.writeFile(wb, "bao_cao_y_te.xlsx");
+    XLSX.writeFile(wb, "健康中心報表.xlsx");
   };
 
-  const exportToPDF = () => {
-    const input = reportRef.current;
-    html2canvas(input).then((canvas) => {
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const width = pdf.internal.pageSize.getWidth();
-      const height = (canvas.height * width) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, width, height);
-      pdf.save("bao_cao_y_te.pdf");
-    });
+  const exportToPDF = async () => {
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf"),
+    ]);
+
+    const canvas = await html2canvas(reportRef.current);
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const width = pdf.internal.pageSize.getWidth();
+    const height = (canvas.height * width) / canvas.width;
+    pdf.addImage(imgData, "PNG", 0, 0, width, height);
+    pdf.save("健康中心報表.pdf");
   };
 
   return (
@@ -153,14 +171,8 @@ const NurseReport = () => {
                 <h3>預防接種活動進度</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie
-                      data={vaccineData}
-                      dataKey="value"
-                      nameKey="name"
-                      outerRadius={100}
-                      label
-                    >
-                      {vaccineData.map((entry, index) => (
+                    <Pie data={vaccineData} dataKey="value" nameKey="name" outerRadius={100} label>
+                      {vaccineData.map((_, index) => (
                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -176,14 +188,8 @@ const NurseReport = () => {
                 <h3>健康檢查活動</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie
-                      data={healthChartData}
-                      dataKey="value"
-                      nameKey="name"
-                      outerRadius={100}
-                      label
-                    >
-                      {healthChartData.map((entry, index) => (
+                    <Pie data={healthChartData} dataKey="value" nameKey="name" outerRadius={100} label>
+                      {healthChartData.map((_, index) => (
                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -196,7 +202,6 @@ const NurseReport = () => {
           </div>
         </div>
       </main>
-      {loading && <LoadingOverlay text="資料載入中..." />}
       <Notification />
     </div>
   );

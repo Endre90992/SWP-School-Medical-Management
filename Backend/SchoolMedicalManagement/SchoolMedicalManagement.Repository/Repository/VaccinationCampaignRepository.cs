@@ -23,6 +23,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         // ✅ Tối ưu: Lấy danh sách campaign active KHÔNG include collections
         public async Task<List<VaccinationCampaign>> GetAllActiveCampaignsLightweight()
             => await _context.VaccinationCampaigns
+                .AsNoTracking()
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Status)
                 .Where(c => c.StatusId == 2) // 2: Đang diễn ra
@@ -31,6 +32,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         // ✅ Tối ưu: Lấy campaign theo status KHÔNG include collections
         public async Task<List<VaccinationCampaign>> GetCampaignsByStatusLightweight(int statusId)
             => await _context.VaccinationCampaigns
+                .AsNoTracking()
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Status)
                 .Where(c => c.StatusId == statusId)
@@ -39,6 +41,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         // ✅ Tối ưu: Lấy campaign theo creator KHÔNG include collections
         public async Task<List<VaccinationCampaign>> GetCampaignsByCreatorLightweight(Guid creatorId)
             => await _context.VaccinationCampaigns
+                .AsNoTracking()
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Status)
                 .Where(c => c.CreatedBy == creatorId)
@@ -73,8 +76,6 @@ namespace SchoolMedicalManagement.Repository.Repository
             => await _context.VaccinationCampaigns
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Status)
-                .Include(c => c.VaccinationConsentRequests)
-                .Include(c => c.VaccinationRecords)
                 .Where(c => c.StatusId == 2) // 2: Đang diễn ra
                 .ToListAsync();
 
@@ -83,8 +84,6 @@ namespace SchoolMedicalManagement.Repository.Repository
             => await _context.VaccinationCampaigns
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Status)
-                .Include(c => c.VaccinationConsentRequests)
-                .Include(c => c.VaccinationRecords)
                 .ToListAsync();
 
         // Lấy thông tin chi tiết một chiến dịch tiêm chủng theo ID
@@ -92,8 +91,6 @@ namespace SchoolMedicalManagement.Repository.Repository
             => await _context.VaccinationCampaigns
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Status)
-                .Include(c => c.VaccinationConsentRequests)
-                .Include(c => c.VaccinationRecords)
                 .FirstOrDefaultAsync(c => c.CampaignId == id);
 
         // Lấy danh sách chiến dịch theo trạng thái
@@ -101,14 +98,13 @@ namespace SchoolMedicalManagement.Repository.Repository
             => await _context.VaccinationCampaigns
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Status)
-                .Include(c => c.VaccinationConsentRequests)
-                .Include(c => c.VaccinationRecords)
                 .Where(c => c.StatusId == statusId)
                 .ToListAsync();
 
         // Lấy danh sách tất cả các yêu cầu xác nhận của một chiến dịch tiêm chủng
         public async Task<List<VaccinationConsentRequest>> GetCampaignConsentRequests(int campaignId)
             => await _context.VaccinationConsentRequests
+                .AsNoTracking()
                 .Include(c => c.Student)
                 .Include(c => c.Parent)
                 .Include(c => c.ConsentStatus)
@@ -127,6 +123,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         // Lấy lịch sử tiêm chủng của một học sinh
         public async Task<List<VaccinationRecord>> GetStudentVaccinationRecords(int studentId)
             => await _context.VaccinationRecords
+                .AsNoTracking()
                 .Include(v => v.Campaign)
                 .Include(v => v.ConsentStatus)
                 .Where(v => v.ConsentStatusId == 2) // Đã đồng ý tiêm rùi mới có trong ls
@@ -167,6 +164,15 @@ namespace SchoolMedicalManagement.Repository.Repository
             _context.VaccinationConsentRequests.Update(request);
             await _context.SaveChangesAsync();
             return await GetConsentRequestById(request.RequestId);
+        }
+
+        public async Task<Dictionary<int, int>> GetStatusCountsAsync()
+        {
+            return await _context.VaccinationCampaigns
+                .AsNoTracking()
+                .GroupBy(c => c.StatusId ?? 0)
+                .Select(g => new { StatusId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.StatusId, x => x.Count);
         }
 
         // Get total count of vaccination campaigns
@@ -292,8 +298,6 @@ namespace SchoolMedicalManagement.Repository.Repository
             return await _context.VaccinationCampaigns
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Status)
-                .Include(c => c.VaccinationConsentRequests)
-                .Include(c => c.VaccinationRecords)
                 .Where(c => c.CreatedBy == creatorId)
                 .ToListAsync();
         }
@@ -301,6 +305,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         // Lấy danh sách học sinh theo lớp
         public async Task<List<Student>> GetStudentsByClass(string className)
             => await _context.Students
+                .AsNoTracking()
                 .Include(s => s.Parent)
                 .Include(s => s.Gender)
                 .Where(s => s.Class == className && s.IsActive == true)
@@ -321,6 +326,19 @@ namespace SchoolMedicalManagement.Repository.Repository
                 .Include(s => s.Gender)
                 .Where(s => studentIds.Contains(s.StudentId) && s.IsActive == true)
                 .ToListAsync();
+
+        public async Task<HashSet<int>> GetExistingConsentStudentIdsAsync(
+            int campaignId,
+            IReadOnlyCollection<int> studentIds)
+        {
+            var ids = await _context.VaccinationConsentRequests
+                .AsNoTracking()
+                .Where(cr => cr.CampaignId == campaignId && studentIds.Contains(cr.StudentId))
+                .Select(cr => cr.StudentId)
+                .ToListAsync();
+
+            return ids.ToHashSet();
+        }
 
         // Kiểm tra phiếu đồng ý đã tồn tại
         public async Task<bool> ConsentRequestExists(int campaignId, int studentId)
@@ -345,6 +363,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         // Lấy tất cả phiếu đồng ý tiêm chủng của một học sinh
         public async Task<List<VaccinationConsentRequest>> GetConsentRequestsByStudentId(int studentId)
             => await _context.VaccinationConsentRequests
+                .AsNoTracking()
                 .Include(c => c.Student)
                 .Include(c => c.Parent)
                 .Include(c => c.Campaign)

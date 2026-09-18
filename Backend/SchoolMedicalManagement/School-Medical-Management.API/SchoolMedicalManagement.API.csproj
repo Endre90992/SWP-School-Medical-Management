@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>School_Medical_Management.API</RootNamespace>
+    <SpaRoot>..\..\..\Frontend\</SpaRoot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -39,5 +40,19 @@
 	</ItemGroup>
 
 	<ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
+
+
+  <Target Name="BuildFrontendForPublish" BeforeTargets="ComputeFilesToPublish" Condition="'$(Configuration)' == 'Release'">
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+
+    <ItemGroup>
+      <FrontendDist Include="$(SpaRoot)dist\**\*" />
+      <ResolvedFileToPublish Include="@(FrontendDist->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
 
 </Project>
