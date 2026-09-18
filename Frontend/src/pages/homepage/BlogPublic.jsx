@@ -202,9 +202,9 @@ const BlogPublic = () => {
                   <h2 className={blogStyle.blogTitle}>{blog.title}</h2>
                   <div className={blogStyle.blogDesc} style={{ marginBottom: 8 }}>
                     {isExpanded ? (
-                      <div dangerouslySetInnerHTML={{ __html: blog.content }} />
+                      <div>{blog.content}</div>
                     ) : (
-                      <div dangerouslySetInnerHTML={{ __html: blog.content.length > 180 ? blog.content.slice(0, 180) + "..." : blog.content }} />
+                      <div>{blog.content.length > 180 ? blog.content.slice(0, 180) + "..." : blog.content}</div>
                     )}
                   </div>
                   <div className={blogStyle.blogTagsRow}>
