@@ -107,6 +107,24 @@ namespace SchoolMedicalManagement.Repository.Repository
                 .Take(count)
                 .ToListAsync();
 
+        public Task<List<RecentMedicationRequestResponse>> GetRecentRequestsByStudentIdsAsync(
+            IReadOnlyCollection<int> studentIds,
+            int count)
+            => _context.MedicationRequests
+                .AsNoTracking()
+                .Where(r => r.IsActive == true && studentIds.Contains(r.StudentId))
+                .OrderByDescending(r => r.RequestDate)
+                .Select(r => new RecentMedicationRequestResponse
+                {
+                    RequestId = r.RequestId.ToString(),
+                    StudentName = r.Student != null ? r.Student.FullName ?? string.Empty : string.Empty,
+                    MedicationName = r.MedicationName ?? string.Empty,
+                    RequestDate = r.RequestDate,
+                    Status = r.Status != null ? r.Status.StatusName ?? string.Empty : string.Empty
+                })
+                .Take(count)
+                .ToListAsync();
+
         public Task<List<MedicationRequest>> GetRequestsByStudentIdsAsync(IReadOnlyCollection<int> studentIds)
             => _context.MedicationRequests
                 .AsNoTracking()
