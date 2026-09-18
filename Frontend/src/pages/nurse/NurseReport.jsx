@@ -55,21 +55,21 @@ const NurseReport = () => {
   }, []);
 
   if (loading)
-    return <LoadingOverlay text="Đang tải dữ liệu..." />;
+    return <LoadingOverlay text="資料載入中..." />;
   if (!stats.vaccination || !stats.medical || !stats.health || !stats.medication)
-    return <div>Đang tải dữ liệu báo cáo...</div>;
+    return <div>報表資料載入中...</div>;
 
   const vaccineData = [
-    { name: "Chưa bắt đầu", value: stats.vaccination.notStartedCampaigns },
-    { name: "Đang diễn ra", value: stats.vaccination.activeCampaigns },
-    { name: "Đã hoàn thành", value: stats.vaccination.completedCampaigns },
-    { name: "Đã huỷ", value: stats.vaccination.cancelledCampaigns },
+    { name: "尚未開始", value: stats.vaccination.notStartedCampaigns },
+    { name: "進行中", value: stats.vaccination.activeCampaigns },
+    { name: "已完成", value: stats.vaccination.completedCampaigns },
+    { name: "已取消", value: stats.vaccination.cancelledCampaigns },
   ];
 
   const healthChartData = [
-    { name: "Đang diễn ra", value: stats.health.activeHealthCheckCampaigns },
+    { name: "進行中", value: stats.health.activeHealthCheckCampaigns },
     {
-      name: "Chưa lên lịch",
+      name: "尚未排程",
       value:
         stats.health.totalHealthCheckCampaigns -
         stats.health.activeHealthCheckCampaigns,
@@ -80,23 +80,23 @@ const NurseReport = () => {
     const wb = XLSX.utils.book_new();
 
     const overviewData = [
-      ["Loại", "Số lượng"],
-      ["Chiến dịch tiêm chủng", stats.vaccination.totalCampaigns],
-      ["Sự kiện y tế", stats.medical.totalMedicalEvents],
-      ["Yêu cầu cấp thuốc", stats.medication.totalMedicationRequests],
-      ["Chiến dịch sức khỏe", stats.health.totalHealthCheckCampaigns],
+      ["類別", "數量"],
+      ["預防接種活動", stats.vaccination.totalCampaigns],
+      ["傷病紀錄", stats.medical.totalMedicalEvents],
+      ["用藥申請", stats.medication.totalMedicationRequests],
+      ["健康檢查活動", stats.health.totalHealthCheckCampaigns],
     ];
     const overviewSheet = XLSX.utils.aoa_to_sheet(overviewData);
-    XLSX.utils.book_append_sheet(wb, overviewSheet, "Tổng quan");
+    XLSX.utils.book_append_sheet(wb, overviewSheet, "總覽");
 
     const meds = stats.medication.recentMedicationRequests.map((item) => ({
       Học_sinh: item.studentName,
       Thuốc: item.medicationName,
       Trạng_thái: item.status,
-      Thời_gian: new Date(item.requestDate).toLocaleString(),
+      Thời_gian: new Date(item.requestDate).toLocaleString("zh-TW"),
     }));
     const medsSheet = XLSX.utils.json_to_sheet(meds);
-    XLSX.utils.book_append_sheet(wb, medsSheet, "Thuốc gần đây");
+    XLSX.utils.book_append_sheet(wb, medsSheet, "近期用藥");
 
     XLSX.writeFile(wb, "bao_cao_y_te.xlsx");
   };
@@ -118,31 +118,31 @@ const NurseReport = () => {
       <Sidebar />
       <main className={style.dashboardWrapper}>
         <div className={style.header}>
-          <h2>Báo cáo tổng hợp</h2>
-          <p>Tổng quan các hoạt động y tế trong trường</p>
+          <h2>健康中心統計報表</h2>
+          <p>總覽 các hoạt động y tế trong trường</p>
         </div>
 
         <div className={style.exportControls}>
-          <button onClick={exportToExcel} className={style.btnExport}>📥 Xuất Excel</button>
-          <button onClick={exportToPDF} className={style.btnExport}>📄 Tải PDF</button>
+          <button onClick={exportToExcel} className={style.btnExport}>📥 匯出 Excel</button>
+          <button onClick={exportToPDF} className={style.btnExport}>📄 匯出 PDF</button>
         </div>
 
         <div ref={reportRef}>
           <div className={style.summaryGrid}>
             <div className={style.summaryBox}>
-              <h4>Chiến dịch tiêm chủng</h4>
+              <h4>預防接種活動</h4>
               <p>{stats.vaccination.totalCampaigns}</p>
             </div>
             <div className={style.summaryBox}>
-              <h4>Sự kiện y tế</h4>
+              <h4>傷病紀錄</h4>
               <p>{stats.medical.totalMedicalEvents}</p>
             </div>
             <div className={style.summaryBox}>
-              <h4>Yêu cầu cấp thuốc</h4>
+              <h4>用藥申請</h4>
               <p>{stats.medication.totalMedicationRequests}</p>
             </div>
             <div className={style.summaryBox}>
-              <h4>Chiến dịch sức khoẻ</h4>
+              <h4>健康檢查活動</h4>
               <p>{stats.health.totalHealthCheckCampaigns}</p>
             </div>
           </div>
@@ -150,7 +150,7 @@ const NurseReport = () => {
           <div className={style.contentRow}>
             <div className={style.leftPanel}>
               <section className={style.card}>
-                <h3>Tiến độ chiến dịch tiêm chủng</h3>
+                <h3>預防接種活動進度</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
@@ -173,7 +173,7 @@ const NurseReport = () => {
 
             <div className={style.rightPanel}>
               <section className={style.card}>
-                <h3>Chiến dịch kiểm tra sức khoẻ</h3>
+                <h3>健康檢查活動</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
@@ -196,7 +196,7 @@ const NurseReport = () => {
           </div>
         </div>
       </main>
-      {loading && <LoadingOverlay text="Đang tải dữ liệu..." />}
+      {loading && <LoadingOverlay text="資料載入中..." />}
       <Notification />
     </div>
   );
