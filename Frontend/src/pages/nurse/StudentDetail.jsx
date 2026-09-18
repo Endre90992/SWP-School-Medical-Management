@@ -18,10 +18,10 @@ const StudentInfoSection = ({ student, onSave }) => {
     useEffect(() => {
         if (student) {
             setFormData({
-                fullName: student.fullName || "",
+                full男e: student.full男e || "",
                 dateOfBirth: student.dateOfBirth ? new Date(student.dateOfBirth).toISOString().split('T')[0] : "",
                 class: student.class || "",
-                genderName: student.genderName || "",
+                gender男e: student.gender男e || "",
             });
         }
     }, [student]);
@@ -36,10 +36,10 @@ const StudentInfoSection = ({ student, onSave }) => {
         setIsEditing(false);
         // Reset form data on cancel
         setFormData({
-            fullName: student.fullName || "",
+            full男e: student.full男e || "",
             dateOfBirth: student.dateOfBirth ? new Date(student.dateOfBirth).toISOString().split('T')[0] : "",
             class: student.class || "",
-            genderName: student.genderName || "",
+            gender男e: student.gender男e || "",
         });
     };
 
@@ -47,13 +47,13 @@ const StudentInfoSection = ({ student, onSave }) => {
         e.preventDefault();
         setSubmitting(true);
         let genderId = null;
-        if (formData.genderName === 'Nam') genderId = 1;
-        else if (formData.genderName === 'Nữ') genderId = 2;
+        if (formData.gender男e === '男') genderId = 1;
+        else if (formData.gender男e === '女') genderId = 2;
 
         const payload = {
-            fullName: formData.fullName,
+            full男e: formData.full男e,
             dateOfBirth: formData.dateOfBirth,
-            className: formData.class,
+            class男e: formData.class,
             genderId: genderId,
             parentId: student.parentId,
         };
@@ -67,48 +67,48 @@ const StudentInfoSection = ({ student, onSave }) => {
     };
 
     return (
-        <div className={style.section}>
-            <div className={style.sectionHeader}>
-                <h4 className={style.sectionTitle}>Thông tin cá nhân</h4>
+        <div class男e={style.section}>
+            <div class男e={style.sectionHeader}>
+                <h4 class男e={style.sectionTitle}>基本資料</h4>
             </div>
             <form onSubmit={handleSave}>
-                <div className={style.infoGrid}>
+                <div class男e={style.infoGrid}>
                     {/* Form Fields */}
                     <div>
-                        <span className={style.label}>Họ và tên:</span>
-                        {isEditing ? <input type="text" name="fullName" value={formData.fullName} onChange={handleFormChange} className={style.inputField} /> : ` ${student.fullName}`}
+                        <span class男e={style.label}>姓名：</span>
+                        {isEditing ? <input type="text" name="full男e" value={formData.full男e} onChange={handleFormChange} class男e={style.inputField} /> : ` ${student.full男e}`}
                     </div>
                     <div>
-                        <span className={style.label}>Phụ huynh:</span> {student.parentName}
+                        <span class男e={style.label}>家長／聯絡人：</span> {student.parent男e}
                     </div>
                     <div>
-                        <span className={style.label}>Giới tính:</span>
+                        <span class男e={style.label}>性別：</span>
                         {isEditing ? (
-                            <select name="genderName" value={formData.genderName} onChange={handleFormChange} className={style.inputField}>
-                                <option value="Nam">Nam</option>
-                                <option value="Nữ">Nữ</option>
+                            <select name="gender男e" value={formData.gender男e} onChange={handleFormChange} class男e={style.inputField}>
+                                <option value="男">男</option>
+                                <option value="女">女</option>
                             </select>
-                        ) : ` ${student.genderName}`}
+                        ) : ` ${student.gender男e}`}
                     </div>
                     <div>
-                        <span className={style.label}>Ngày sinh:</span>
-                        {isEditing ? <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleFormChange} className={style.inputField} /> : ` ${new Date(student.dateOfBirth).toLocaleDateString('vi-VN')}`}
+                        <span class男e={style.label}>出生日期：</span>
+                        {isEditing ? <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleFormChange} class男e={style.inputField} /> : ` ${new Date(student.dateOfBirth).toLocaleDateString('vi-VN')}`}
                     </div>
                     <div>
-                        <span className={style.label}>Lớp:</span>
-                        {isEditing ? <input type="text" name="class" value={formData.class} onChange={handleFormChange} className={style.inputField} /> : ` ${student.class}`}
+                        <span class男e={style.label}>班級：</span>
+                        {isEditing ? <input type="text" name="class" value={formData.class} onChange={handleFormChange} class男e={style.inputField} /> : ` ${student.class}`}
                     </div>
                 </div>
                 {isEditing && (
-                    <div className={style.actionRow}>
-                        <button type="submit" className={style.saveBtn} disabled={submitting}>Lưu</button>
-                        <button type="button" className={style.cancelBtn} onClick={handleCancel}>Hủy</button>
+                    <div class男e={style.actionRow}>
+                        <button type="submit" class男e={style.saveBtn} disabled={submitting}>儲存</button>
+                        <button type="button" class男e={style.cancelBtn} onClick={handleCancel}>取消</button>
                     </div>
                 )}
             </form>
              {!isEditing && (
-                <div className={style.actionRow}>
-                    <button type="button" className={style.editBtn} onClick={() => setIsEditing(true)}>Chỉnh sửa</button>
+                <div class男e={style.actionRow}>
+                    <button type="button" class男e={style.editBtn} onClick={() => setIsEditing(true)}>編輯</button>
                 </div>
             )}
         </div>
@@ -167,48 +167,48 @@ const HealthProfileSection = ({ healthProfile, studentId, onSave }) => {
     };
 
     return (
-        <div className={style.section}>
-            <div className={style.sectionHeader}>
-                <h4 className={style.sectionTitle}>Thông tin sức khỏe</h4>
+        <div class男e={style.section}>
+            <div class男e={style.sectionHeader}>
+                <h4 class男e={style.sectionTitle}>健康資料</h4>
             </div>
             {healthProfile ? (
                 <form onSubmit={handleSave}>
-                    <div className={style.infoGrid}>
+                    <div class男e={style.infoGrid}>
                         {/* Form Fields */}
                         <div>
-                            <span className={style.label}>Chiều cao:</span>
-                            {isEditing ? <><input type="number" name="height" value={formData.height} onChange={handleFormChange} className={style.inputField} /> cm</> : ` ${healthProfile.height || 'N/A'} cm`}
+                            <span class男e={style.label}>身高：</span>
+                            {isEditing ? <><input type="number" name="height" value={formData.height} onChange={handleFormChange} class男e={style.inputField} /> cm</> : ` ${healthProfile.height || '—'} cm`}
                         </div>
                         <div>
-                            <span className={style.label}>Cân nặng:</span>
-                            {isEditing ? <><input type="number" name="weight" value={formData.weight} onChange={handleFormChange} className={style.inputField} /> kg</> : ` ${healthProfile.weight || 'N/A'} kg`}
+                            <span class男e={style.label}>體重：</span>
+                            {isEditing ? <><input type="number" name="weight" value={formData.weight} onChange={handleFormChange} class男e={style.inputField} /> kg</> : ` ${healthProfile.weight || '—'} kg`}
                         </div>
-                        <div className={style.fullWidth}>
-                            <span className={style.label}>Bệnh mãn tính:</span>
-                            {isEditing ? <input type="text" name="chronicDiseases" value={formData.chronicDiseases} onChange={handleFormChange} className={style.inputFieldFull} /> : ` ${healthProfile.chronicDiseases || 'Không có'}`}
+                        <div class男e={style.fullWidth}>
+                            <span class男e={style.label}>慢性疾病：</span>
+                            {isEditing ? <input type="text" name="chronicDiseases" value={formData.chronicDiseases} onChange={handleFormChange} class男e={style.inputFieldFull} /> : ` ${healthProfile.chronicDiseases || '無'}`}
                         </div>
-                        <div className={style.fullWidth}>
-                            <span className={style.label}>Dị ứng:</span>
-                            {isEditing ? <input type="text" name="allergies" value={formData.allergies} onChange={handleFormChange} className={style.inputFieldFull} /> : ` ${healthProfile.allergies || 'Không có'}`}
+                        <div class男e={style.fullWidth}>
+                            <span class男e={style.label}>過敏：</span>
+                            {isEditing ? <input type="text" name="allergies" value={formData.allergies} onChange={handleFormChange} class男e={style.inputFieldFull} /> : ` ${healthProfile.allergies || '無'}`}
                         </div>
-                        <div className={style.fullWidth}>
-                            <span className={style.label}>Ghi chú y tế chung:</span>
-                            {isEditing ? <textarea name="generalNote" value={formData.generalNote} onChange={handleFormChange} className={style.textareaField} /> : ` ${healthProfile.generalNote || 'Không có'}`}
+                        <div class男e={style.fullWidth}>
+                            <span class男e={style.label}>健康備註：</span>
+                            {isEditing ? <textarea name="generalNote" value={formData.generalNote} onChange={handleFormChange} class男e={style.textareaField} /> : ` ${healthProfile.generalNote || '無'}`}
                         </div>
                     </div>
                     {isEditing && (
-                        <div className={style.actionRow}>
-                            <button type="submit" className={style.saveBtn} disabled={submitting}>Lưu thay đổi</button>
-                            <button type="button" className={style.cancelBtn} onClick={handleCancel}>Hủy</button>
+                        <div class男e={style.actionRow}>
+                            <button type="submit" class男e={style.saveBtn} disabled={submitting}>儲存變更</button>
+                            <button type="button" class男e={style.cancelBtn} onClick={handleCancel}>取消</button>
                         </div>
                     )}
                 </form>
             ) : (
-                <p className={style.notice}>Chưa có hồ sơ sức khỏe. Phụ huynh cần tạo hồ sơ cho học sinh.</p>
+                <p class男e={style.notice}>尚未建立健康資料，可由健康中心補登。</p>
             )}
              {!isEditing && healthProfile && (
-                <div className={style.actionRow}>
-                    <button type="button" className={style.editBtn} onClick={() => setIsEditing(true)}>Chỉnh sửa</button>
+                <div class男e={style.actionRow}>
+                    <button type="button" class男e={style.editBtn} onClick={() => setIsEditing(true)}>編輯</button>
                 </div>
             )}
         </div>
@@ -243,8 +243,8 @@ const StudentDetail = () => {
       if (studentRes.status === "fulfilled") {
         setStudent(studentRes.value.data.data);
       } else {
-        console.error("Lỗi tải thông tin học sinh:", studentRes.reason);
-        notifyError("Không thể tải thông tin học sinh.");
+        console.error("Lỗi tải thông tin詳細資料:", studentRes.reason);
+        notifyError("無法載入學生資料。");
         navigate("/students");
         return;
       }
@@ -260,7 +260,7 @@ const StudentDetail = () => {
       }
     } catch (err) {
       console.error("Lỗi khi tải dữ liệu:", err);
-      notifyError("Đã xảy ra lỗi khi tải dữ liệu chi tiết.");
+      notifyError("載入學生詳細資料時發生錯誤。");
     } finally {
       setLoading(false);
     }
@@ -274,11 +274,11 @@ const StudentDetail = () => {
     setSubmitting(true);
     try {
         await axios.put(`${API_BASE}/Student/${student.studentId}`, payload);
-        notifySuccess("Cập nhật thông tin học sinh thành công!");
+        notifySuccess("學生基本資料更新成功。");
         await fetchData(); // Refetch all data
     } catch (error) {
-        console.error("Lỗi cập nhật thông tin học sinh:", error);
-        notifyError("Cập nhật thông tin thất bại: " + (error.response?.data?.message || ""));
+        console.error("Lỗi cập nhật thông tin詳細資料:", error);
+        notifyError("更新學生資料失敗：" + (error.response?.data?.message || ""));
         throw error; // Propagate error to child to stop submitting state
     } finally {
         setSubmitting(false);
@@ -289,11 +289,11 @@ const StudentDetail = () => {
     setSubmitting(true);
     try {
         await axios.put(`${API_BASE}/health-profiles/student/${student.studentId}`, payload);
-        notifySuccess("Cập nhật hồ sơ sức khỏe thành công!");
+        notifySuccess("健康資料更新成功。");
         await fetchData(); // Refetch all data
     } catch (error) {
         console.error("Lỗi cập nhật hồ sơ sức khỏe:", error);
-        notifyError("Cập nhật hồ sơ thất bại: " + (error.response?.data?.message || ""));
+        notifyError("更新健康資料失敗：" + (error.response?.data?.message || ""));
         throw error; // Propagate error to child
     } finally {
         setSubmitting(false);
@@ -301,17 +301,17 @@ const StudentDetail = () => {
   };
 
   if (loading) {
-    return <LoadingOverlay text="Đang tải dữ liệu học sinh..." />;
+    return <LoadingOverlay text="學生資料載入中..." />;
   }
 
   if (!student) {
     return (
-      <div className={style.layoutContainer}>
+      <div class男e={style.layoutContainer}>
         <Sidebar />
-        <main className={style.mainContent}>
-          <p>Không tìm thấy thông tin học sinh.</p>
-          <button className={style.backBtn} onClick={() => navigate("/students")}>
-            ← Quay lại danh sách
+        <main class男e={style.mainContent}>
+          <p>找不到學生資料。</p>
+          <button class男e={style.backBtn} onClick={() => navigate("/students")}>
+            ← 返回學生名單
           </button>
         </main>
       </div>
@@ -319,27 +319,27 @@ const StudentDetail = () => {
   }
 
   return (
-    <div className={style.layoutContainer}>
+    <div class男e={style.layoutContainer}>
       <Sidebar />
-      <main className={style.mainContent}>
-        {(submitting) && <LoadingOverlay text="Đang cập nhật..." />}
+      <main class男e={style.mainContent}>
+        {(submitting) && <LoadingOverlay text="更新中..." />}
         <Notification />
 
-        <header className={style.dashboardHeaderBar}>
-          <div className={style.titleGroup}>
+        <header class男e={style.dashboardHeaderBar}>
+          <div class男e={style.titleGroup}>
             <h1>
-              <span className={style.textBlack}>Chi tiết</span>
-              <span className={style.textAccent}> học sinh</span>
+              <span class男e={style.textBlack}>學生</span>
+              <span class男e={style.textAccent}>詳細資料</span>
             </h1>
           </div>
         </header>
 
-        <div className={style.cardBox}>
-            <div className={style.studentHeader}>
+        <div class男e={style.cardBox}>
+            <div class男e={style.studentHeader}>
                 <div>
-                    <h2 className={style.name}>{student.fullName}</h2>
-                    <p className={style.subInfo}>
-                      Lớp: {student.class || 'N/A'} | Phụ huynh: {student.parentName || 'N/A'}
+                    <h2 class男e={style.name}>{student.full男e}</h2>
+                    <p class男e={style.subInfo}>
+                      班級： {student.class || '—'} | 家長／聯絡人： {student.parent男e || '—'}
                     </p>
                 </div>
             </div>
@@ -352,37 +352,37 @@ const StudentDetail = () => {
               onSave={handleSaveHealth}
             />
             
-            <div className={style.section}>
-                <h4 className={style.sectionTitle}>Tiền sử bệnh</h4>
+            <div class男e={style.section}>
+                <h4 class男e={style.sectionTitle}>既往病史</h4>
                 {medicalHistory.length > 0 ? (
-                    <table className={style.historyTable}>
+                    <table class男e={style.historyTable}>
                         <thead>
                             <tr>
-                                <th>Tên bệnh</th>
-                                <th>Ghi chú</th>
-                                <th>Ngày chẩn đoán</th>
+                                <th>疾病名稱</th>
+                                <th>備註</th>
+                                <th>診斷日期</th>
                             </tr>
                         </thead>
                         <tbody>
                             {medicalHistory.map((mh, idx) => (
                                 <tr key={mh.historyId || idx}>
-                                    <td>{mh.diseaseName || 'Không có'}</td>
-                                    <td>{mh.note || 'Không có'}</td>
-                                    <td>{mh.diagnosedDate ? new Date(mh.diagnosedDate).toLocaleDateString('vi-VN') : 'N/A'}</td>
+                                    <td>{mh.disease男e || '無'}</td>
+                                    <td>{mh.note || '無'}</td>
+                                    <td>{mh.diagnosedDate ? new Date(mh.diagnosedDate).toLocaleDateString('vi-VN') : '—'}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 ) : (
-                    <p className={style.notice}>Không có tiền sử bệnh nào được ghi nhận.</p>
+                    <p class男e={style.notice}>無 tiền sử bệnh nào được ghi nhận.</p>
                 )}
             </div>
 
         </div>
 
-        <div className={style.backContainer}>
-          <button className={style.backBtn} onClick={() => navigate("/students")}>
-            ← Quay lại danh sách
+        <div class男e={style.backContainer}>
+          <button class男e={style.backBtn} onClick={() => navigate("/students")}>
+            ← 返回學生名單
           </button>
         </div>
       </main>
