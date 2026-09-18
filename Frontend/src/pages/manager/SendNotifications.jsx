@@ -301,7 +301,7 @@ const SendNotifications = () => {
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 className={styles.input}
-                placeholder="Nhập tiêu đề通知"
+                placeholder="請輸入通知標題"
                 autoFocus
               />
               <textarea
@@ -441,7 +441,7 @@ const SendNotifications = () => {
             </thead>
             <tbody>
               {notifications.length === 0 ? (
-                <tr key="no-data"><td colSpan={6} style={{textAlign: 'center'}}>Không có通知</td></tr>
+                <tr key="no-data"><td colSpan={6} style={{textAlign: 'center'}}>目前沒有通知</td></tr>
               ) : notifications.map(n => {
                 const parent = parents.find(p => String(p.userID) === String(n.receiverId));
                 return (
@@ -501,7 +501,7 @@ const SendNotifications = () => {
         <Modal open={showCategoryModal} onClose={() => { setShowCategoryModal(false); setCategoryEdit(null); }}>
           <h2>{categoryEdit ? '編輯' : '新增'} loại通知</h2>
           <form onSubmit={handleSaveCategory}>
-            <input className={styles.input} value={catName} onChange={e=>setCatName(e.target.value)} placeholder="Tên loại通知" />
+            <input className={styles.input} value={catName} onChange={e=>setCatName(e.target.value)} placeholder="通知類型名稱" />
             {catError && <div style={{color:'#e53e3e',marginBottom:8}}>{catError}</div>}
             <button className={styles.button} type="submit">儲存</button>
           </form>
