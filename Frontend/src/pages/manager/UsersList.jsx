@@ -191,7 +191,7 @@ const handleModalSubmit = async (values) => {
     fetchUsers();
     setModalVisible(false);
   } catch (error) {
-  console.error("Lỗi khi lưu清單:", error);
+  console.error("儲存名單失敗:", error);
   const errorMessage = error?.response?.data?.message || "儲存使用者失敗。";
   
   // Kiểm tra thông điệp từ backend
@@ -371,7 +371,7 @@ const handleModalSubmit = async (values) => {
             ) : (
               <tr>
                 <td colSpan="6" style={{ textAlign: "center" }}>
-                  Không có dữ liệu清單
+                  目前沒有名單資料
                 </td>
               </tr>
             )}
@@ -399,7 +399,7 @@ const handleModalSubmit = async (values) => {
   okText={modalMode === "add" ? "新增" : "儲存"}
 >
   <Form form={modalForm} layout="vertical" onFinish={handleModalSubmit}>
-    <Form.Item name="fullName" label="姓名" rules={[{ required: true, message: "Vui lòng nhập tên清單" }]}>
+    <Form.Item name="fullName" label="姓名" rules={[{ required: true, message: "請輸入姓名" }]}>
       <Input />
     </Form.Item>
     <Form.Item name="email" label="Email" rules={[{ required: true, message: "請輸入 Email" }, { type: "email", message: "Email 格式不正確" }]}>
@@ -408,7 +408,7 @@ const handleModalSubmit = async (values) => {
     <Form.Item name="phone" label="電話">
       <Input />
     </Form.Item>
-    <Form.Item name="address" label="地址" rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}>
+    <Form.Item name="address" label="地址" rules={[{ required: true, message: "請輸入地址" }]}>
       <Input />
     </Form.Item>
     <Form.Item name="roleId" label="角色" rules={[{ required: true, message: "請選擇角色" }]}> 
