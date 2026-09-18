@@ -1,0 +1,47 @@
+name: Performance refactor CI
+
+on:
+  push:
+    branches:
+      - "perf/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: Frontend
+        run: npm run build
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore backend
+        run: dotnet restore Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln
+
+      - name: Build backend
+        run: dotnet build Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln --configuration Release --no-restore
+
+      - name: Publish single-process local edition
+        run: dotnet publish Backend/SchoolMedicalManagement/School-Medical-Management.API/SchoolMedicalManagement.API.csproj --configuration Release --output publish
