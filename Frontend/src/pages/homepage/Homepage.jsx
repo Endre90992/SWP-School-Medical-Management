@@ -1,647 +1,191 @@
-// Homepage.jsx - đã sửa dùng module CSS
 import React, { useEffect, useRef, useState } from "react";
-import style from "../../assets/css/homepage.module.css";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import style from "../../assets/css/homepage.module.css";
 import logo from "../../assets/icon/eduhealth.jpg";
-import parLogo from "../../assets/icon/Background.png";
 import nurseLogo from "../../assets/icon/nurse.png";
-import adminLogo from "../../assets/icon/admin.png";
-import tickLogo from "../../assets/icon/tick.png";
-import overlayLogo from "../../assets/icon/Overlay.png";
 import healthLogo from "../../assets/icon/healthcheck.png";
 import statisticLogo from "../../assets/icon/statistic.png";
 import reportLogo from "../../assets/icon/report.png";
 import notifyLogo from "../../assets/icon/notify.png";
 import vacxinLogo from "../../assets/icon/vacxin.png";
-import feedback from "../../assets/icon/feedback.png";
-
-
-import school1 from "../../assets/img/school1.jpg";
-import school2 from "../../assets/img/school2.jpg";
-import school3 from "../../assets/img/school3.jpg";
-
 import school1 from "../../assets/img/school1.jpeg";
 import school2 from "../../assets/img/school2.jpeg";
 import school3 from "../../assets/img/school3.jpeg";
-import useAosInit from "../../hooks/useAosInit";
-import "aos/dist/aos.css";
-import { jwtDecode } from "jwt-decode";
-import FloatingChatBox from "../../components/Chatbox/FloatingChatBox";
-
-
-import school1 from "../../assets/img/school1.jpeg";
-import school2 from "../../assets/img/school2.jpeg";
-import school3 from "../../assets/img/school3.jpeg";
-import useAosInit from "../../hooks/useAosInit";
-import "aos/dist/aos.css";
 import UserMenu from "../../components/UserMenu";
-
 
 const Homepage = () => {
   const navigate = useNavigate();
-  const heroRef = useRef();
-  const featuresRef = useRef();
-  const rolesRef = useRef();
-  const feedbackRef = useRef();
-  const ctaRef = useRef();
-  const [slideIdx, setSlideIdx] = React.useState(0);
-  const heroImages = [school1, school2, school3];
-  const [feedbacks, setFeedbacks] = React.useState([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [username, setUsername] = useState("");
+  const featuresRef = useRef(null);
+  const [slideIdx, setSlideIdx] = useState(0);
   const [role, setRole] = useState("");
+  const heroImages = [school1, school2, school3];
 
-  // Hiệu ứng xuất hiện khi cuộn
   useEffect(() => {
-    const reveal = (ref, className = style.sectionVisible) => {
-      if (!ref.current) return;
-      const onScroll = () => {
-        const rect = ref.current.getBoundingClientRect();
-        if (rect.top < window.innerHeight - 100) {
-          ref.current.classList.add(className);
-        }
-      };
-      window.addEventListener("scroll", onScroll);
-      onScroll();
-      return () => window.removeEventListener("scroll", onScroll);
-    };
-    reveal(heroRef);
-    reveal(featuresRef);
-    reveal(rolesRef);
-    reveal(feedbackRef);
-    reveal(ctaRef);
-  }, []);
-
-  // Tự động chuyển slide mỗi 4s
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSlideIdx((idx) => (idx + 1) % heroImages.length);
-    }, 4000);
-    return () => clearInterval(interval);
+    const timer = window.setInterval(
+      () => setSlideIdx((index) => (index + 1) % heroImages.length),
+      5000
+    );
+    return () => window.clearInterval(timer);
   }, [heroImages.length]);
 
   useEffect(() => {
-    fetch(
-      "http://127.0.0.1:5080/api/ParentFeedback"
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.status === "200" && Array.isArray(data.data)) {
-          setFeedbacks(data.data);
-        }
-      });
-  }, []);
-
-  useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        const name =
-          decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"];
-        const roleName =
-          decoded[
-            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-          ];
-        setUsername(name);
-        setRole(roleName);
-      } catch (e) {
-        setUsername("");
-        setRole("");
-      }
-    } else {
-      setUsername("");
-      setRole("");
+    if (!token) return;
+    try {
+      const decoded = jwtDecode(token);
+      setRole(
+        decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+          localStorage.getItem("role") ||
+          ""
+      );
+    } catch {
+      setRole(localStorage.getItem("role") || "");
     }
   }, []);
 
-  useAosInit();
-
-  // Scroll đến section theo ref
-  const scrollToRef = (ref) => {
-    if (ref && ref.current) {
-      ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
-  // Footer scroll handler giống header
-  const handleFooterNav = (section) => {
-    if (section === "home") scrollToRef(heroRef);
-    else if (
-      section === "features" ||
-      section === "about" ||
-      section === "service"
-    )
-      scrollToRef(featuresRef);
-    else if (section === "contact") scrollToRef(ctaRef);
-  };
-
-  // Nút scroll to top
-  const [showScrollTop, setShowScrollTop] = React.useState(false);
-  useEffect(() => {
-    const onScroll = () => {
-      setShowScrollTop(window.scrollY > 200);
-    };
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  const handleScrollTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleDashboard = () => {
+  const openDashboard = () => {
     if (role === "Manager") navigate("/manager");
     else if (role === "Nurse") navigate("/nurse");
     else if (role === "Parent") navigate("/parent");
-    else navigate("/");
+    else navigate("/login");
   };
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
+
+  const features = [
+    { icon: notifyLogo, title: "傷病紀錄", text: "快速登錄學生傷病、處置、地點、嚴重程度與後續紀錄。" },
+    { icon: reportLogo, title: "學生健康資料", text: "集中查看過敏、慢性疾病、既往病史與歷次健康紀錄。" },
+    { icon: healthLogo, title: "健康檢查", text: "管理身高、體重、BMI、視力、口腔與健康檢查結果。" },
+    { icon: vacxinLogo, title: "預防接種", text: "管理接種活動、意願、結果與後續追蹤。" },
+    { icon: nurseLogo, title: "健康中心作業", text: "依班級與學生快速查詢，支援日常護理工作流程。" },
+    { icon: statisticLogo, title: "統計與匯出", text: "產生健康中心統計資料，並可匯出 Excel 或 PDF。" },
+  ];
 
   return (
     <>
       <header className={style.navbar}>
         <div className={style.logo}>
-          <img src={logo} alt="EduHealth Logo" className={style.logoImg} />
+          <img src={logo} alt="EduHealth" className={style.logoImg} />
         </div>
         <nav className={style.navLinks}>
-
-
-          <a href="#" className={style.navLink} onClick={() => navigate("/")} >Trang chủ</a>
-          <a href="#" className={style.navLink}>Giới thiệu</a>
-          <a href="#" className={style.navLink}>Dịch vụ</a>
-          <a href="#" className={style.navLink}>Liên hệ</a>
-          <button className={style.loginBtn} onClick={() => navigate("/login")}>Đăng nhập</button>
-
-          <a href="#" className={style.navLink} onClick={e => { e.preventDefault(); scrollToRef(heroRef); }}>Trang chủ</a>
-          <a href="#" className={style.navLink} onClick={e => { e.preventDefault(); scrollToRef(featuresRef); }}>Giới thiệu</a>
-          <a href="#" className={style.navLink} onClick={e => { e.preventDefault(); navigate('/blog'); }}>Blog Y Tế</a>
-          <a href="#" className={style.navLink} onClick={e => { e.preventDefault(); scrollToRef(ctaRef); }}>Liên hệ</a>
+          <a href="#top" className={style.navLink}>首頁</a>
+          <a
+            href="#features"
+            className={style.navLink}
+            onClick={(event) => {
+              event.preventDefault();
+              featuresRef.current?.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            功能
+          </a>
+          <a href="/blog" className={style.navLink} onClick={(event) => { event.preventDefault(); navigate("/blog"); }}>
+            健康資訊
+          </a>
           {localStorage.getItem("token") ? (
             <UserMenu />
           ) : (
-            <button className={style.loginBtn} onClick={() => navigate("/login")}>Đăng nhập</button>
-          )}
-
-          <a
-            href="#"
-            className={style.navLink}
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToRef(heroRef);
-            }}
-          >
-            Trang chủ
-          </a>
-          <a
-            href="#"
-            className={style.navLink}
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToRef(featuresRef);
-            }}
-          >
-            Giới thiệu
-          </a>
-          <a
-            href="#"
-            className={style.navLink}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/blog");
-            }}
-          >
-            Blog Y Tế
-          </a>
-          <a
-            href="#"
-            className={style.navLink}
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToRef(ctaRef);
-            }}
-          >
-            Liên hệ
-          </a>
-          {username ? (
-            <div style={{ position: "relative", display: "inline-block" }}>
-              <button
-                className={style.loginBtn}
-                style={{ minWidth: 120, fontWeight: 600 }}
-                onClick={() => setShowDropdown((v) => !v)}
-              >
-                {username} &#9662;
-              </button>
-              {showDropdown && (
-                <div
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: "100%",
-                    background: "#fff",
-                    color: "#222",
-                    border: "1px solid #eee",
-                    borderRadius: 8,
-                    minWidth: 150,
-                    boxShadow: "0 4px 16px #0001",
-                    zIndex: 1000,
-                  }}
-                >
-                  <button
-                    style={{
-                      width: "100%",
-                      padding: 10,
-                      border: "none",
-                      background: "none",
-                      textAlign: "left",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => {
-                      setShowDropdown(false);
-                      handleDashboard();
-                    }}
-                  >
-                    MyDashboard
-                  </button>
-                  <button
-                    style={{
-                      width: "100%",
-                      padding: 10,
-                      border: "none",
-                      background: "none",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      color: "#e11d48",
-                    }}
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <button
-              className={style.loginBtn}
-              onClick={() => navigate("/login")}
-            >
-              Đăng nhập
+            <button className={style.loginBtn} onClick={() => navigate("/login")}>
+              登入
             </button>
           )}
-
         </nav>
       </header>
 
-      <section className={style.hero} ref={heroRef} data-aos="fade-in">
+      <section id="top" className={style.hero}>
         <div className={style.heroBgSlideshow}>
-          {heroImages.map((img, idx) => (
+          {heroImages.map((image, index) => (
             <img
-              key={idx}
-              src={img}
-              alt={`slide-${idx + 1}`}
+              key={image}
+              src={image}
+              alt=""
               className={
                 style.heroBgImg +
-                (idx === slideIdx
-                  ? " " + style.activeBg
-                  : " " + style.inactiveBg)
+                (index === slideIdx ? ` ${style.activeBg}` : ` ${style.inactiveBg}`)
               }
-              style={{
-                zIndex: idx === slideIdx ? 2 : 1,
-                transition:
-                  "opacity 1.2s cubic-bezier(.4,0,.2,1), transform 1.2s cubic-bezier(.4,0,.2,1)",
-              }}
             />
           ))}
-          <div
-            className={style.slideDotsBg}
-            data-aos="fade-up"
-            data-aos-delay="400"
-          >
-            {heroImages.map((_, idx) => (
-              <span
-                key={idx}
-                className={idx === slideIdx ? style.dotActive : style.dot}
-                onClick={() => setSlideIdx(idx)}
+          <div className={style.slideDotsBg}>
+            {heroImages.map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                aria-label={`切換至背景圖片 ${index + 1}`}
+                className={index === slideIdx ? style.dotActive : style.dot}
+                onClick={() => setSlideIdx(index)}
               />
             ))}
           </div>
         </div>
-        <div
-          className={style.heroTextOverlay}
-          data-aos="fade-up"
-          data-aos-delay="200"
-        >
-          <h1 className={style.fadeInDown}>
-            Hệ thống quản lý{" "}
-            <span className={style.highlight}>sức khỏe học đường</span>
+
+        <div className={style.heroTextOverlay}>
+          <h1>
+            EduHealth Local TW
+            <br />
+            <span className={style.highlight}>校園健康中心管理系統</span>
           </h1>
           <p className={style.heroDesc}>
-            EduHealth là hệ thống phần mềm hỗ trợ quản lý toàn diện các hoạt
-            động y tế trong trường học. Hệ thống giúp phụ huynh, nhân viên y tế
-            và nhà trường phối hợp hiệu quả trong việc chăm sóc sức khỏe học
-            sinh – từ khai báo thông tin y tế, xử lý các tình huống khẩn cấp,
-            đến quản lý tiêm chủng và kiểm tra sức khỏe định kỳ.
+            為學校健康中心調整的繁體中文單機版。學生健康、傷病、用藥、
+            預防接種與健康檢查資料都保留在本機電腦，不依賴雲端服務。
           </p>
-
           <div className={style.heroButtons}>
+            <button className={style.primaryBtn} onClick={openDashboard}>
+              {localStorage.getItem("token") ? "進入健康中心" : "登入系統"}
+            </button>
             <button
-              className={style.primaryBtn + " " + style.btnPulse}
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToRef(featuresRef);
-              }}
+              className={style.outlineBtn}
+              onClick={() => featuresRef.current?.scrollIntoView({ behavior: "smooth" })}
             >
-              Tìm hiểu thêm{" "}
+              查看功能
             </button>
           </div>
         </div>
       </section>
 
-      <section className={style.features} ref={featuresRef} data-aos="fade-up">
-        <h2 className={style.fadeInUp}>Tính năng nổi bật</h2>
-        <p className={style.description + " " + style.fadeInUp}>
-          EduHealth cung cấp những tính năng đầy đủ...
+      <section id="features" className={style.features} ref={featuresRef}>
+        <h2>健康中心核心功能</h2>
+        <p className={style.description}>
+          以護理師日常作業為核心，減少不必要的雲端與公開網站功能。
         </p>
         <div className={style.featureRows}>
           <div className={style.featureRow}>
-            <div
-              className={style.featureBox + " " + style.boxHover}
-              data-aos="zoom-in"
-              data-aos-delay="0"
-            >
-              <img src={overlayLogo} alt="" className={style.iconAnim} />
-              <h3>Quản lý thuốc</h3>
-              <p>Theo dõi đơn thuốc...</p>
-            </div>
-            <div
-              className={style.featureBox + " " + style.boxHover}
-              data-aos="zoom-in"
-              data-aos-delay="100"
-            >
-              <img src={vacxinLogo} alt="" className={style.iconAnim} />
-              <h3>Tiêm chủng</h3>
-              <p>Quản lý chiến dịch...</p>
-            </div>
-            <div
-              className={style.featureBox + " " + style.boxHover}
-              data-aos="zoom-in"
-              data-aos-delay="200"
-            >
-              <img src={healthLogo} alt="" className={style.iconAnim} />
-              <h3>Khám sức khỏe</h3>
-              <p>Quản lý chỉ số...</p>
-            </div>
+            {features.slice(0, 3).map((feature) => (
+              <div key={feature.title} className={style.featureBox + " " + style.boxHover}>
+                <img src={feature.icon} alt="" className={style.iconAnim} />
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </div>
+            ))}
           </div>
           <div className={style.featureRow}>
-            <div
-              className={style.featureBox + " " + style.boxHover}
-              data-aos="zoom-in"
-              data-aos-delay="0"
-            >
-              <img src={reportLogo} alt="" className={style.iconAnim} />
-              <h3>Hồ sơ sức khỏe</h3>
-              <p>Ghi nhận và theo dõi...</p>
-            </div>
-            <div
-              className={style.featureBox + " " + style.boxHover}
-              data-aos="zoom-in"
-              data-aos-delay="100"
-            >
-              <img src={notifyLogo} alt="" className={style.iconAnim} />
-              <h3>Thông báo</h3>
-              <p>Thông tin tức thì</p>
-            </div>
-            <div
-              className={style.featureBox + " " + style.boxHover}
-              data-aos="zoom-in"
-              data-aos-delay="200"
-            >
-              <img src={statisticLogo} alt="" className={style.iconAnim} />
-              <h3>Báo cáo</h3>
-              <p>Xuất báo cáo theo lớp...</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className={style.roles} ref={rolesRef} data-aos="fade-up">
-        <h2 className={style.fadeInUp}>Dành cho mọi đối tượng</h2>
-        <p className={style.description + " " + style.fadeInUp}>
-          EduHealth được thiết kế...
-        </p>
-        <div className={style.roleRow}>
-          <div
-            className={
-              style.roleCard + " " + style.cardHover + " " + style.parent
-            }
-            data-aos="flip-left"
-            data-aos-delay="0"
-          >
-            <img src={parLogo} alt="" />
-            <h3>Phụ huynh</h3>
-            <ul>
-              <li>
-                <img src={tickLogo} alt="" /> Theo dõi sức khỏe con
-              </li>
-              <li>
-                <img src={tickLogo} alt="" /> Nhận thông báo
-              </li>
-              <li>
-                <img src={tickLogo} alt="" /> Chủ động phối hợp
-              </li>
-            </ul>
-            <button className={style.btnParent + " " + style.btnShine}>
-              Dành cho phụ huynh
-            </button>
-          </div>
-          <div
-            className={
-              style.roleCard + " " + style.cardHover + " " + style.health
-            }
-            data-aos="flip-left"
-            data-aos-delay="100"
-          >
-            <img src={nurseLogo} alt="" />
-            <h3>Y tá</h3>
-            <ul>
-              <li>
-                <img src={tickLogo} alt="" /> Quản lý hồ sơ
-              </li>
-              <li>
-                <img src={tickLogo} alt="" /> Ghi nhận sơ cứu
-              </li>
-              <li>
-                <img src={tickLogo} alt="" /> Thống kê
-              </li>
-            </ul>
-            <button className={style.btnHealth + " " + style.btnShine}>
-              Dành cho y tế
-            </button>
-          </div>
-          <div
-            className={
-              style.roleCard + " " + style.cardHover + " " + style.board
-            }
-            data-aos="flip-left"
-            data-aos-delay="200"
-          >
-            <img src={adminLogo} alt="" />
-            <h3>Ban giám hiệu</h3>
-            <ul>
-              <li>
-                <img src={tickLogo} alt="" /> Tổng quan dữ liệu
-              </li>
-              <li>
-                <img src={tickLogo} alt="" /> Giám sát nhân sự
-              </li>
-              <li>
-                <img src={tickLogo} alt="" /> Thống kê & báo cáo
-              </li>
-            </ul>
-            <button className={style.btnBoard + " " + style.btnShine}>
-              Dành cho BGH
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section
-        className={style.feedback + " " + style.sectionVisible}
-        ref={feedbackRef}
-        data-aos="fade-up"
-      >
-        <h2 className={style.fadeInUp}>Phụ huynh nói gì về chúng tôi</h2>
-        <div className={style.feedbackCards}>
-          {feedbacks.slice(0, 3).map((fb, idx) => (
-            <div
-              key={fb.feedbackId || fb.feedbackID || fb.id || idx}
-              className={style.feedbackCard + " " + style.cardSlideUp}
-              data-aos="zoom-in"
-              data-aos-delay={idx * 100}
-            >
-              <p>{fb.content}</p>
-              <div className={style.feedbackUser}>
-                <img src={feedback} alt="" className={style.userIcon} />
-                <strong>{fb.parentName}</strong>
+            {features.slice(3).map((feature) => (
+              <div key={feature.title} className={style.featureBox + " " + style.boxHover}>
+                <img src={feature.icon} alt="" className={style.iconAnim} />
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
-      <section className={style.cta} ref={ctaRef} data-aos="fade-up">
-        <h2 className={style.fadeInUp}>Sẵn sàng nâng cao chất lượng?</h2>
-        <p>Đăng ký ngay để trải nghiệm hệ thống quản lý sức khỏe học đường.</p>
+      <section className={style.cta}>
+        <h2>單機離線使用</h2>
+        <p>
+          後端只監聽 127.0.0.1；電子郵件與雲端 Redis 已停用。
+          建議搭配 Windows 登入密碼、BitLocker 與加密備份使用。
+        </p>
         <div className={style.ctaButtons}>
-          <button
-            className={style.primaryBtn + " " + style.btnPulse}
-            onClick={() => navigate("/login")}
-          >
-            Đăng ký trải nghiệm
-          </button>
-          <button
-            className={style.outlineBtn + " " + style.btnPulse}
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToRef(featuresRef);
-            }}
-          >
-            Tìm hiểu thêm
+          <button className={style.primaryBtn} onClick={openDashboard}>
+            進入系統
           </button>
         </div>
       </section>
-      <FloatingChatBox />
 
       <footer className={style.footer}>
-        <div className={style.footerTop}>
-          <div className={style.footerColumn}>
-            <div className={style.footerLogo}>EduHealth</div>
-          </div>
-          <div className={style.footerColumn}>
-            <h4>Liên kết nhanh</h4>
-            <ul>
-              <li>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleFooterNav("home");
-                  }}
-                >
-                  Trang chủ
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleFooterNav("features");
-                  }}
-                >
-                  Dịch vụ
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleFooterNav("features");
-                  }}
-                >
-                  Giới thiệu
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div className={style.footerColumn}>
-            <h4>Hỗ trợ</h4>
-            <ul>
-              <li>
-                <a href="#">Trung tâm trợ giúp</a>
-              </li>
-              <li>
-                <a href="#">Chính sách</a>
-              </li>
-              <li>
-                <a href="#">Bảo mật</a>
-              </li>
-            </ul>
-          </div>
-          <div className={style.footerColumn}>
-            <h4>Liên hệ</h4>
-            <ul>
-              <li>Email: support@eduhealth.vn</li>
-              <li>Địa chỉ: 7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, Hồ Chí Minh</li>
-              <li>Điện thoại: 0123 456 789</li>
-            </ul>
-          </div>
-        </div>
         <div className={style.footerBottom}>
-          <p>© 2025 EduHealth. All rights reserved.</p>
+          <p>EduHealth Local TW｜本機離線版｜學生健康資料請依校內規範妥善保管</p>
         </div>
       </footer>
-      {showScrollTop && (
-        <button
-          className={style.scrollTopBtn}
-          onClick={handleScrollTop}
-          aria-label="Lên đầu trang"
-        >
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="8" fill="#06b6d4" />
-            <path
-              d="M16 22V10M16 10L10 16M16 10L22 16"
-              stroke="#fff"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-      )}
     </>
   );
 };
