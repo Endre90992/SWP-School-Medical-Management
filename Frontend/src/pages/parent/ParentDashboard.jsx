@@ -8,7 +8,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import UserMenu from "../../components/UserMenu";
 
-const API_BASE_URL = "https://swp-school-medical-management.onrender.com/api";
+const API_BASE_URL = "http://127.0.0.1:5080/api";
 
 const ERROR_MESSAGES = {
   FETCH_DATA_FAILED: "❌ Lỗi khi tải dữ liệu",
@@ -147,7 +147,7 @@ const ParentDashboard = () => {
     if (!parentId) return [];
     try {
       const res = await axios.get(
-        `https://swp-school-medical-management.onrender.com/api/Dashboard/parent/${parentId}`
+        `http://127.0.0.1:5080/api/Dashboard/parent/${parentId}`
       );
       const notifications = res.data?.data?.recentNotifications || [];
       setHealthNotifications(notifications);
