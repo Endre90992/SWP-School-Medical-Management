@@ -569,7 +569,7 @@ const CampaignDetail = () => {
                         (!consent || consent.consentStatusName === "待回覆")
                       ) {
                         const subject = "學生預防接種確認";
-                        const body = `請家長確認以下學生的預防接種意願： ${stu.fullName} (${stu.className}) trên hệ thống.`;
+                        const body = `請確認學生 ${stu.fullName}（${stu.className}）的預防接種意願。`;
                         await sendEmailToParent(stu.parentId, subject, body);
                       }
                     }
