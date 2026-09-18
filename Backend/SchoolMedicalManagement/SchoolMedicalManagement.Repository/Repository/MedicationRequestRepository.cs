@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SchoolMedicalManagement.Models.Entity;
+using SchoolMedicalManagement.Models.Response;
 
 namespace SchoolMedicalManagement.Repository.Repository
 {
@@ -19,6 +20,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<List<MedicationRequest>> GetPendingRequestsAsync()
         {
             return await _context.MedicationRequests
+                .AsNoTracking()
                 .Where(r => r.StatusId == 1 && r.IsActive == true)
                 .Include(r => r.Student)  // nếu bạn cần thông tin học sinh
                 .Include(r => r.Status) // nếu bạn cần thông tin trạng thái
@@ -50,6 +52,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<List<MedicationRequest>> GetApprovedRequestsAsync()
         {
             return await _context.MedicationRequests
+                .AsNoTracking()
                 .Where(r => r.StatusId == 2 && r.IsActive == true)
                 .Include(r => r.Student)  // nếu bạn cần thông tin học sinh
                 .Include(r => r.ReceivedByNavigation) // nếu bạn cần thông tin y tá đã duyệt
@@ -59,6 +62,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<List<MedicationRequest>> GetRejectedRequestsAsync()
         {
             return await _context.MedicationRequests
+                .AsNoTracking()
                 .Where(r => r.StatusId == 3 && r.IsActive == true)
                 .Include(r => r.Student)  // nếu bạn cần thông tin học sinh
                 .ToListAsync();
@@ -67,6 +71,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<List<MedicationRequest>> GetRequestsByParentIdAsync(Guid parentId)
         {
             return await _context.MedicationRequests
+                .AsNoTracking()
                 .Where(r => r.ParentId == parentId && r.IsActive == true)
                 .Include(r => r.Student)  // nếu bạn cần thông tin học sinh
                 .Include(r => r.Status)
@@ -74,6 +79,42 @@ namespace SchoolMedicalManagement.Repository.Repository
                 .Include(r => r.ReceivedByNavigation)
                 .ToListAsync();
         }
+
+
+        public Task<int> GetActiveRequestsCountAsync()
+            => _context.MedicationRequests
+                .AsNoTracking()
+                .CountAsync(r => r.IsActive == true);
+
+        public Task<int> GetPendingRequestsCountAsync()
+            => _context.MedicationRequests
+                .AsNoTracking()
+                .CountAsync(r => r.IsActive == true && r.StatusId == 1);
+
+        public Task<List<RecentMedicationRequestResponse>> GetRecentRequestsAsync(int count)
+            => _context.MedicationRequests
+                .AsNoTracking()
+                .Where(r => r.IsActive == true)
+                .OrderByDescending(r => r.RequestDate)
+                .Select(r => new RecentMedicationRequestResponse
+                {
+                    RequestId = r.RequestId.ToString(),
+                    StudentName = r.Student != null ? r.Student.FullName ?? string.Empty : string.Empty,
+                    MedicationName = r.MedicationName ?? string.Empty,
+                    RequestDate = r.RequestDate,
+                    Status = r.Status != null ? r.Status.StatusName ?? string.Empty : string.Empty
+                })
+                .Take(count)
+                .ToListAsync();
+
+        public Task<List<MedicationRequest>> GetRequestsByStudentIdsAsync(IReadOnlyCollection<int> studentIds)
+            => _context.MedicationRequests
+                .AsNoTracking()
+                .Where(r => r.IsActive == true && studentIds.Contains(r.StudentId))
+                .Include(r => r.Student)
+                .Include(r => r.Status)
+                .OrderByDescending(r => r.RequestDate)
+                .ToListAsync();
 
         // ✅ Tạo đơn thuốc mới
         public async Task<int> CreateMedicalRequestAsync(MedicationRequest request)
@@ -89,6 +130,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         public Task<List<MedicationRequest>> GetAllRequestsAsync()
         {
             return _context.MedicationRequests
+                .AsNoTracking()
                 .Include(r => r.Student)
                 .Include(r => r.Status)
                 .Include(r => r.Parent)
@@ -120,6 +162,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<List<MedicationRequest>> GetRequestsByStatusIdAsync(int statusId)
         {
             return await _context.MedicationRequests
+                .AsNoTracking()
                 .Where(r => r.StatusId == statusId && r.IsActive == true)
                 .Include(r => r.Student)  // nếu bạn cần thông tin học sinh
                 .Include(r => r.Status)   // nếu bạn cần thông tin trạng thái
