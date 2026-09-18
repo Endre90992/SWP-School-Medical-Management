@@ -231,11 +231,11 @@ const Incident = () => {
           e.eventId === event.eventId ? { ...e, notificationSent: true } : e
         )
       );
-      console.log('[DEBUG] 建立本機通知/email thành công cho parentId:', parentId);
+      console.log('[DEBUG] 已建立本機家長通知：', parentId);
       return true;
     } catch (err) {
       notifyError("建立本機通知 hoặc email thất bại!");
-      console.error("❌ Lỗi gửi thông báo:", err);
+      console.error("❌ 建立通知失敗：", err);
       if (err.response) {
         console.error('[DEBUG] Lỗi response:', err.response.data);
       }
@@ -346,7 +346,7 @@ const Incident = () => {
         setSupplies(Array.isArray(res.data.data) ? res.data.data : []);
       })
       .catch((err) => {
-        console.error("❌ Lỗi lấy vật tư:", err);
+        console.error("❌ 取得醫療物資失敗：", err);
         setSupplies([]);
       });
   }, []);
