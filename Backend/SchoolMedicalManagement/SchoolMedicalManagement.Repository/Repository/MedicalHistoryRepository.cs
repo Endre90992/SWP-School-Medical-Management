@@ -13,6 +13,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         // 🔍 Lấy toàn bộ tiền sử bệnh của một học sinh
         public async Task<List<MedicalHistory>> GetAllByStudentIdMedicalHistory(int studentId) =>
             await _context.MedicalHistories
+                          .AsNoTracking()
                           .Where(h => h.StudentId == studentId)
                           .Include(h => h.Student)
                           .ToListAsync();
@@ -52,6 +53,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         public async Task<List<MedicalHistory>> GetAllMedicalHistory()
         {
             return await _context.MedicalHistories
+                                 .AsNoTracking()
                                  .Include(h => h.Student)
                                  .ToListAsync();
         }
