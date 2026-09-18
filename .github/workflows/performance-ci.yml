@@ -3,6 +3,7 @@ name: Performance refactor CI
 on:
   push:
     branches:
+      - main
       - "perf/**"
   pull_request:
     branches:
