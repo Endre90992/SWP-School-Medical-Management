@@ -16,7 +16,6 @@ public class MedicalEventRepository : GenericRepository<MedicalEvent>
             .Include(e => e.EventType)
             .Include(e => e.Severity)
             .Include(e => e.HandleRecords).ThenInclude(hr => hr.Supply)
-            .Include(e => e.Student.MedicalHistories)
             .FirstOrDefaultAsync(e => e.EventId == id && e.IsActive == true);
 
     // Đề xuất: lọc IsActive == true để tránh load những sự kiện đã xoá mềm
@@ -82,6 +81,79 @@ public class MedicalEventRepository : GenericRepository<MedicalEvent>
             .Include(e => e.Severity)
             .OrderByDescending(e => e.EventDate)
             .ToListAsync();
+
+    public Task<List<MedicalSupply>> GetSuppliesByIdsAsync(IReadOnlyCollection<int> supplyIds)
+        => _context.MedicalSupplies
+            .Where(s => supplyIds.Contains(s.SupplyId))
+            .ToListAsync();
+
+    private Task<MedicalEvent?> GetMedicalEventSnapshotByIdAsync(int id)
+        => _context.MedicalEvents
+            .AsNoTracking()
+            .Include(e => e.Student).ThenInclude(s => s.Parent)
+            .Include(e => e.HandledByNavigation)
+            .Include(e => e.EventType)
+            .Include(e => e.Severity)
+            .Include(e => e.HandleRecords).ThenInclude(hr => hr.Supply)
+            .FirstOrDefaultAsync(e => e.EventId == id && e.IsActive == true);
+
+    public async Task<MedicalEvent?> CreateMedicalEventWithSuppliesAsync(
+        MedicalEvent medicalEvent,
+        IReadOnlyCollection<HandleRecord> handleRecords)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            _context.MedicalEvents.Add(medicalEvent);
+
+            // 先儲存事件及已追蹤的庫存異動，以取得 EventId。
+            await _context.SaveChangesAsync();
+
+            foreach (var record in handleRecords)
+                record.EventId = medicalEvent.EventId;
+
+            if (handleRecords.Count > 0)
+            {
+                await _context.HandleRecords.AddRangeAsync(handleRecords);
+                await _context.SaveChangesAsync();
+            }
+
+            await transaction.CommitAsync();
+            return await GetMedicalEventSnapshotByIdAsync(medicalEvent.EventId);
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task<MedicalEvent?> UpdateMedicalEventWithSuppliesAsync(
+        MedicalEvent medicalEvent,
+        IReadOnlyCollection<HandleRecord> oldRecords,
+        IReadOnlyCollection<HandleRecord> newRecords)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            if (oldRecords.Count > 0)
+                _context.HandleRecords.RemoveRange(oldRecords);
+
+            if (newRecords.Count > 0)
+                await _context.HandleRecords.AddRangeAsync(newRecords);
+
+            _context.MedicalEvents.Update(medicalEvent);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return await GetMedicalEventSnapshotByIdAsync(medicalEvent.EventId);
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
 
     // Tạo và trả về bản ghi đã tạo với đầy đủ liên kết
     public async Task<MedicalEvent?> CreateMedicalEvent(MedicalEvent medicalEvent)
@@ -179,7 +251,6 @@ public class MedicalEventRepository : GenericRepository<MedicalEvent>
             .Include(e => e.Severity)
             .Include(e => e.HandleRecords)
                 .ThenInclude(hr => hr.Supply)
-            .Include(e => e.Student.MedicalHistories)
             .FirstOrDefaultAsync(p => p.StudentId == studentID && p.IsActive == true);
     }
 }
