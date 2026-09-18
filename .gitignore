@@ -405,9 +405,6 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-# EduHealth Local TW - local health data
-**/data/*.db
-**/data/*.db-shm
-**/data/*.db-wal
-**/data/初始登入資訊.txt
+# EduHealth Local TW - runtime health data (DB, attachments, bootstrap credentials)
+**/data/
 backups/
