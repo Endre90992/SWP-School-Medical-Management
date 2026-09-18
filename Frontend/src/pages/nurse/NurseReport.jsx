@@ -119,7 +119,7 @@ const NurseReport = () => {
       <main className={style.dashboardWrapper}>
         <div className={style.header}>
           <h2>健康中心統計報表</h2>
-          <p>總覽 các hoạt động y tế trong trường</p>
+          <p>校園健康中心業務總覽</p>
         </div>
 
         <div className={style.exportControls}>
