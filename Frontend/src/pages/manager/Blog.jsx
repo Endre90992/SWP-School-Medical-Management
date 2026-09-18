@@ -196,7 +196,7 @@ const Blog = () => {
                 <h2 className={blogStyle.blogTitle}>{blog.title}</h2>
                 <div
                   className={blogStyle.blogDesc}
-                  dangerouslySetInnerHTML={{ __html: blog.content }}
+                  
                 />
                 <div className={blogStyle.blogActionsRow}>
                   <div className={blogStyle.blogActionIcons}>
