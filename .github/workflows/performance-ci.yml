@@ -45,3 +45,38 @@ jobs:
 
       - name: Publish single-process local edition
         run: dotnet publish Backend/SchoolMedicalManagement/School-Medical-Management.API/SchoolMedicalManagement.API.csproj --configuration Release --output publish
+
+      - name: Verify bundled frontend
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "publish/wwwroot/index.html")) {
+            throw "Release publish did not include the Vite frontend."
+          }
+
+      - name: Smoke test published local edition
+        shell: pwsh
+        run: |
+          $proc = Start-Process dotnet -ArgumentList "SchoolMedicalManagement.API.dll" -WorkingDirectory "publish" -PassThru
+          try {
+            $healthy = $false
+            for ($i = 0; $i -lt 30; $i++) {
+              Start-Sleep -Seconds 1
+              try {
+                $response = Invoke-WebRequest -Uri "http://127.0.0.1:5080/api/health" -UseBasicParsing -TimeoutSec 2
+                if ($response.StatusCode -eq 200) {
+                  $healthy = $true
+                  break
+                }
+              } catch {
+              }
+            }
+
+            if (-not $healthy) {
+              throw "Published EduHealth Local TW did not become healthy."
+            }
+          }
+          finally {
+            if ($proc -and -not $proc.HasExited) {
+              Stop-Process -Id $proc.Id -Force
+            }
+          }
