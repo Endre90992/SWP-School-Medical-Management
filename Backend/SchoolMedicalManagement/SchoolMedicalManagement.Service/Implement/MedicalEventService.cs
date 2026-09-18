@@ -231,14 +231,7 @@ public class MedicalEventService : IMedicalEventService
             SeverityLevelName = e.Severity?.SeverityName ?? "(Không rõ)",
             HandledById = e.HandledBy,
             HandledByName = e.HandledByNavigation?.FullName ?? "(Không rõ)",
-            SuppliesUsed = e.HandleRecords?.Select(hr => new SupplyUserResponse
-            {
-                SupplyId = hr.SupplyId,
-                SupplyName = hr.Supply?.Name ?? "(Không rõ)",
-                QuantityUsed = hr.QuantityUsed,
-                Unit = hr.Supply?.Unit ?? "(Không rõ)",
-                Note = hr.Note
-            }).ToList() ?? new List<SupplyUserResponse>(),
+            SuppliesUsed = new List<SupplyUserResponse>(),
 
             MedicalHistory = new List<MedicalHistoryResponse>() // optional: để rõ ràng
         }).ToList();
