@@ -74,6 +74,44 @@ jobs:
             if (-not $healthy) {
               throw "Published EduHealth Local TW did not become healthy."
             }
+
+            $credentialFile = "publish/data/初始登入資訊.txt"
+            if (-not (Test-Path $credentialFile)) {
+              throw "First-run credential file was not created."
+            }
+
+            $credentialText = Get-Content $credentialFile -Raw
+            $usernameMatch = [regex]::Match($credentialText, "帳號：([^\r\n]+)")
+            $passwordMatch = [regex]::Match($credentialText, "一次性密碼：([^\r\n]+)")
+            if (-not $usernameMatch.Success -or -not $passwordMatch.Success) {
+              throw "Could not parse first-run credentials."
+            }
+
+            $loginBody = @{
+              username = $usernameMatch.Groups[1].Value.Trim()
+              password = $passwordMatch.Groups[1].Value.Trim()
+            } | ConvertTo-Json
+
+            $login = Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/User/login" -Method Post -ContentType "application/json" -Body $loginBody -TimeoutSec 5
+            $token = $login.data.token
+            if (-not $token) {
+              throw "Login did not return a JWT."
+            }
+
+            $headers = @{ Authorization = "Bearer $token" }
+
+            $dashboard = Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/Dashboard/overview" -Headers $headers -TimeoutSec 5
+            if ($dashboard.status -ne "200") {
+              throw "Dashboard overview smoke test failed."
+            }
+
+            Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/Student" -Headers $headers -TimeoutSec 5 | Out-Null
+            Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/MedicalEvent" -Headers $headers -TimeoutSec 5 | Out-Null
+
+            $spa = Invoke-WebRequest -Uri "http://127.0.0.1:5080/" -UseBasicParsing -TimeoutSec 5
+            if ($spa.StatusCode -ne 200 -or $spa.Content -notmatch '<div id="root"') {
+              throw "Bundled React frontend smoke test failed."
+            }
           }
           finally {
             if ($proc -and -not $proc.HasExited) {
