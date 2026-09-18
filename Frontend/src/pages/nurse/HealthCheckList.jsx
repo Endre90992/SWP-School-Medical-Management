@@ -56,8 +56,8 @@ const sendNotificationToAll = async (campaign) => {
           "http://127.0.0.1:5080/api/Notification/send",
           {
             receiverId: student.parentId,
-            title: "Thông báo kiểm tra sức khỏe",
-            message: `Học sinh ${student.fullName} sẽ tham gia chiến dịch kiểm tra sức khỏe: ${campaign.title}.\nMô tả: ${campaign.description}.\nNgày kiểm tra: ${campaign.date}`,
+            title: "健康檢查通知",
+            message: `學生 ${student.fullName} 將參加健康檢查活動：${campaign.title}.\n說明：${campaign.description}.\n檢查日期：${campaign.date}`,
             typeId: 2,
             isRead: false,
           },
@@ -69,8 +69,8 @@ const sendNotificationToAll = async (campaign) => {
         try {
           await sendEmailToParent(
             student.parentId,
-            "Thông báo kiểm tra sức khỏe học sinh",
-            `Học sinh ${student.fullName} sẽ tham gia chiến dịch kiểm tra sức khỏe: ${campaign.title}.\nMô tả: ${campaign.description}.\nNgày kiểm tra: ${campaign.date}`
+            "健康檢查通知 học sinh",
+            `學生 ${student.fullName} 將參加健康檢查活動：${campaign.title}.\n說明：${campaign.description}.\n檢查日期：${campaign.date}`
           );
         } catch {
           hasError = true;
@@ -78,24 +78,24 @@ const sendNotificationToAll = async (campaign) => {
       })
     );
     if (hasError) {
-      notifyError("Một số email gửi thất bại. Vui lòng kiểm tra lại!");
+      notifyError("部分本機通知建立失敗，請確認。");
     } else {
-      notifySuccess("Đã gửi thông báo và email cho tất cả phụ huynh!");
+      notifySuccess("已為家長建立本機通知。");
     }
   } catch (error) {
     console.error("Lỗi khi gửi thông báo/email hàng loạt:", error);
-    notifyError("Gửi thông báo/email thất bại. Vui lòng thử lại!");
+    notifyError("建立本機通知失敗，請稍後再試。");
   }
 };
 
 const HealthCheckList = () => {
   // Bộ lọc thời gian và trạng thái
-  // yearFilter: 0 = năm hiện tại, 1 = 1 năm gần nhất, 2 = 2 năm gần nhất, 3 = 3 năm gần nhất
+  // yearFilter: 0 = năm hiện tại, 1 = 最近 1 年, 2 = 最近 2 年, 3 = 最近 3 年
   const [yearFilter, setYearFilter] = useState(1);
   const [quickFilter, setQuickFilter] = useState('all'); // 'all', 'latest', 'custom'
   const [campaigns, setCampaigns] = useState([]);
   const [searchKeyword, setSearchKeyword] = useState(""); // Tìm kiếm theo tiêu đề
-  const [filterStatus, setFilterStatus] = useState("Tất cả trạng thái"); // Tìm kiếm theo trạng thái
+  const [filterStatus, setFilterStatus] = useState("全部狀態"); // Tìm kiếm theo trạng thái
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true); // Thêm trạng thái loading
   const itemsPerPage = 9;
@@ -159,7 +159,7 @@ const HealthCheckList = () => {
       const matchSearch = c.title.toLowerCase().includes(searchKeyword.toLowerCase());
       const campaignDate = new Date(c.date);
       const matchDate = campaignDate >= fromDate && campaignDate <= toDate;
-      const matchStatus = filterStatus === "Tất cả trạng thái" || c.statusName === filterStatus;
+      const matchStatus = filterStatus === "全部狀態" || c.statusName === filterStatus;
       return matchSearch && matchDate && matchStatus;
     });
   }
@@ -177,10 +177,10 @@ const HealthCheckList = () => {
   };
 
   const statusMap = {
-    "Chưa bắt đầu": 1,
-    "Đang diễn ra": 2,
-    "Đã hoàn thành": 3,
-    "Đã huỷ": 4
+    "尚未開始": 1,
+    "進行中": 2,
+    "已完成": 3,
+    "已取消": 4
   };
 
   const handleStatusChange = async (campaignId, newStatus) => {
@@ -193,7 +193,7 @@ const HealthCheckList = () => {
       console.log("PUT response:", res.data);
 
       if (res.status === 200) {
-        notifySuccess("Cập nhật trạng thái thành công!");
+        notifySuccess("活動狀態更新成功。");
         const updatedCampaigns = campaigns.map((campaign) =>
           campaign.id === campaignId
             ? { ...campaign, statusName: newStatus }
@@ -201,8 +201,8 @@ const HealthCheckList = () => {
         );
         setCampaigns(updatedCampaigns);
 
-        // Nếu chuyển từ 'Chưa bắt đầu' sang 'Đang diễn ra', gửi thông báo cho phụ huynh
-        if (newStatus === "Đang diễn ra") {
+        // Nếu chuyển từ '尚未開始' sang '進行中', gửi thông báo cho phụ huynh
+        if (newStatus === "進行中") {
           // Lấy thông tin campaign vừa cập nhật
           const campaign = updatedCampaigns.find(c => c.id === campaignId);
           if (campaign) {
@@ -213,10 +213,10 @@ const HealthCheckList = () => {
     } catch (error) {
       if (error.response) {
         console.error("API error:", error.response.data);
-        notifyError("Lỗi cập nhật trạng thái: " + (error.response.data.message || ""));
+        notifyError("更新狀態失敗：" + (error.response.data.message || ""));
       } else {
         console.error("Lỗi khi cập nhật trạng thái chiến dịch:", error);
-        notifyError("Lỗi cập nhật trạng thái.");
+        notifyError("更新狀態失敗。");
       }
     }
   };
@@ -228,13 +228,13 @@ const HealthCheckList = () => {
       <main style={{ flex: 1 }}>
         <div className={style.campaignPage}>
           {/* LOADING OVERLAY */}
-          {loading && <LoadingOverlay text="Đang tải dữ liệu..." />}
+          {loading && <LoadingOverlay text="資料載入中..." />}
           {/* HEADER */}
           <div className={style.pageHeader}>
             <div>
               <h1>
-                <span className={style.textBlack}>Quản lý</span>
-                <span className={style.textAccent}> khám sức khỏe</span>
+                <span className={style.textBlack}>健康檢查</span>
+                <span className={style.textAccent}>管理</span>
               </h1>
             </div>
           </div>
@@ -246,7 +246,7 @@ const HealthCheckList = () => {
               <input
                 id="search-campaign"
 
-                placeholder="Tìm kiếm chiến dịch..."
+                placeholder="搜尋健康檢查活動..."
                 value={searchKeyword}
                 onChange={e => { setSearchKeyword(e.target.value); setQuickFilter('custom'); setCurrentPage(1); }}
                 className={style.inputSearch}
@@ -259,10 +259,10 @@ const HealthCheckList = () => {
               onChange={e => { setYearFilter(Number(e.target.value)); setQuickFilter('custom'); setCurrentPage(1); }}
               style={{ marginRight: 8 }}
             >
-              <option value={0}>Năm hiện tại</option>
-              <option value={1}>1 năm gần nhất</option>
-              <option value={2}>2 năm gần nhất</option>
-              <option value={3}>3 năm gần nhất</option>
+              <option value={0}>本年度</option>
+              <option value={1}>最近 1 年</option>
+              <option value={2}>最近 2 年</option>
+              <option value={3}>最近 3 年</option>
             </select>
             <select
             id="filter-status"
@@ -271,22 +271,22 @@ const HealthCheckList = () => {
               onChange={e => { setFilterStatus(e.target.value); setQuickFilter('custom'); setCurrentPage(1); }}
               style={{ marginRight: 8 }}
             >
-              <option>Tất cả trạng thái</option>
-              <option>Đang diễn ra</option>
-              <option>Chưa bắt đầu</option>
-              <option>Đã hoàn thành</option>
-              <option>Đã huỷ</option>
+              <option>全部狀態</option>
+              <option>進行中</option>
+              <option>尚未開始</option>
+              <option>已完成</option>
+              <option>已取消</option>
             </select>
-            <button id="btn-show-all" style={{ background: quickFilter === 'all' ? '#23b7b7' : '#eee', color: quickFilter === 'all' ? '#fff' : '#333', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 500, cursor: 'pointer', marginRight: 8 }} onClick={() => { setQuickFilter('all'); setCurrentPage(1); }}>Hiển thị tất cả</button>
-            <button id="btn-latest" style={{ background: quickFilter === 'latest' ? '#23b7b7' : '#eee', color: quickFilter === 'latest' ? '#fff' : '#333', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 500, cursor: 'pointer' }} onClick={() => { setQuickFilter('latest'); setCurrentPage(1); }}>Chiến dịch vừa tạo</button>
+            <button id="btn-show-all" style={{ background: quickFilter === 'all' ? '#23b7b7' : '#eee', color: quickFilter === 'all' ? '#fff' : '#333', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 500, cursor: 'pointer', marginRight: 8 }} onClick={() => { setQuickFilter('all'); setCurrentPage(1); }}>顯示全部</button>
+            <button id="btn-latest" style={{ background: quickFilter === 'latest' ? '#23b7b7' : '#eee', color: quickFilter === 'latest' ? '#fff' : '#333', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 500, cursor: 'pointer' }} onClick={() => { setQuickFilter('latest'); setCurrentPage(1); }}>最新建立的活動</button>
           </div>
 
           {/* TABLE */}
           <div className={style.cardGrid}>
             {loading ? (
-              <div style={{ padding: 32, textAlign: 'center', width: '100%' }}>Đang tải dữ liệu...</div>
+              <div style={{ padding: 32, textAlign: 'center', width: '100%' }}>資料載入中...</div>
             ) : currentCampaigns.length === 0 ? (
-              <div style={{ padding: 32, textAlign: 'center', width: '100%' }}>Không có dữ liệu chiến dịch.</div>
+              <div style={{ padding: 32, textAlign: 'center', width: '100%' }}>目前沒有健康檢查活動。</div>
             ) : (
               currentCampaigns.map((c) => (
                 <div key={c.id} id="card-0" className={style.campaignCard}>
@@ -294,26 +294,26 @@ const HealthCheckList = () => {
                     <div className={style.cardTitle}>{c.title}</div>
                   </div>
                   <div className={style.cardBody}>
-                    <div><b>Ngày:</b> {new Date(c.date).toLocaleDateString()}</div>
-                    <div><b>Mô tả:</b> {c.description}</div>
-                    <div><b>Người tạo:</b> {c.createdByName}</div>
+                    <div><b>日期：</b> {new Date(c.date).toLocaleDateString("zh-TW")}</div>
+                    <div><b>說明：</b> {c.description}</div>
+                    <div><b>建立者：</b> {c.createdByName}</div>
                   </div>
                   <div className={style.cardFooter}>
-                    {c.statusName === "Chưa bắt đầu" ? (
-                      <span className={style.statusBadgeWaiting}>Chưa bắt đầu</span>
-                    ) : c.statusName === "Đang diễn ra" ? (
-                      <span className={style.statusBadgeActive}>Đang diễn ra</span>
-                    ) : c.statusName === "Đã hoàn thành" ? (
-                      <span className={style.statusBadgeDone}>Đã hoàn thành</span>
+                    {c.statusName === "尚未開始" ? (
+                      <span className={style.statusBadgeWaiting}>尚未開始</span>
+                    ) : c.statusName === "進行中" ? (
+                      <span className={style.statusBadgeActive}>進行中</span>
+                    ) : c.statusName === "已完成" ? (
+                      <span className={style.statusBadgeDone}>已完成</span>
                     ) : (
-                      <span className={style.statusBadgeCancel}>Đã huỷ</span>
+                      <span className={style.statusBadgeCancel}>已取消</span>
                     )}
-                    {c.statusName === "Chưa bắt đầu" && (
-                      <button id="btn-starts" className={style.btnDetail} onClick={() => handleStatusChange(c.id, "Đang diễn ra")}>Kích hoạt</button>
+                    {c.statusName === "尚未開始" && (
+                      <button id="btn-starts" className={style.btnDetail} onClick={() => handleStatusChange(c.id, "進行中")}>開始</button>
                     )}
-                    {(c.statusName === "Đang diễn ra" || c.statusName === "Đã hoàn thành") && (
+                    {(c.statusName === "進行中" || c.statusName === "已完成") && (
                       <Link to={`/healthcheck/${c.id}`}>
-                        <button id="btn-detail-0" className={style.btnDetail}>Xem chi tiết</button>
+                        <button id="btn-detail-0" className={style.btnDetail}>查看詳細資料</button>
                       </Link>
                     )}
                   </div>
