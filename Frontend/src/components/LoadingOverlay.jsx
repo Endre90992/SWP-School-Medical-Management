@@ -1,9 +1,9 @@
 import React from "react";
 import styles from "../assets/css/LoadingOverlay.module.css";
 
-const LoadingOverlay = ({ text = "Đang tải dữ liệu..." }) => (
+const LoadingOverlay = ({ text = "資料載入中..." }) => (
   <div className={styles.loadingOverlay}>
-    <div className={styles.spinner}></div>
+    <div className={styles.spinner} />
     <div className={styles.loadingText}>{text}</div>
   </div>
 );
