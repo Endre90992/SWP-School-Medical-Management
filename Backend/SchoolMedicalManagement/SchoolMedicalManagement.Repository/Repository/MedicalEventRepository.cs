@@ -28,8 +28,6 @@ public class MedicalEventRepository : GenericRepository<MedicalEvent>
             .Include(e => e.HandledByNavigation)
             .Include(e => e.EventType)
             .Include(e => e.Severity)
-            .Include(e => e.HandleRecords)
-                .ThenInclude(hr => hr.Supply)
             .ToListAsync();
 
 
