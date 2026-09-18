@@ -21,7 +21,7 @@ const VaccineResult = () => {
     const fetchStatus = async () => {
       try {
         const res = await axios.get(
-          `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${id}`
+          `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${id}`
         );
         const statusName =
           res.data.data.statusName || res.data.data.status?.name;
@@ -38,7 +38,7 @@ const VaccineResult = () => {
       setLoading(true);
       try {
         const res = await axios.get(
-          `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns/${id}/approved-consents`
+          `http://127.0.0.1:5080/api/VaccinationCampaign/campaigns/${id}/approved-consents`
         );
         const students = res.data.data || [];
 
@@ -46,7 +46,7 @@ const VaccineResult = () => {
           students.map(async (student) => {
             try {
               const recordRes = await axios.get(
-                `https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/records/student/${student.studentId}`
+                `http://127.0.0.1:5080/api/VaccinationCampaign/records/student/${student.studentId}`
               );
               let record = recordRes.data.data;
               if (Array.isArray(record)) {
@@ -81,7 +81,7 @@ const VaccineResult = () => {
     const r = records[index];
     try {
       await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/records",
+        "http://127.0.0.1:5080/api/VaccinationCampaign/records",
         {
           studentId: r.studentId,
           campaignId: id,
@@ -109,7 +109,7 @@ const VaccineResult = () => {
         ? `Ghi chú: ${student.followUpNote}`
         : "Không có ghi chú.";
       await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/Notification/send",
+        "http://127.0.0.1:5080/api/Notification/send",
         {
           receiverId: student.parentId,
           title: "Kết quả tiêm chủng",
@@ -123,7 +123,7 @@ const VaccineResult = () => {
       );
       // Gửi email
       await axios.post(
-        "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+        "http://127.0.0.1:5080/api/Email/send-by-userid",
         {
           userId: student.parentId,
           subject: `Kết quả tiêm chủng cho học sinh ${student.studentName}`,
@@ -212,12 +212,12 @@ const VaccineResult = () => {
         console.log("Notification payload:", notificationPayload);
         console.log("Email payload:", emailPayload);
         await axios.post(
-          "https://swp-school-medical-management.onrender.com/api/Notification/send",
+          "http://127.0.0.1:5080/api/Notification/send",
           notificationPayload,
           { headers: { "Content-Type": "application/json" } }
         );
         await axios.post(
-          "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+          "http://127.0.0.1:5080/api/Email/send-by-userid",
           emailPayload,
           { headers: { "Content-Type": "application/json" } }
         );
