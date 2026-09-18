@@ -28,12 +28,12 @@ import LoadingOverlay from "../../components/LoadingOverlay";
 const VACCINATION_CAMPAIGN_API =
   "http://127.0.0.1:5080/api/VaccinationCampaign/campaigns";
 
-// Cập nhật lại các trạng thái phù hợp với backend
+// 儲存變更 lại các trạng thái phù hợp với backend
 const statusOptions = [
-  { value: 1, label: "Chưa bắt đầu" },
-  { value: 2, label: "Đang diễn ra" },
-  { value: 3, label: "Đã hoàn thành" },
-  { value: 4, label: "Đã huỷ" },
+  { value: 1, label: "尚未開始" },
+  { value: 2, label: "進行中" },
+  { value: 3, label: "已完成" },
+  { value: 4, label: "已取消" },
 ];
 
 const getCurrentUserId = () => localStorage.getItem("userId") || "";
@@ -49,7 +49,7 @@ const VaccinationCampaign = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const campaignsPerPage = 8;
   // Bộ lọc thời gian và trạng thái
-  // yearFilter: 0 = năm hiện tại, 1 = 1 năm gần nhất, 2 = 2 năm gần nhất, 3 = 3 năm gần nhất
+  // yearFilter: 0 = năm hiện tại, 1 = 最近 1 年, 2 = 最近 2 年, 3 = 最近 3 年
   const [yearFilter, setYearFilter] = useState(1);
   const [statusFilter, setStatusFilter] = useState(0); // 0: tất cả
 
@@ -61,7 +61,7 @@ const VaccinationCampaign = () => {
       // API trả về { status, message, data: [...] }
       setCampaigns(res.data.data || []);
     } catch {
-      notifyError("Không thể tải danh sách chiến dịch!");
+      notifyError("無法載入接種活動清單。");
       setCampaigns([]);
     } finally {
       setLoading(false);
@@ -80,7 +80,7 @@ const VaccinationCampaign = () => {
   const now = dayjs();
   let fromDate, toDate;
   if (yearFilter === 0) {
-    // Năm hiện tại
+    // 本年度
     fromDate = now.startOf("year");
     toDate = now.endOf("year");
   } else {
@@ -97,7 +97,7 @@ const VaccinationCampaign = () => {
       return matchSearch;
     });
   } else if (quickFilter === "latest") {
-    // Chiến dịch vừa tạo: lấy campaign có id lớn nhất
+    // 最新建立的活動: lấy campaign có id lớn nhất
     const latest = activeCampaigns.reduce(
       (max, c) => (Number(c.campaignId) > Number(max.campaignId) ? c : max),
       activeCampaigns[0]
@@ -155,7 +155,7 @@ const VaccinationCampaign = () => {
           campaignId: editing.campaignId,
         };
         await axios.put(VACCINATION_CAMPAIGN_API, putData);
-        notifySuccess("Đã cập nhật chiến dịch!");
+        notifySuccess("接種活動已更新。");
       } else {
         const postData = {
           vaccineName: values.vaccineName,
@@ -164,10 +164,10 @@ const VaccinationCampaign = () => {
             : undefined,
           description: values.description,
           createdBy: getCurrentUserId(),
-          statusId: 1, // Luôn là "Chưa bắt đầu"
+          statusId: 1, // Luôn là "尚未開始"
         };
         await axios.post(VACCINATION_CAMPAIGN_API, postData);
-        notifySuccess("Đã tạo chiến dịch mới!");
+        notifySuccess("接種活動已新增。");
       }
       setModalOpen(false);
       fetchCampaigns();
@@ -178,19 +178,19 @@ const VaccinationCampaign = () => {
     }
   };
 
-  // Hàm deactivate (chuyển statusId thành 4 - Đã huỷ)
+  // Hàm deactivate (chuyển statusId thành 4 - 已取消)
   const handleDeactivate = async (id) => {
     Modal.confirm({
-      title: "Bạn có chắc muốn huỷ chiến dịch này?",
+      title: "確定要取消這個接種活動嗎？",
       icon: <ExclamationCircleOutlined />,
       onOk: async () => {
         setLoading(true);
         try {
           await axios.put(`${VACCINATION_CAMPAIGN_API}/${id}/deactivate`, {}); // backend sẽ chuyển statusId thành 4
-          notifySuccess("Đã huỷ chiến dịch!");
+          notifySuccess("已取消 chiến dịch!");
           fetchCampaigns();
         } catch {
-          notifyError("Huỷ thất bại!");
+          notifyError("取消接種活動失敗。");
         } finally {
           setLoading(false);
         }
@@ -198,19 +198,19 @@ const VaccinationCampaign = () => {
     });
   };
 
-  // Hàm activate (chuyển statusId thành 2 - Đang diễn ra)
+  // Hàm activate (chuyển statusId thành 2 - 進行中)
   const handleActivate = async (id) => {
     Modal.confirm({
-      title: "Bạn có chắc muốn kích hoạt lại chiến dịch này?",
+      title: "確定要重新啟用這個接種活動嗎？",
       icon: <ExclamationCircleOutlined />,
       onOk: async () => {
         setLoading(true);
         try {
           await axios.put(`${VACCINATION_CAMPAIGN_API}/${id}/activate`, {}); // backend sẽ chuyển statusId thành 2
-          notifySuccess("Đã kích hoạt lại chiến dịch!");
+          notifySuccess("接種活動已重新啟用。");
           fetchCampaigns();
         } catch {
-          notifyError("Kích hoạt lại thất bại!");
+          notifyError("重新啟用失敗。");
         } finally {
           setLoading(false);
         }
@@ -225,10 +225,10 @@ const VaccinationCampaign = () => {
         <header className={campaignStyle.dashboardHeaderBar}>
           <div className={campaignStyle.titleGroup}>
             <h1>
-              <span className={campaignStyle.textBlack}>Danh sách</span>
+              <span className={campaignStyle.textBlack}>預防接種</span>
               <span className={campaignStyle.textAccent}>
                 {" "}
-                chiến dịch tiêm chủng
+                活動清單
               </span>
             </h1>
           </div>
@@ -244,7 +244,7 @@ const VaccinationCampaign = () => {
           >
             <input
               type="text"
-              placeholder="Tìm kiếm chiến dịch..."
+              placeholder="搜尋接種活動..."
               className={campaignStyle.searchBar}
               value={searchText}
               onChange={(e) => {
@@ -268,10 +268,10 @@ const VaccinationCampaign = () => {
                 marginRight: 8,
               }}
             >
-              <option value={0}>Năm hiện tại</option>
-              <option value={1}>1 năm gần nhất</option>
-              <option value={2}>2 năm gần nhất</option>
-              <option value={3}>3 năm gần nhất</option>
+              <option value={0}>本年度</option>
+              <option value={1}>最近 1 年</option>
+              <option value={2}>最近 2 年</option>
+              <option value={3}>最近 3 年</option>
             </select>
             <select
               value={statusFilter}
@@ -287,7 +287,7 @@ const VaccinationCampaign = () => {
                 marginRight: 8,
               }}
             >
-              <option value={0}>Tất cả trạng thái</option>
+              <option value={0}>全部狀態</option>
               {statusOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -296,7 +296,7 @@ const VaccinationCampaign = () => {
             </select>
             <button className={campaignStyle.addBtn} onClick={handleCreate}>
               <Plus size={16} style={{ marginRight: 6, marginBottom: -2 }} />{" "}
-              Thêm chiến dịch
+              新增接種活動
             </button>
             <button
               className={campaignStyle.addBtn}
@@ -311,7 +311,7 @@ const VaccinationCampaign = () => {
               }}
               onClick={() => setQuickFilter("all")}
             >
-              Hiển thị tất cả
+              顯示全部
             </button>
             <button
               className={campaignStyle.addBtn}
@@ -326,7 +326,7 @@ const VaccinationCampaign = () => {
               }}
               onClick={() => setQuickFilter("latest")}
             >
-              Chiến dịch vừa tạo
+              最新建立的活動
             </button>
           </div>
         </div>
@@ -334,12 +334,12 @@ const VaccinationCampaign = () => {
           <thead>
             <tr>
               <th>STT</th>
-              <th>Tên vắc xin</th>
-              <th>Ngày tổ chức</th>
-              <th>Mô tả</th>
-              <th>Người tạo</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
+              <th>疫苗名稱</th>
+              <th>接種日期</th>
+              <th>說明</th>
+              <th>建立者</th>
+              <th>狀態</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -368,14 +368,14 @@ const VaccinationCampaign = () => {
                         className={campaignStyle.editBtn}
                         onClick={() => handleEdit(c)}
                       >
-                        <Edit2 size={16} /> Sửa
+                        <Edit2 size={16} /> 編輯
                       </button>
                       {c.statusId === 2 && (
                         <button
                           className={campaignStyle.deleteBtn}
                           onClick={() => handleDeactivate(c.campaignId)}
                         >
-                          <Trash2 size={16} /> Ẩn
+                          <Trash2 size={16} /> 取消
                         </button>
                       )}
                       {c.statusId === 3 && (
@@ -383,7 +383,7 @@ const VaccinationCampaign = () => {
                           className={campaignStyle.editBtn}
                           onClick={() => handleActivate(c.campaignId)}
                         >
-                          <Plus size={16} /> Kích hoạt
+                          <Plus size={16} /> 重新啟用
                         </button>
                       )}
                     </div>
@@ -393,7 +393,7 @@ const VaccinationCampaign = () => {
             ) : (
               <tr>
                 <td colSpan="7" style={{ textAlign: "center" }}>
-                  Không có dữ liệu chiến dịch
+                  目前沒有接種活動資料
                 </td>
               </tr>
             )}
@@ -415,23 +415,23 @@ const VaccinationCampaign = () => {
           ))}
         </div>
         <Modal
-          title={editing ? "Cập nhật chiến dịch" : "Thêm chiến dịch mới"}
+          title={editing ? "編輯接種活動" : "新增接種活動 mới"}
           open={modalOpen}
           onOk={handleModalOk}
           onCancel={() => setModalOpen(false)}
-          okText={editing ? "Cập nhật" : "Tạo mới"}
-          cancelText="Huỷ"
+          okText={editing ? "儲存變更" : "新增"}
+          cancelText="取消"
           className={campaignStyle.modalForm}
         >
           <Form form={form} layout="vertical">
             <Form.Item
               name="vaccineName"
-              label="Tên vắc xin"
+              label="疫苗名稱"
               rules={[
-                { required: true, message: "Nhập tên vắc xin" },
+                { required: true, message: "請輸入疫苗名稱" },
                 {
                   whitespace: true,
-                  message: "Tên vắc xin không được để trống!",
+                  message: "疫苗名稱 không được để trống!",
                 },
               ]}
             >
@@ -439,8 +439,8 @@ const VaccinationCampaign = () => {
             </Form.Item>
             <Form.Item
               name="date"
-              label="Ngày tổ chức"
-              rules={[{ required: true, message: "Chọn ngày" }]}
+              label="接種日期"
+              rules={[{ required: true, message: "請選擇日期" }]}
             >
             <DatePicker
                 style={{ width: "100%" }}
@@ -450,8 +450,8 @@ const VaccinationCampaign = () => {
             </Form.Item>
             <Form.Item
               name="description"
-              label="Mô tả"
-              rules={[{ required: true, message: "Nhập mô tả chiến dịch" }]}
+              label="說明"
+              rules={[{ required: true, message: "請輸入活動說明" }]}
             >
               <Input.TextArea rows={3} className={campaignStyle.input} />
             </Form.Item>
@@ -461,8 +461,8 @@ const VaccinationCampaign = () => {
             {editing && (
               <Form.Item
                 name="statusId"
-                label="Trạng thái"
-                rules={[{ required: true, message: "Chọn trạng thái" }]}
+                label="狀態"
+                rules={[{ required: true, message: "請選擇狀態" }]}
               >
                 <Select
                   value={form.getFieldValue("statusId")}
@@ -477,7 +477,7 @@ const VaccinationCampaign = () => {
                     padding: 0,
                   }}
                   size="large"
-                  placeholder="Chọn trạng thái chiến dịch"
+                  placeholder="請選擇狀態 chiến dịch"
                   style={{
                     borderRadius: 12,
                     fontSize: 16,
@@ -487,7 +487,7 @@ const VaccinationCampaign = () => {
                     transition: "border-color 0.2s",
                   }}
                   notFoundContent={
-                    <span style={{ color: "#888" }}>Không có trạng thái</span>
+                    <span style={{ color: "#888" }}>無狀態資料</span>
                   }
                 >
                   {statusOptions
@@ -502,7 +502,7 @@ const VaccinationCampaign = () => {
             )}
           </Form>
         </Modal>
-        {loading && <LoadingOverlay text="Đang tải dữ liệu..." />}
+        {loading && <LoadingOverlay text="資料載入中..." />}
         <Notification />
       </main>
     </div>
