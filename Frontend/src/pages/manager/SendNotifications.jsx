@@ -32,12 +32,12 @@ const SendNotifications = () => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const pageSize = 5; // Số lượng thông báo mỗi trang (giảm từ 10 xuống 5)
+  const pageSize = 5; // Số lượng通知 mỗi trang (giảm từ 10 xuống 5)
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categoryEdit, setCategoryEdit] = useState(null);
-  // Thêm state cho form category
+  // 新增 state cho form category
   const [catName, setCatName] = useState("");
   const [catError, setCatError] = useState("");
   const [parents, setParents] = useState([]);
@@ -143,13 +143,13 @@ const SendNotifications = () => {
       .catch(() => setParents([]));
   }, []);
 
-  // Gửi thông báo
+  // 建立通知
   const handleSend = async (e) => {
     e.preventDefault();
     setSuccess("");
     setError("");
     if (!title || !content || !receiverId || !typeId) {
-      setError("Vui lòng nhập đầy đủ tiêu đề, nội dung, chọn phụ huynh và loại thông báo!");
+      setError("請完整輸入標題、內容、收件人與通知類型。");
       return;
     }
     setLoading(true);
@@ -169,8 +169,8 @@ const SendNotifications = () => {
           isRead: false
         })
       });
-      setSuccess("Gửi thông báo thành công!");
-      notifySuccess("Gửi thông báo thành công!");
+      setSuccess("通知建立成功。");
+      notifySuccess("通知建立成功。");
       setLoading(false);
       setTitle("");
       setContent("");
@@ -185,13 +185,13 @@ const SendNotifications = () => {
         .then(res => res.json())
         .then(data => setAllNotifications(data.items || data));
     } catch {
-      setError("Gửi thông báo thất bại!");
-      notifyError("Gửi thông báo thất bại!");
+      setError("建立通知失敗。");
+      notifyError("建立通知失敗。");
       setLoading(false);
     }
   };
 
-  // Xóa notification
+  // 刪除 notification
   const handleDeleteNotification = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -205,22 +205,22 @@ const SendNotifications = () => {
       setDeleteId(null);
       fetchAllNotifications(); // reload danh sách sau khi xóa
     } catch (error) {
-      console.error("❌ Lỗi khi xóa thông báo:", error);
-      setError("Xóa thông báo thất bại!");
+      console.error("❌ Lỗi khi xóa通知:", error);
+      setError("刪除通知失敗。");
     }
   };
 
-  // Thêm/sửa category
+  // 新增/sửa category
   const handleSaveCategory = async (e) => {
     e.preventDefault();
     if (!catName) {
-      setCatError("Vui lòng nhập tên loại!");
+      setCatError("請輸入通知類型名稱。");
       return;
     }
     try {
       const token = localStorage.getItem("token");
       if (categoryEdit) {
-        // Sửa
+        // 編輯
         await fetch(`${API_BASE}/NotificationType/${categoryEdit.typeId}`, {
           method: "PUT",
           headers: {
@@ -230,7 +230,7 @@ const SendNotifications = () => {
           body: JSON.stringify({ typeName: catName })
         });
       } else {
-        // Thêm
+        // 新增
         await fetch(`${API_BASE}/NotificationType`, {
           method: "POST",
           headers: {
@@ -251,11 +251,11 @@ const SendNotifications = () => {
         .then(res => res.json())
         .then(data => setCategories(data));
     } catch {
-      setCatError("Lưu thất bại!");
+      setCatError("儲存失敗。");
     }
   };
 
-  // Xóa category
+  // 刪除 category
   const handleDeleteCategory = async (id) => {
     try {
       const token = localStorage.getItem("token");
@@ -274,8 +274,8 @@ const SendNotifications = () => {
         .then(res => res.json())
         .then(data => setCategories(data));
     } catch (error) {
-      console.error("❌ Lỗi khi xóa loại thông báo:", error);
-      setCatError("Xóa loại thông báo thất bại!");
+      console.error("❌ Lỗi khi xóa loại通知:", error);
+      setCatError("刪除通知類型失敗。");
     }
   };
 
@@ -283,12 +283,12 @@ const SendNotifications = () => {
     <div className={styles.container}>
       <Sidebar />
       <main className={styles.mainContent}>
-        {/* Header gửi thông báo */}
+        {/* Header gửi通知 */}
         <header className={styles.headerBar}>
           <div className={styles.titleGroup}>
             <h1>
-              <span className={styles.textBlack}>Gửi</span>
-              <span className={styles.textAccent}> thông báo</span>
+              <span className={styles.textBlack}>建立</span>
+              <span className={styles.textAccent}>通知</span>
             </h1>
           </div>
         </header>
@@ -301,14 +301,14 @@ const SendNotifications = () => {
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 className={styles.input}
-                placeholder="Nhập tiêu đề thông báo"
+                placeholder="Nhập tiêu đề通知"
                 autoFocus
               />
               <textarea
                 value={content}
                 onChange={e => setContent(e.target.value)}
                 className={styles.textarea}
-                placeholder="Nhập nội dung thông báo"
+                placeholder="Nhập nội dung通知"
                 rows={3}
               />
               <div style={{position:'relative', marginBottom: 2}}>
@@ -316,7 +316,7 @@ const SendNotifications = () => {
                   showSearch
                   allowClear
                   className={styles.input}
-                  placeholder="Chọn phụ huynh"
+                  placeholder="選擇家長／聯絡人"
                   value={receiverId || undefined}
                   onChange={v => setReceiverId(v)}
                   filterOption={(input, option) => {
@@ -341,9 +341,9 @@ const SendNotifications = () => {
                   dropdownStyle={{ borderRadius: 12, boxShadow: '0 4px 24px #0002', padding: 0 }}
                   dropdownClassName={styles.dropdownCustom}
                   size="large"
-                  notFoundContent={<span style={{color:'#888'}}>Không tìm thấy phụ huynh</span>}
+                  notFoundContent={<span style={{color:'#888'}}>找不到家長／聯絡人</span>}
                 >
-                  <Select.Option value="">Chọn phụ huynh</Select.Option>
+                  <Select.Option value="">選擇家長／聯絡人</Select.Option>
                   {parents.filter(p => p.roleName === "Parent").map(p => (
                     <Select.Option key={p.userID} value={p.userID}>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -370,7 +370,7 @@ const SendNotifications = () => {
                 onChange={e => setTypeId(Number(e.target.value))}
                 required
               >
-                <option value="">Chọn loại thông báo</option>
+                <option value="">Chọn loại通知</option>
                 {categories.map(cat => (
                   <option key={cat.typeId || cat.id} value={cat.typeId}>{cat.typeName}</option>
                 ))}
@@ -388,19 +388,19 @@ const SendNotifications = () => {
                 disabled={loading}
               >
                 <Bell size={20} style={{marginRight: 4, marginBottom: -2}}/>
-                {loading ? "Đang gửi..." : "Gửi thông báo"}
+                {loading ? "處理中..." : "建立通知"}
               </button>
             </div>
           </form>
         </section>
-        {/* Danh sách thông báo xuống dưới */}
+        {/* Danh sách通知 xuống dưới */}
         <section className={styles.listSection}>
           <div className={styles.filterBar} style={{display:'flex', alignItems:'center', gap: 12, marginBottom: 0, width: '100%'}}>
             <div className={styles.filterGroup} style={{display:'flex', alignItems:'center', gap:12, flex: '0 1 auto'}}>
               <div className={styles.searchWrapper}>
                 <input
                   className={styles.searchInput}
-                  placeholder="Tìm kiếm tiêu đề/nội dung..."
+                  placeholder="搜尋標題或內容..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                 />
@@ -412,7 +412,7 @@ const SendNotifications = () => {
                 value={selectedCategory}
                 onChange={e => setSelectedCategory(Number(e.target.value))}
               >
-                <option value={0}>Tất cả loại thông báo</option>
+                <option value={0}>Tất cả loại通知</option>
                 {categories.map(cat => (
                   <option key={cat.typeId || cat.id} value={cat.typeId}>{cat.typeName}</option>
                 ))}
@@ -424,24 +424,24 @@ const SendNotifications = () => {
                 onClick={() => { setShowCategoryModal(true); setCategoryEdit(null); }}
                 style={{minWidth: 60, borderRadius: 8, fontWeight: 600, fontSize: 15, padding: '8px 16px', height: 36, display: 'flex', alignItems: 'center'}}
               >
-                <Plus size={16} style={{marginRight: 4}}/> Quản lý loại
+                <Plus size={16} style={{marginRight: 4}}/> 管理類型
               </button>
             </div>
           </div>
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{minWidth:120}}>Tiêu đề</th>
-                <th style={{minWidth:180}}>Nội dung</th>
-                <th style={{minWidth:120}}>Loại</th>
-                <th style={{minWidth:140}}>Phụ huynh nhận</th>
-                <th style={{minWidth:120}}>Ngày gửi</th>
-                <th style={{textAlign:'center',minWidth:80}}>Thao tác</th>
+                <th style={{minWidth:120}}>標題</th>
+                <th style={{minWidth:180}}>內容</th>
+                <th style={{minWidth:120}}>類型</th>
+                <th style={{minWidth:140}}>收件人</th>
+                <th style={{minWidth:120}}>建立日期</th>
+                <th style={{textAlign:'center',minWidth:80}}>操作</th>
               </tr>
             </thead>
             <tbody>
               {notifications.length === 0 ? (
-                <tr key="no-data"><td colSpan={6} style={{textAlign: 'center'}}>Không có thông báo</td></tr>
+                <tr key="no-data"><td colSpan={6} style={{textAlign: 'center'}}>Không có通知</td></tr>
               ) : notifications.map(n => {
                 const parent = parents.find(p => String(p.userID) === String(n.receiverId));
                 return (
@@ -452,7 +452,7 @@ const SendNotifications = () => {
                     <td>{parent ? (parent.fullName || parent.username || parent.email) : n.receiverId || ''}</td>
                     <td style={{whiteSpace:'nowrap'}}>{n.sentDate ? new Date(n.sentDate).toLocaleString() : ""}</td>
                     <td style={{textAlign:'center'}}>
-                      <button className={styles.iconBtn} style={{border:'none'}} title="Xóa" onClick={() => { setDeleteId(n.id || n.notificationId); setShowDeleteModal(true); }}><Trash2 size={16}/></button>
+                      <button className={styles.iconBtn} style={{border:'none'}} title="刪除" onClick={() => { setDeleteId(n.id || n.notificationId); setShowDeleteModal(true); }}><Trash2 size={16}/></button>
                     </td>
                   </tr>
                 );
@@ -479,39 +479,39 @@ const SendNotifications = () => {
         {/* Popup/modal cho CRUD notification & category */}
         <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
           <div style={{textAlign:'center', minWidth: 320, padding: 8}}>
-            <h3 style={{fontWeight:600, fontSize:20, marginBottom:16, marginTop:8}}>Bạn chắc chắn muốn xóa thông báo này?</h3>
+            <h3 style={{fontWeight:600, fontSize:20, marginBottom:16, marginTop:8}}>Bạn chắc chắn muốn xóa通知 này?</h3>
             <div style={{display:'flex',justifyContent:'center',gap:16,marginTop:24}}>
               <button
                 className={styles.button}
                 style={{minWidth:100, borderRadius:8, fontWeight:600, fontSize:16, padding:'10px 0'}}
                 onClick={handleDeleteNotification}
               >
-                Xác nhận
+                確認
               </button>
               <button
                 className={styles.button}
                 style={{background:'#f5f5f5',color:'#222',minWidth:100, borderRadius:8, fontWeight:600, fontSize:16, padding:'10px 0', border:'1px solid #ddd'}}
                 onClick={()=>setShowDeleteModal(false)}
               >
-                Hủy
+                取消
               </button>
             </div>
           </div>
         </Modal>
         <Modal open={showCategoryModal} onClose={() => { setShowCategoryModal(false); setCategoryEdit(null); }}>
-          <h2>{categoryEdit ? 'Sửa' : 'Thêm'} loại thông báo</h2>
+          <h2>{categoryEdit ? '編輯' : '新增'} loại通知</h2>
           <form onSubmit={handleSaveCategory}>
-            <input className={styles.input} value={catName} onChange={e=>setCatName(e.target.value)} placeholder="Tên loại thông báo" />
+            <input className={styles.input} value={catName} onChange={e=>setCatName(e.target.value)} placeholder="Tên loại通知" />
             {catError && <div style={{color:'#e53e3e',marginBottom:8}}>{catError}</div>}
-            <button className={styles.button} type="submit">Lưu</button>
+            <button className={styles.button} type="submit">儲存</button>
           </form>
           <div style={{marginTop:24}}>
-            <h4>Danh sách loại thông báo</h4>
+            <h4>Danh sách loại通知</h4>
             <ul style={{padding:0,listStyle:'none'}}>
               {categories.map(cat => (
                 <li key={cat.typeId} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
                   <span>{cat.typeName}</span>
-                  {/* Xóa nút sửa loại thông báo */}
+                  {/* 刪除 nút sửa loại通知 */}
                   <button className={styles.iconBtn} onClick={()=>handleDeleteCategory(cat.typeId)}><Trash2 size={14}/></button>
                 </li>
               ))}
