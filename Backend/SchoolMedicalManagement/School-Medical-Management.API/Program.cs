@@ -232,7 +232,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseRouting();
 app.UseRateLimiter();
-app.UseCors("LocalOnly");
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("LocalOnly");
+}
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
