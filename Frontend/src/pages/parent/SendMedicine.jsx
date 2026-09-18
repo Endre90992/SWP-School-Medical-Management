@@ -268,7 +268,7 @@ const SendMedicine = () => {
       }
       
       // Các lỗi khác vẫn log như bình thường
-      console.error("否 lấy được danh sách học sinh:", err);
+      console.error("無法取得學生名單：", err);
       setStudentList([]);
     }
   }, [parentId]); // Chỉ depend vào parentId
