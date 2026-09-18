@@ -52,9 +52,12 @@ namespace School_Medical_Management.API
             if (!await db.MedicationRequestStatuses.AnyAsync())
             {
                 await db.MedicationRequestStatuses.AddRangeAsync(
-                    new MedicationRequestStatus { StatusName = "待處理" },
+                    new MedicationRequestStatus { StatusName = "待審核" },
                     new MedicationRequestStatus { StatusName = "已核准" },
-                    new MedicationRequestStatus { StatusName = "已拒絕" });
+                    new MedicationRequestStatus { StatusName = "已拒絕" },
+                    new MedicationRequestStatus { StatusName = "已排程" },
+                    new MedicationRequestStatus { StatusName = "已完成" },
+                    new MedicationRequestStatus { StatusName = "已取消" });
                 await db.SaveChangesAsync();
             }
 
