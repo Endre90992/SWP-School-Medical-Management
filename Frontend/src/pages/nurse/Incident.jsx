@@ -159,9 +159,7 @@ const Incident = () => {
   };
 
   const getStaffName = (id, handledByName) => {
-    if (handledByName && handledByName !== "") return handledByName;
-    const user = users.find((u) => u.userId === id || u.userID === id);
-    if (user) return user.fullName;
+    if (handledByName) return handledByName;
     if (id === localStorage.getItem("userId")) return "目前使用者";
     return "未填寫";
   };
@@ -192,28 +190,17 @@ const Incident = () => {
       // Trong sendNotificationToParent, tạo message với fallback tránh undefined/null/Invalid Date
       const message = `學生: ${studentName}\n傷病類型: ${event.eventType || "未填寫"}\n時間: ${event.eventDate ? new Date(event.eventDate).toLocaleString("zh-TW") : "未填寫"}\n嚴重程度: ${event.severityLevelName || "未填寫"}\n傷病描述: ${event.description || "無"}`;
       const subject = "校園傷病紀錄通知";
-      await Promise.all([
-        axios.post(
-          NOTIFICATION_API,
-          {
-            receiverId: parentId,
-            title: subject,
-            message,
-            typeId: 2,
-            isRead: false,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        ),
-        axios.post(
-          "http://127.0.0.1:5080/api/Email/send-by-userid",
-          {
-            userId: parentId,
-            subject,
-            body: message,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        ),
-      ]);
+      await axios.post(
+        NOTIFICATION_API,
+        {
+          receiverId: parentId,
+          title: subject,
+          message,
+          typeId: 2,
+          isRead: false,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setEvents((prev) =>
         prev.map((e) =>
           e.eventId === event.eventId ? { ...e, notificationSent: true } : e
@@ -222,7 +209,7 @@ const Incident = () => {
       console.log('[DEBUG] 已建立本機家長通知：', parentId);
       return true;
     } catch (err) {
-      notifyError("建立本機通知 hoặc email thất bại!");
+      notifyError("建立本機通知失敗！");
       console.error("❌ 建立通知失敗：", err);
       if (err.response) {
         console.error('[DEBUG] Lỗi response:', err.response.data);
@@ -1225,32 +1212,21 @@ const Incident = () => {
                   const message = `學生: ${selectedEvent.studentName}\n傷病類型: ${selectedEvent.eventType}\n時間: ${selectedEvent.eventDate ? new Date(selectedEvent.eventDate).toLocaleString("zh-TW") : "未填寫"}\n嚴重程度: ${selectedEvent.severityLevelName || "未填寫"}\n傷病描述: ${selectedEvent.description || "無"}`;
                   const subject = "校園傷病紀錄通知";
                   // Gửi notification và email song song
-                  await Promise.all([
-                    axios.post(
-                      NOTIFICATION_API,
-                      {
-                        receiverId: parentId,
-                        title: subject,
-                        message,
-                        typeId: 2,
-                        isRead: false,
-                      },
-                      { headers: { Authorization: `Bearer ${token}` } }
-                    ),
-                    axios.post(
-                      "http://127.0.0.1:5080/api/Email/send-by-userid",
-                      {
-                        userId: parentId,
-                        subject,
-                        body: message,
-                      },
-                      { headers: { Authorization: `Bearer ${token}` } }
-                    ),
-                  ]);
-                  notifySuccess("已建立通知 và email cho phụ huynh!");
+                  await axios.post(
+                    NOTIFICATION_API,
+                    {
+                      receiverId: parentId,
+                      title: subject,
+                      message,
+                      typeId: 2,
+                      isRead: false,
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                  );
+                  notifySuccess("已建立家長通知！");
                   setShowSendOption(false);
                 } catch {
-                  notifyError("建立本機通知 hoặc email thất bại!");
+                  notifyError("建立本機通知失敗！");
                 }
               }}
             >
