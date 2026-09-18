@@ -26,7 +26,7 @@ import { notifySuccess, notifyError } from "../../utils/notification";
 import LoadingOverlay from "../../components/LoadingOverlay";
 
 const VACCINATION_CAMPAIGN_API =
-  "https://swp-school-medical-management.onrender.com/api/VaccinationCampaign/campaigns";
+  "http://127.0.0.1:5080/api/VaccinationCampaign/campaigns";
 
 // Cập nhật lại các trạng thái phù hợp với backend
 const statusOptions = [
