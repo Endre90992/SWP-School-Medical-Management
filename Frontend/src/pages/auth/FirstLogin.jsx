@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import styles from "../../assets/css/FirstLogin.module.css";
+
+const API_BASE = "http://127.0.0.1:5080/api";
 
 const FirstLogin = () => {
   const [newPassword, setNewPassword] = useState("");
@@ -11,22 +13,34 @@ const FirstLogin = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const role = localStorage.getItem("role");
-    if (role !== "Parent") {
-      navigate("/login");
+    if (!localStorage.getItem("token") || !localStorage.getItem("userId")) {
+      navigate("/login", { replace: true });
     }
   }, [navigate]);
+
+  const goToRoleHome = () => {
+    const role = localStorage.getItem("role");
+    if (role === "Manager") navigate("/manager", { replace: true });
+    else if (role === "Nurse") navigate("/nurse", { replace: true });
+    else if (role === "Parent") navigate("/parent", { replace: true });
+    else navigate("/", { replace: true });
+  };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
 
     if (!newPassword || !confirmPassword) {
-      alert("Vui lòng nhập đầy đủ thông tin!");
+      setMessage("請完整輸入新密碼與確認密碼。");
+      return;
+    }
+
+    if (newPassword.length < 10) {
+      setMessage("新密碼至少需要 10 個字元。");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setMessage("Mật khẩu xác nhận không khớp!");
+      setMessage("兩次輸入的密碼不一致。");
       return;
     }
 
@@ -34,58 +48,23 @@ const FirstLogin = () => {
       setLoading(true);
       const userId = localStorage.getItem("userId");
       const token = localStorage.getItem("token");
-      console.log("userId:", userId, "newPassword:", newPassword);
-      const response = await axios.post(
-        `https://swp-school-medical-management.onrender.com/api/User/change-password-firstlogin/${userId}`,
+
+      await axios.post(
+        `${API_BASE}/User/change-password-firstlogin/${userId}`,
         { newPassword },
         {
           headers: {
             "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` })
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
-      if (response.status === 200) {
-        setMessage("Đổi mật khẩu thành công! Đang chuyển vào trang phụ huynh...");
-        // Giữ lại token, userId, role để không bị mất session
-        setTimeout(async () => {
-          // Lấy lại userId từ localStorage hoặc truyền qua location.state
-          let userId = localStorage.getItem("userId");
-          if (!userId && window.history.state && window.history.state.usr && window.history.state.usr.userId) {
-            userId = window.history.state.usr.userId;
-            localStorage.setItem("userId", userId);
-          }
-          // Lưu parentId vào localStorage
-          localStorage.setItem("parentId", userId);
-          // Lấy danh sách học sinh của parent
-          try {
-            const studentRes = await axios.get(
-              "https://swp-school-medical-management.onrender.com/api/Student"
-            );
-            const students = studentRes.data.filter(
-              (s) => s.parentId === userId
-            );
-            if (students.length > 0) {
-              localStorage.setItem("studentIds", JSON.stringify(students.map(s => s.studentId)));
-              localStorage.setItem("studentId", students[0].studentId);
-            }
-          } catch (err) {
-            // Không alert ở đây, chỉ log
-            console.error("Lỗi khi lấy danh sách học sinh sau đổi mật khẩu:", err);
-          }
-          navigate("/parent");
-        }, 1200);
-      } else {
-        setMessage("Đổi mật khẩu thất bại!");
-      }
+      setMessage("密碼更新成功，正在進入系統...");
+      setTimeout(goToRoleHome, 700);
     } catch (error) {
-      console.error("❌ Lỗi khi đổi mật khẩu:", error);
-      setMessage(
-        error.response?.data?.message ||
-        error.response?.data ||
-        "Đã có lỗi xảy ra khi đổi mật khẩu."
-      );
+      console.error("修改密碼失敗：", error);
+      setMessage(error.response?.data?.message || "密碼更新失敗，請稍後再試。");
     } finally {
       setLoading(false);
     }
@@ -94,24 +73,27 @@ const FirstLogin = () => {
   return (
     <div className={styles.loginContainer}>
       <div className={styles.loginBox}>
-        <h2 className={styles.title}>Đổi mật khẩu lần đầu</h2>
+        <h2 className={styles.title}>首次登入－設定新密碼</h2>
+        <p>為保護學生資料，首次登入請先更換預設密碼。</p>
         <form onSubmit={handleChangePassword}>
           <input
             type="password"
-            placeholder="Mật khẩu mới"
+            placeholder="新密碼（至少 10 個字元）"
             className={styles.input}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
+            autoComplete="new-password"
           />
           <input
             type="password"
-            placeholder="Xác nhận mật khẩu"
+            placeholder="再次輸入新密碼"
             className={styles.input}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            autoComplete="new-password"
           />
           <button className={styles.button} type="submit" disabled={loading}>
-            {loading ? "Đang đổi mật khẩu..." : "Đổi mật khẩu"}
+            {loading ? "更新中..." : "更新密碼"}
           </button>
           {message && <p className={styles.message}>{message}</p>}
         </form>
