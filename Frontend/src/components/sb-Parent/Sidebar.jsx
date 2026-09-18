@@ -1,102 +1,54 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import {
-  Home,
-  House,
-  Users,
-  ClipboardList,
-  Syringe,
-  Bell,
-  LogOut,
-  Menu,
-
-
-  User,
-  Globe,
-
-
-  User,
-} from "lucide-react";
+import { Bell, ClipboardList, HeartPulse, Home, LogOut, Menu, User } from "lucide-react";
 import styles from "./Sidebar.module.css";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
-  const navigate = useNavigate();
   const [username, setUsername] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const name = localStorage.getItem("fullname") || "Tên phụ huynh";
-    setUsername(name);
+    setUsername(localStorage.getItem("fullname") || "家長");
   }, []);
 
-  const toggleSidebar = () => setIsOpen(!isOpen);
+  const logout = () => {
+    localStorage.clear();
+    navigate("/login", { replace: true });
+  };
 
   return (
-    <aside
-      className={`${styles.sbSidebar} ${
-        isOpen ? styles.expanded : styles.collapsed
-      }`}
-    >
-      {/* Logo và tên người dùng */}
+    <aside className={`${styles.sbSidebar} ${isOpen ? styles.expanded : styles.collapsed}`}>
       {isOpen && (
         <div className={styles.profileBox}>
-          <div className={styles.avatar}>
-            <User size={18} stroke="#20b2aa" />
-          </div>
+          <div className={styles.avatar}><User size={18} stroke="#20b2aa" /></div>
           <div className={styles.profileName}>{username}</div>
         </div>
       )}
 
-      {/* Nút menu thu gọn/mở rộng */}
-      <div className={styles.navItem} onClick={toggleSidebar}>
+      <button type="button" className={styles.navItem} onClick={() => setIsOpen((v) => !v)}>
         <Menu size={20} />
         {isOpen && <span className={styles.systemName}>EduHealth</span>}
-      </div>
+      </button>
 
       <nav>
-
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            `${styles.navItem} ${isActive ? styles.active : ""}`
-          }
-        >
-          <Globe size={20} stroke="#fff" />
-
-        <NavLink to="/" className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ""}`}>
-          <House size={20} />
-
-          <span>Trang chủ</span>
+        <NavLink to="/parent" className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ""}`}>
+          <Home size={20} /><span>首頁</span>
         </NavLink>
-        <NavLink to="/dashboard" className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ""}`}>
-          <Home size={20} />
-          <span>Bảng điều khiển</span>
+        <NavLink to="/healthprofile" className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ""}`}>
+          <HeartPulse size={20} /><span>學生健康資料</span>
         </NavLink>
-        <NavLink to="/healthprofile" className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ""}`}> 
-          <Users size={20} />
-          <span>Hồ sơ sức khỏe</span>
+        <NavLink to="/sendmedicine" className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ""}`}>
+          <ClipboardList size={20} /><span>用藥申請</span>
         </NavLink>
-        <NavLink to="/sendmedicine" className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ""}`}> 
-          <ClipboardList size={20} />
-          <span>Gửi thuốc cho y tế</span>
+        <NavLink to="/hisofcare" className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ""}`}>
+          <HeartPulse size={20} /><span>照護紀錄</span>
         </NavLink>
-        <NavLink to="/hisofcare" className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ""}`}> 
-          <Syringe size={20} />
-          <span>Lịch sử chăm sóc</span>
+        <NavLink to="/notification" className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ""}`}>
+          <Bell size={20} /><span>通知與回覆</span>
         </NavLink>
-        <NavLink to="/notification" className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ""}`}> 
-          <Bell size={20} />
-          <span>Thông báo & phản hồi</span>
-        </NavLink>
-        <button
-          className={`${styles.navItem} ${styles.logoutButton}`}
-          onClick={() => {
-            localStorage.clear();
-            navigate("/");
-          }}
-        >
-          <LogOut size={20} />
-          <span>Đăng xuất</span>
+        <button type="button" className={`${styles.navItem} ${styles.logoutButton}`} onClick={logout}>
+          <LogOut size={20} /><span>登出</span>
         </button>
       </nav>
     </aside>
