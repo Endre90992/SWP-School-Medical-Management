@@ -19,7 +19,7 @@ const ViewBlog = () => {
       setLoading(true);
       try {
         const res = await axios.get(
-          "https://swp-school-medical-management.onrender.com/api/BlogPost"
+          "http://127.0.0.1:5080/api/BlogPost"
         );
         if (res.data.status === "200") {
           setBlogs(res.data.data);
