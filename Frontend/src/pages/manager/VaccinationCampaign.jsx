@@ -431,7 +431,7 @@ const VaccinationCampaign = () => {
                 { required: true, message: "請輸入疫苗名稱" },
                 {
                   whitespace: true,
-                  message: "疫苗名稱 không được để trống!",
+                  message: "請輸入疫苗名稱。",
                 },
               ]}
             >
