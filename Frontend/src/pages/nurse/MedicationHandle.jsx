@@ -119,7 +119,7 @@ const MedicationHandle = () => {
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       updateLastAction(requestID);
-      notifySuccess("已排程 cho đơn thuốc!");
+      notifySuccess("用藥申請已排程！");
       await fetchRequests();
       setApprovedPage(1);
     } catch (error) {
@@ -142,7 +142,7 @@ const MedicationHandle = () => {
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       updateLastAction(requestID);
-      notifySuccess("Cập nhật trạng thái 'Đã cho uống' thành công!");
+      notifySuccess("已更新為『已完成用藥』！");
       await fetchRequests();
       setScheduledPage(1);
     } catch (error) {
