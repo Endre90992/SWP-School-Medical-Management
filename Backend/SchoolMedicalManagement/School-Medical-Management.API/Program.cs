@@ -186,6 +186,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+// 確保 SQLite 與備份資料夾只建立在本機程式目錄。
+Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "data"));
+
 // 第一次執行時自動建立本機資料庫與必要基本資料。
 using (var scope = app.Services.CreateScope())
 {
