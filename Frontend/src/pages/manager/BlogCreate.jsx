@@ -19,7 +19,7 @@ function getQueryParam(name) {
   return url.searchParams.get(name);
 }
 
-const apiUrl = "https://swp-school-medical-management.onrender.com/api/BlogPost";
+const apiUrl = "http://127.0.0.1:5080/api/BlogPost";
 
 const BlogCreate = () => {
   const [title, setTitle] = useState("");
