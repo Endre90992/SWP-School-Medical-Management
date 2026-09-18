@@ -86,7 +86,7 @@ const ViewBlog = () => {
                   <h3>{blog.title}</h3>
                   {expandedPostId === blog.postId ? (
                     <>
-                      <div dangerouslySetInnerHTML={{ __html: blog.content }} />
+                      <div>{blog.content}</div>
                       <p style={{ fontStyle: "italic", marginTop: "1rem" }}>
                         🖊️ Người viết: {blog.authorName} — Ngày đăng:{" "}
                         {new Date(blog.postedDate).toLocaleDateString("vi-VN")}
