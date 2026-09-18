@@ -31,12 +31,12 @@ import LoadingOverlay from "../../components/LoadingOverlay";
 import { useNavigate } from "react-router-dom";
 
 // API URL constants
-const MEDICAL_EVENT_API = "https://swp-school-medical-management.onrender.com/api/MedicalEvent";
-const MEDICAL_EVENT_TYPE_API = "https://swp-school-medical-management.onrender.com/api/MedicalEventType";
-const STUDENT_API = "https://swp-school-medical-management.onrender.com/api/Student";
-const USER_API = "https://swp-school-medical-management.onrender.com/api/User";
-const MEDICAL_SUPPLIES_API = "https://swp-school-medical-management.onrender.com/api/MedicalSupplies";
-const NOTIFICATION_API = "https://swp-school-medical-management.onrender.com/api/Notification/send";
+const MEDICAL_EVENT_API = "http://127.0.0.1:5080/api/MedicalEvent";
+const MEDICAL_EVENT_TYPE_API = "http://127.0.0.1:5080/api/MedicalEventType";
+const STUDENT_API = "http://127.0.0.1:5080/api/Student";
+const USER_API = "http://127.0.0.1:5080/api/User";
+const MEDICAL_SUPPLIES_API = "http://127.0.0.1:5080/api/MedicalSupplies";
+const NOTIFICATION_API = "http://127.0.0.1:5080/api/Notification/send";
 
 const COLORS = ["#F4C430", "#FF6B6B", "#4D96FF", "#9AE6B4", "#FFA500"];
 
@@ -217,7 +217,7 @@ const Incident = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         ),
         axios.post(
-          "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+          "http://127.0.0.1:5080/api/Email/send-by-userid",
           {
             userId: parentId,
             subject,
@@ -1261,7 +1261,7 @@ const Incident = () => {
                       { headers: { Authorization: `Bearer ${token}` } }
                     ),
                     axios.post(
-                      "https://swp-school-medical-management.onrender.com/api/Email/send-by-userid",
+                      "http://127.0.0.1:5080/api/Email/send-by-userid",
                       {
                         userId: parentId,
                         subject,
