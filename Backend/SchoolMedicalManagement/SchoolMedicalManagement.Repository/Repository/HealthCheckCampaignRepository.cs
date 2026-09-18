@@ -17,6 +17,7 @@ namespace SchoolMedicalManagement.Repository.Repository
         // Lấy tất cả các chiến dịch khám sức khỏe
         public async Task<List<HealthCheckCampaign>> GetAllHealthCheckCampaigns()
         => await _context.HealthCheckCampaigns
+            .AsNoTracking()
             .Include(c => c.CreatedByNavigation)
             .Include(c => c.Status)
             .Include(c => c.HealthCheckSummaries)
@@ -66,7 +67,16 @@ namespace SchoolMedicalManagement.Repository.Repository
         // Get count of active health check campaigns
         public async Task<int> GetActiveHealthCheckCampaignsCount()
         {
-            return await _context.HealthCheckCampaigns.CountAsync();
+            return await _context.HealthCheckCampaigns.CountAsync(c => c.StatusId == 2);
+        }
+
+        public async Task<Dictionary<int, int>> GetStatusCountsAsync()
+        {
+            return await _context.HealthCheckCampaigns
+                .AsNoTracking()
+                .GroupBy(c => c.StatusId ?? 0)
+                .Select(g => new { StatusId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.StatusId, x => x.Count);
         }
     }
 }
