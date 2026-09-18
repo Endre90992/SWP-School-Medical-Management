@@ -140,7 +140,8 @@ public class MedicalEventRepository : GenericRepository<MedicalEvent>
             if (newRecords.Count > 0)
                 await _context.HandleRecords.AddRangeAsync(newRecords);
 
-            _context.MedicalEvents.Update(medicalEvent);
+            // medicalEvent、舊 HandleRecord 與批次載入的物資皆來自同一個 DbContext，
+            // 已由 change tracker 追蹤，不必再 Update 整張 navigation graph。
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
