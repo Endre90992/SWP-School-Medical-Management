@@ -130,19 +130,8 @@ const NurseReport = () => {
     downloadCsv(rows, "健康中心報表.csv");
   };
 
-  const exportToPDF = async () => {
-    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-      import("html2canvas"),
-      import("jspdf"),
-    ]);
-
-    const canvas = await html2canvas(reportRef.current);
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
-    const width = pdf.internal.pageSize.getWidth();
-    const height = (canvas.height * width) / canvas.width;
-    pdf.addImage(imgData, "PNG", 0, 0, width, height);
-    pdf.save("健康中心報表.pdf");
+  const exportToPDF = () => {
+    window.print();
   };
 
   return (
@@ -156,7 +145,7 @@ const NurseReport = () => {
 
         <div className={style.exportControls}>
           <button onClick={exportToExcel} className={style.btnExport}>📥 匯出試算表</button>
-          <button onClick={exportToPDF} className={style.btnExport}>📄 匯出 PDF</button>
+          <button onClick={exportToPDF} className={style.btnExport}>📄 列印／另存 PDF</button>
         </div>
 
         <div ref={reportRef}>
