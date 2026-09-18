@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 using SchoolMedicalManagement.Models.Entity;
 using SchoolMedicalManagement.Models.Utils;
 
@@ -94,7 +95,14 @@ namespace School_Medical_Management.API
             {
                 var nurseRole = await db.Roles.SingleAsync(r => r.RoleName == "Nurse");
                 var username = configuration["LocalBootstrap:DefaultNurseUsername"] ?? "nurse";
-                var password = configuration["LocalBootstrap:DefaultNursePassword"] ?? "EduHealth@2026";
+                var password = configuration["LocalBootstrap:DefaultNursePassword"];
+                var generatedPassword = false;
+
+                if (string.IsNullOrWhiteSpace(password))
+                {
+                    password = $"Eh!{Convert.ToHexString(RandomNumberGenerator.GetBytes(8))}";
+                    generatedPassword = true;
+                }
 
                 await db.Users.AddAsync(new User
                 {
@@ -107,6 +115,21 @@ namespace School_Medical_Management.API
                 });
 
                 await db.SaveChangesAsync();
+
+                if (generatedPassword)
+                {
+                    var dataDir = Path.Combine(AppContext.BaseDirectory, "data");
+                    Directory.CreateDirectory(dataDir);
+                    var credentialPath = Path.Combine(dataDir, "初始登入資訊.txt");
+                    await File.WriteAllTextAsync(
+                        credentialPath,
+                        $"EduHealth Local TW 初始登入資訊{Environment.NewLine}" +
+                        $"帳號：{username}{Environment.NewLine}" +
+                        $"一次性密碼：{password}{Environment.NewLine}" +
+                        "首次登入後請立即修改密碼；修改成功後此檔案會自動刪除。"
+                    );
+                    Console.WriteLine($"[EduHealth] 初始登入資訊已建立：{credentialPath}");
+                }
             }
         }
     }
