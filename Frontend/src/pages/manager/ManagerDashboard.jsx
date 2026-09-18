@@ -31,9 +31,9 @@ const ManagerDashboard = () => {
         setOverview(overviewData);
         setNotifications([
           ...(overviewData?.data?.recentMedicalEvents || []).map((ev) => ({
-            title: ev.title || "Sự kiện y tế mới",
-            description: ev.description || "Có sự kiện y tế mới cần chú ý.",
-            time: ev.time || "Vừa xong",
+            title: ev.title || "新增傷病紀錄",
+            description: ev.description || "有新的健康中心紀錄需要留意。",
+            time: ev.time || "剛剛",
           })),
         ]);
       } catch {
@@ -87,14 +87,14 @@ const ManagerDashboard = () => {
         {/* Stats cards */}
         <section className={styles.statsCards}>
           {loading ? (
-            <div>Đang tải dữ liệu...</div>
+            <div>資料載入中...</div>
           ) : (
             <>
               <div className={styles.statCard} style={{ background: "#e0f7fa" }}>
                 <div className={styles.statIcon}>
                   <TeamOutlined style={{ fontSize: 32, color: "#06b6d4" }} />
                 </div>
-                <div className={styles.statTitle}>Tổng học sinh</div>
+                <div className={styles.statTitle}>學生總數</div>
                 <div className={styles.statValue}>
                   {overview?.data?.totalStudents ?? 0}
                 </div>
@@ -133,12 +133,12 @@ const ManagerDashboard = () => {
         {/* Thông báo mới (hiển thị feedback phụ huynh) */}
         <section className={styles.cardRequests}>
           <div className={styles.requestHeader}>
-            <h2>Phản hồi phụ huynh</h2>
+            <h2>家長回覆</h2>
           </div>
           <ul className={styles.incidentListUi}>
             {feedbacks.length === 0 && !loading && (
               <li className={styles.incidentCard}>
-                <div className={styles.incidentContent}>Không có phản hồi nào</div>
+                <div className={styles.incidentContent}>目前沒有家長回覆</div>
               </li>
             )}
             {feedbacks.slice(0, 5).map((fb, idx) => (
@@ -153,7 +153,7 @@ const ManagerDashboard = () => {
           </ul>
         </section>
 
-        {loading && <LoadingOverlay text="Đang tải dữ liệu..." />}
+        {loading && <LoadingOverlay text="資料載入中..." />}
 
         <Notification />
       </div>
