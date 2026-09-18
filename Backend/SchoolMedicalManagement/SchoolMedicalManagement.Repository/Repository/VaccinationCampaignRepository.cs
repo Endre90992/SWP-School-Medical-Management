@@ -334,6 +334,19 @@ namespace SchoolMedicalManagement.Repository.Repository
                 .Where(s => studentIds.Contains(s.StudentId) && s.IsActive == true)
                 .ToListAsync();
 
+        public async Task<HashSet<int>> GetExistingConsentStudentIdsAsync(
+            int campaignId,
+            IReadOnlyCollection<int> studentIds)
+        {
+            var ids = await _context.VaccinationConsentRequests
+                .AsNoTracking()
+                .Where(cr => cr.CampaignId == campaignId && studentIds.Contains(cr.StudentId))
+                .Select(cr => cr.StudentId)
+                .ToListAsync();
+
+            return ids.ToHashSet();
+        }
+
         // Kiểm tra phiếu đồng ý đã tồn tại
         public async Task<bool> ConsentRequestExists(int campaignId, int studentId)
             => await _context.VaccinationConsentRequests
