@@ -20,8 +20,6 @@ namespace SchoolMedicalManagement.Repository.Repository
             .AsNoTracking()
             .Include(c => c.CreatedByNavigation)
             .Include(c => c.Status)
-            .Include(c => c.HealthCheckSummaries)
-            .ThenInclude(s => s.Student)
             .ToListAsync();
 
         // Lấy chiến dịch khám sức khỏe theo id
@@ -29,9 +27,15 @@ namespace SchoolMedicalManagement.Repository.Repository
         => await _context.HealthCheckCampaigns
             .Include(c => c.CreatedByNavigation)
             .Include(c => c.Status)
-            .Include(c => c.HealthCheckSummaries)
-            .ThenInclude(s => s.Student)
             .FirstOrDefaultAsync(c => c.CampaignId == id);
+
+        public Task<List<HealthCheckCampaign>> GetHealthCheckCampaignsByStatusAsync(int statusId)
+            => _context.HealthCheckCampaigns
+                .AsNoTracking()
+                .Include(c => c.CreatedByNavigation)
+                .Include(c => c.Status)
+                .Where(c => c.StatusId == statusId)
+                .ToListAsync();
 
         // Tạo mới chiến dịch khám sức khỏe
         public async Task<HealthCheckCampaign?> CreateHealthCheckCampaign(HealthCheckCampaign campaign)
