@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import Notification from "../../components/Notification";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import { exportCsv } from "../../utils/exportCsv";
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f7f"];
 const OVERVIEW_API = "http://127.0.0.1:5080/api/Dashboard/overview";
@@ -90,30 +91,23 @@ const NurseReport = () => {
     },
   ];
 
-  const exportToExcel = async () => {
-    const XLSX = await import("xlsx");
-    const wb = XLSX.utils.book_new();
-
-    const overviewData = [
-      ["類別", "數量"],
-      ["預防接種活動", stats.vaccination.totalCampaigns],
-      ["傷病紀錄", stats.medical.totalMedicalEvents],
-      ["用藥申請", stats.medication.totalMedicationRequests],
-      ["健康檢查活動", stats.health.totalHealthCheckCampaigns],
+  const exportToExcel = () => {
+    const rows = [
+      { 類別: "預防接種活動", 數量: stats.vaccination.totalCampaigns },
+      { 類別: "傷病紀錄", 數量: stats.medical.totalMedicalEvents },
+      { 類別: "用藥申請", 數量: stats.medication.totalMedicationRequests },
+      { 類別: "健康檢查活動", 數量: stats.health.totalHealthCheckCampaigns },
+      ...stats.medication.recentMedicationRequests.map((item) => ({
+        類別: "近期用藥",
+        數量: "",
+        學生: item.studentName,
+        藥物: item.medicationName,
+        狀態: item.status,
+        時間: new Date(item.requestDate).toLocaleString("zh-TW"),
+      })),
     ];
-    const overviewSheet = XLSX.utils.aoa_to_sheet(overviewData);
-    XLSX.utils.book_append_sheet(wb, overviewSheet, "總覽");
 
-    const meds = stats.medication.recentMedicationRequests.map((item) => ({
-      學生: item.studentName,
-      藥物: item.medicationName,
-      狀態: item.status,
-      時間: new Date(item.requestDate).toLocaleString("zh-TW"),
-    }));
-    const medsSheet = XLSX.utils.json_to_sheet(meds);
-    XLSX.utils.book_append_sheet(wb, medsSheet, "近期用藥");
-
-    XLSX.writeFile(wb, "健康中心報表.xlsx");
+    exportCsv(rows, "健康中心報表.csv");
   };
 
   const exportToPDF = async () => {
