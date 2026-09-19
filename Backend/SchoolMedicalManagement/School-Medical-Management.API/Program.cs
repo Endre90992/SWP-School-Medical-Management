@@ -19,6 +19,16 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Single-file publish with IncludeAllContentForSelfExtract extracts bundled
+// web assets beside AppContext.BaseDirectory, while the process working
+// directory remains the folder containing the EXE. Point ASP.NET at the
+// extracted web root when it exists so the bundled React app is served.
+var bundledWebRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+if (Directory.Exists(bundledWebRoot))
+{
+    builder.WebHost.UseWebRoot(bundledWebRoot);
+}
+
 builder.Configuration.AddEnvironmentVariables();
 builder.WebHost.UseUrls(builder.Configuration["LocalServer:Url"] ?? "http://127.0.0.1:5080");
 
