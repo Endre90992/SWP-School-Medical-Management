@@ -88,7 +88,9 @@ jobs:
           New-Item -ItemType Directory -Path $testDir | Out-Null
           Copy-Item "single-exe/EduHealth-Local-TW.exe" $testDir
           $exePath = Join-Path $testDir "EduHealth-Local-TW.exe"
-          $proc = Start-Process $exePath -WorkingDirectory $testDir -PassThru
+          $stdoutPath = Join-Path $testDir "eduhealth.stdout.log"
+          $stderrPath = Join-Path $testDir "eduhealth.stderr.log"
+          $proc = Start-Process $exePath -WorkingDirectory $testDir -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
           try {
             $healthy = $false
             for ($i = 0; $i -lt 60; $i++) {
@@ -123,6 +125,21 @@ jobs:
 
             $spa = Invoke-WebRequest -Uri "http://127.0.0.1:5080/" -UseBasicParsing -TimeoutSec 5
             if ($spa.StatusCode -ne 200 -or $spa.Content -notmatch '<div id="root"') { throw "Bundled SPA smoke test failed." }
+          } catch {
+            if ($proc) {
+              $proc.Refresh()
+              Write-Host ("ProcessExited=" + $proc.HasExited)
+              if ($proc.HasExited) { Write-Host ("ProcessExitCode=" + $proc.ExitCode) }
+            }
+            if (Test-Path $stdoutPath) {
+              Write-Host "===== EduHealth stdout ====="
+              Get-Content $stdoutPath -Raw | Write-Host
+            }
+            if (Test-Path $stderrPath) {
+              Write-Host "===== EduHealth stderr ====="
+              Get-Content $stderrPath -Raw | Write-Host
+            }
+            throw
           } finally {
             if ($proc -and -not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
           }
