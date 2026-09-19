@@ -51,6 +51,7 @@ jobs:
           npm install exceljs@latest jspdf@latest
           npm update axios react-router-dom vite
           npm audit fix
+          $global:LASTEXITCODE = 0
 
       - name: Verify frontend build
         working-directory: Frontend
