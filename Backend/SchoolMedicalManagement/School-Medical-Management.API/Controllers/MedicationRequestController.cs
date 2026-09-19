@@ -77,11 +77,7 @@ namespace School_Medical_Management.API.Controllers
 
                     input.Position = 0;
                     var fileName = $"{Guid.NewGuid():N}{extension}";
-                    var uploadDirectory = Path.Combine(
-                        AppContext.BaseDirectory,
-                        "wwwroot",
-                        "uploads",
-                        "medication");
+                    var uploadDirectory = LocalStoragePaths.MedicationUploadsDirectory;
                     Directory.CreateDirectory(uploadDirectory);
 
                     var savePath = Path.Combine(uploadDirectory, fileName);
