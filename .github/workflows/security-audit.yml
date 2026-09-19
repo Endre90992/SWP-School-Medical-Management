@@ -26,6 +26,11 @@ jobs:
           $audit = Get-Content npm-audit.json -Raw | ConvertFrom-Json
           $counts = $audit.metadata.vulnerabilities
           Write-Host "npm vulnerabilities: low=$($counts.low), moderate=$($counts.moderate), high=$($counts.high), critical=$($counts.critical)"
+          $audit.vulnerabilities.PSObject.Properties |
+            Where-Object { $_.Value.severity -in @("high", "critical") } |
+            ForEach-Object {
+              Write-Host ("npm high/critical: {0} severity={1} direct={2} range={3}" -f $_.Name, $_.Value.severity, $_.Value.isDirect, $_.Value.range)
+            }
           "npm_high=$($counts.high)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "npm_critical=$($counts.critical)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         continue-on-error: true
