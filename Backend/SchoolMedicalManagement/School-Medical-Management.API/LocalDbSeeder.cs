@@ -118,9 +118,8 @@ namespace School_Medical_Management.API
 
                 if (generatedPassword)
                 {
-                    var dataDir = Path.Combine(AppContext.BaseDirectory, "data");
-                    Directory.CreateDirectory(dataDir);
-                    var credentialPath = Path.Combine(dataDir, "初始登入資訊.txt");
+                    LocalAppPaths.EnsureDirectories();
+                    var credentialPath = LocalAppPaths.InitialCredentialFile;
                     await File.WriteAllTextAsync(
                         credentialPath,
                         $"EduHealth Local TW 初始登入資訊{Environment.NewLine}" +
