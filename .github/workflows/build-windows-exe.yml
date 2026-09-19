@@ -90,6 +90,9 @@ jobs:
           $exePath = Join-Path $testDir "EduHealth-Local-TW.exe"
           $stdoutPath = Join-Path $testDir "eduhealth.stdout.log"
           $stderrPath = Join-Path $testDir "eduhealth.stderr.log"
+          $extractBase = Join-Path $testDir "bundle-extract"
+          New-Item -ItemType Directory -Path $extractBase -Force | Out-Null
+          $env:DOTNET_BUNDLE_EXTRACT_BASE_DIR = $extractBase
           $proc = Start-Process $exePath -WorkingDirectory $testDir -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
           try {
             $healthy = $false
@@ -138,6 +141,12 @@ jobs:
             if (Test-Path $stderrPath) {
               Write-Host "===== EduHealth stderr ====="
               Get-Content $stderrPath -Raw | Write-Host
+            }
+            if (Test-Path $extractBase) {
+              Write-Host "===== Bundle extraction files ====="
+              Get-ChildItem $extractBase -Recurse -File |
+                Select-Object -ExpandProperty FullName |
+                Write-Host
             }
             throw
           } finally {
