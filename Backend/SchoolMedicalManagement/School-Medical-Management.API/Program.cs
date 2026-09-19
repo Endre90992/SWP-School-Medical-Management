@@ -13,6 +13,7 @@ using SchoolMedicalManagement.Service.Interface;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,20 @@ if (string.IsNullOrWhiteSpace(jwtKey))
 }
 
 builder.Services.AddControllers();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("LoginLimit", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "local",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
 builder.Services.AddEndpointsApiExplorer();
 
 // Repository
@@ -154,6 +169,23 @@ builder.Services.AddHangfireServer(options =>
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    context.Response.Headers["Content-Security-Policy"] =
+        "default-src 'self'; " +
+        "script-src 'self'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: blob:; " +
+        "font-src 'self' data:; " +
+        "connect-src 'self' http://127.0.0.1:5080; " +
+        "object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+    await next();
+});
+
 // 即使日後誤改 Kestrel 綁定位址，也拒絕非本機來源。
 app.Use(async (context, next) =>
 {
@@ -185,6 +217,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseRateLimiter();
 app.UseCors("LocalOnly");
 app.UseAuthentication();
 app.UseAuthorization();
