@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 
 $candidates = @(
+    (Join-Path $env:LOCALAPPDATA "EduHealth-Local-TW\data"),
     (Join-Path $repoRoot "Backend\SchoolMedicalManagement\School-Medical-Management.API\bin\Debug\net8.0\data"),
     (Join-Path $repoRoot "Backend\SchoolMedicalManagement\School-Medical-Management.API\bin\Release\net8.0\data"),
     (Join-Path $repoRoot "Backend\SchoolMedicalManagement\School-Medical-Management.API\data"),
