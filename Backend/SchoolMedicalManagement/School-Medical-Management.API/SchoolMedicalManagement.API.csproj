@@ -25,7 +25,25 @@
     <ProjectReference Include="..\SchoolMedicalManagement.Service\SchoolMedicalManagement.Service.csproj" />
   </ItemGroup>
 
-  <Target Name="BuildFrontendForPublish" BeforeTargets="ComputeFilesToPublish" Condition="'$(Configuration)' == 'Release'">
+  <Target Name="BuildFrontendForSingleFile"
+          BeforeTargets="PrepareResources"
+          Condition="'$(Configuration)' == 'Release' and '$(PublishSingleFile)' == 'true'">
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+    <ZipDirectory
+      SourceDirectory="$(SpaRoot)dist"
+      DestinationFile="$(IntermediateOutputPath)eduhealth-frontend.zip"
+      Overwrite="true" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(IntermediateOutputPath)eduhealth-frontend.zip">
+        <LogicalName>EduHealth.Frontend.zip</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="BuildFrontendForPublish"
+          BeforeTargets="ComputeFilesToPublish"
+          Condition="'$(Configuration)' == 'Release' and '$(PublishSingleFile)' != 'true'">
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
 
@@ -34,7 +52,6 @@
       <ResolvedFileToPublish Include="@(FrontendDist->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
         <RelativePath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-        <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
       </ResolvedFileToPublish>
     </ItemGroup>
   </Target>
