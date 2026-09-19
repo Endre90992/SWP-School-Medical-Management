@@ -6,7 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>School_Medical_Management.API</RootNamespace>
     <SpaRoot>..\..\..\Frontend\</SpaRoot>
-    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,7 +13,6 @@
     <PackageReference Include="Hangfire.MemoryStorage" Version="1.8.1.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.31" />
-    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.31" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.31" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.31" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.31">
@@ -52,12 +50,6 @@
 
     <ItemGroup>
       <FrontendDist Include="$(SpaRoot)dist\**\*" />
-
-      <!-- Embed the React app into the managed assembly so a true single EXE
-           can serve it without depending on extraction paths. -->
-      <EmbeddedResource Include="@(FrontendDist)">
-        <LogicalName>wwwroot/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
-      </EmbeddedResource>
 
       <!-- Keep normal folder publish behavior working too. -->
       <ResolvedFileToPublish Include="@(FrontendDist->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
