@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
 using School_Medical_Management.API;
 using SchoolMedicalManagement.Models.Entity;
@@ -248,7 +249,22 @@ app.MapGet("/api/health", () => Results.Ok(new
 })).AllowAnonymous();
 app.MapMethods("/api/health", new[] { "HEAD" }, () => Results.Ok()).AllowAnonymous();
 
-app.UseStaticFiles();
+IFileProvider publicWebFiles = app.Environment.WebRootFileProvider;
+try
+{
+    var embeddedWebFiles = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot");
+    publicWebFiles = new CompositeFileProvider(publicWebFiles, embeddedWebFiles);
+}
+catch (InvalidOperationException)
+{
+    // Development builds may not contain the embedded manifest; physical
+    // wwwroot remains available in that case.
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = publicWebFiles
+});
 
 
 if (app.Environment.IsDevelopment())
@@ -265,10 +281,12 @@ app.MapControllers();
 
 // Release publish 會把 Vite build 放進 wwwroot；若存在 index.html，
 // 讓 React Router 的深層網址也能由同一個 ASP.NET 程序提供。
-var spaIndex = Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "index.html");
-if (File.Exists(spaIndex))
+if (publicWebFiles.GetFileInfo("index.html").Exists)
 {
-    app.MapFallbackToFile("index.html").AllowAnonymous();
+    app.MapFallbackToFile("index.html", new StaticFileOptions
+    {
+        FileProvider = publicWebFiles
+    }).AllowAnonymous();
 }
 
 // 第一次執行時自動建立本機資料庫與必要基本資料。
