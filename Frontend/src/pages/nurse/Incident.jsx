@@ -26,6 +26,7 @@ import Notification from "../../components/Notification";
 import { notifySuccess, notifyError } from "../../utils/notification";
 import { toast } from "react-toastify";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import { exportCsv } from "../../utils/exportCsv";
 import { useNavigate } from "react-router-dom";
 
 // API URL constants
@@ -393,23 +394,19 @@ const Incident = () => {
   const currentItems = filteredEvents.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
 
-  const handleExportExcel = async () => {
+  const handleExportExcel = () => {
     if (filteredEvents.length === 0) return;
 
-    const XLSX = await import("xlsx");
-    const ws = XLSX.utils.json_to_sheet(
+    exportCsv(
       filteredEvents.map((e) => ({
-        "學生": e.studentName,
-        "傷病類型": e.eventType,
-        "時間": new Date(e.eventDate).toLocaleString("zh-TW"),
-        "嚴重程度": e.severityLevelName,
-        "處理人員": e.handledByName || "",
-      }))
+        學生: e.studentName,
+        傷病類型: e.eventType,
+        時間: new Date(e.eventDate).toLocaleString("zh-TW"),
+        嚴重程度: e.severityLevelName,
+        處理人員: e.handledByName || "",
+      })),
+      "學生傷病紀錄.csv"
     );
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "傷病紀錄");
-    XLSX.writeFile(wb, "學生傷病紀錄.xlsx");
   };
 
   const handleCreate = () => {
