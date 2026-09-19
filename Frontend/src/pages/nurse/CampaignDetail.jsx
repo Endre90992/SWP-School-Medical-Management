@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import style from "../../assets/css/CampaignDetail.module.css";
-import * as XLSX from "xlsx";
 import {
   PieChart,
   Pie,
@@ -271,25 +270,27 @@ const CampaignDetail = () => {
       c.consentDate ? new Date(c.consentDate).toLocaleDateString("zh-TW") : "",
     ]);
 
-    const wb = XLSX.utils.book_new();
-    const summaryWs = XLSX.utils.aoa_to_sheet(summarySheet);
-    const detailWs = XLSX.utils.aoa_to_sheet([detailHeader, ...detailRows]);
+    const escapeCsv = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const rows = [
+      ...summarySheet,
+      [],
+      ["回覆明細"],
+      detailHeader,
+      ...detailRows,
+    ];
 
-    XLSX.utils.book_append_sheet(wb, summaryWs, "摘要");
-    XLSX.utils.book_append_sheet(wb, detailWs, "回覆明細");
-
-    XLSX.writeFile(
-      wb,
-      `BaoCao_TiemChung_${campaign.vaccineName.replace(/\s/g, "_")}.xlsx`
-    );
+    const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    const safeName = String(campaign.vaccineName || "預防接種").replace(/[\\/:*?"<>|]/g, "_");
+    anchor.download = `預防接種_${safeName}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
   };
-
-  if (loading || !campaign || modalLoading)
-    return (
-      <div className={style.loadingOverlay}>
-        <div className={style.spinner}></div>
-      </div>
-    );
 
   const totalAgreed = consents.filter(
     (c) => c.consentStatusName === "同意"
@@ -621,7 +622,7 @@ const CampaignDetail = () => {
         {isDaHoanThanh(campaign.statusName) && (
           <>
             <button id="btn-export"   className={style.btnExport} onClick={exportToExcel}>
-              匯出 Excel
+              匯出 CSV（Excel 可開啟）
             </button>
           </>
         )}
