@@ -1,0 +1,41 @@
+name: Refresh frontend lockfile
+
+on:
+  push:
+    branches:
+      - security/exe-hardening
+    paths:
+      - Frontend/package.json
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: security/exe-hardening
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Refresh package-lock.json
+        working-directory: Frontend
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Commit refreshed lockfile
+        shell: bash
+        run: |
+          if git diff --quiet -- Frontend/package-lock.json; then
+            echo "Lockfile already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Frontend/package-lock.json
+          git commit -m "security: refresh frontend lockfile"
+          git push origin HEAD:security/exe-hardening
