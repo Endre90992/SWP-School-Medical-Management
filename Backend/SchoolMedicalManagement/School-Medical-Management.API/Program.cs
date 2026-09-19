@@ -32,6 +32,20 @@ if (string.IsNullOrWhiteSpace(jwtKey))
     builder.Configuration["Jwt:Key"] = jwtKey;
 }
 
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+if (string.IsNullOrWhiteSpace(jwtIssuer))
+{
+    jwtIssuer = "EduHealth-Local-TW";
+    builder.Configuration["Jwt:Issuer"] = jwtIssuer;
+}
+
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+if (string.IsNullOrWhiteSpace(jwtAudience))
+{
+    jwtAudience = "EduHealth-Local-TW";
+    builder.Configuration["Jwt:Audience"] = jwtAudience;
+}
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
@@ -121,8 +135,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
 
@@ -130,12 +144,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnAuthenticationFailed = context =>
             {
-                context.Response.StatusCode = 401;
-                context.Response.ContentType = "application/json";
-                var message = context.Exception is SecurityTokenExpiredException
-                    ? "登入工作階段已逾時。"
-                    : "登入憑證無效。";
-                return context.Response.WriteAsync($"{{\"error\":\"{message}\"}}");
+                context.HttpContext.Items["JwtAuthError"] =
+                    context.Exception is SecurityTokenExpiredException
+                        ? "登入工作階段已逾時。"
+                        : "登入憑證無效。";
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json; charset=utf-8";
+                var message = context.HttpContext.Items.TryGetValue("JwtAuthError", out var authError)
+                    ? authError?.ToString() ?? "登入憑證無效。"
+                    : "需要登入才能使用此功能。";
+                return context.Response.WriteAsJsonAsync(new { error = message });
             }
         };
     });
