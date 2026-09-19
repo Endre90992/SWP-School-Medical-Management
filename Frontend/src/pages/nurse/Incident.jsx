@@ -396,20 +396,38 @@ const Incident = () => {
   const handleExportExcel = async () => {
     if (filteredEvents.length === 0) return;
 
-    const XLSX = await import("xlsx");
-    const ws = XLSX.utils.json_to_sheet(
-      filteredEvents.map((e) => ({
-        "學生": e.studentName,
-        "傷病類型": e.eventType,
-        "時間": new Date(e.eventDate).toLocaleString("zh-TW"),
-        "嚴重程度": e.severityLevelName,
-        "處理人員": e.handledByName || "",
-      }))
-    );
+    const { default: ExcelJS } = await import("exceljs");
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("傷病紀錄");
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "傷病紀錄");
-    XLSX.writeFile(wb, "學生傷病紀錄.xlsx");
+    worksheet.columns = [
+      { header: "學生", key: "studentName", width: 18 },
+      { header: "傷病類型", key: "eventType", width: 18 },
+      { header: "時間", key: "eventDate", width: 22 },
+      { header: "嚴重程度", key: "severity", width: 12 },
+      { header: "處理人員", key: "handledBy", width: 18 },
+    ];
+
+    filteredEvents.forEach((event) => {
+      worksheet.addRow({
+        studentName: event.studentName,
+        eventType: event.eventType,
+        eventDate: new Date(event.eventDate).toLocaleString("zh-TW"),
+        severity: event.severityLevelName,
+        handledBy: event.handledByName || "",
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "學生傷病紀錄.xlsx";
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleCreate = () => {
