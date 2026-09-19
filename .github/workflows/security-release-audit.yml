@@ -27,9 +27,24 @@ jobs:
         shell: pwsh
         run: |
           npm audit --json | Out-File -Encoding utf8 npm-audit.json
+          $auditExit = $LASTEXITCODE
+          $global:LASTEXITCODE = 0
+
           $audit = Get-Content npm-audit.json -Raw | ConvertFrom-Json
           $meta = $audit.metadata.vulnerabilities
           Write-Host "npm audit: critical=$($meta.critical) high=$($meta.high) moderate=$($meta.moderate) low=$($meta.low)"
+
+          foreach ($property in $audit.vulnerabilities.PSObject.Properties) {
+            $item = $property.Value
+            if ($item.severity -in @("critical", "high")) {
+              $via = @($item.via | ForEach-Object {
+                if ($_ -is [string]) { $_ }
+                elseif ($_.title) { $_.title }
+              }) -join " | "
+              Write-Host "AUDIT $($item.severity.ToUpper()) :: $($property.Name) :: direct=$($item.isDirect) :: range=$($item.range) :: fix=$($item.fixAvailable) :: via=$via"
+            }
+          }
+
           if (($meta.critical -gt 0) -or ($meta.high -gt 0)) {
             Write-Host "::warning::High or critical npm vulnerabilities remain."
           }
