@@ -13,18 +13,29 @@ using SchoolMedicalManagement.Service.Implement;
 using SchoolMedicalManagement.Service.Interface;
 using System.Diagnostics;
 using System.Net;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Single-file publish with IncludeAllContentForSelfExtract extracts bundled
-// web assets beside AppContext.BaseDirectory, while the process working
-// directory remains the folder containing the EXE. Point ASP.NET at the
-// extracted web root when it exists so the bundled React app is served.
-var bundledWebRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-if (Directory.Exists(bundledWebRoot))
+// Single-file publish with IncludeAllContentForSelfExtract can place content
+// files in the bundle extraction directory while AppContext.BaseDirectory
+// still points to the physical EXE folder. Probe both locations.
+var executingAssemblyDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+var webRootCandidates = new[]
+{
+    Path.Combine(AppContext.BaseDirectory, "wwwroot"),
+    string.IsNullOrWhiteSpace(executingAssemblyDirectory)
+        ? string.Empty
+        : Path.Combine(executingAssemblyDirectory, "wwwroot")
+};
+
+var bundledWebRoot = webRootCandidates
+    .FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) && Directory.Exists(path));
+
+if (!string.IsNullOrWhiteSpace(bundledWebRoot))
 {
     builder.WebHost.UseWebRoot(bundledWebRoot);
 }
