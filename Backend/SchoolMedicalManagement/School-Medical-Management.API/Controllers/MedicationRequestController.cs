@@ -56,18 +56,46 @@ namespace School_Medical_Management.API.Controllers
                 string? imagePath = null;
                 if (request.ImageFile != null && request.ImageFile.Length > 0)
                 {
-                    var fileName = Guid.NewGuid() + Path.GetExtension(request.ImageFile.FileName);
-                    var savePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "medication", fileName);
+                    const long maxImageBytes = 5 * 1024 * 1024;
+                    if (request.ImageFile.Length > maxImageBytes)
+                        return BadRequest("藥袋／藥品照片不可超過 5 MB。");
 
-                    // Đảm bảo thư mục tồn tại
-                    Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
-
-                    using (var stream = new FileStream(savePath, FileMode.Create))
+                    var contentType = request.ImageFile.ContentType?.ToLowerInvariant();
+                    var extension = contentType switch
                     {
-                        await request.ImageFile.CopyToAsync(stream);
+                        "image/jpeg" => ".jpg",
+                        "image/png" => ".png",
+                        _ => null
+                    };
+
+                    if (extension == null)
+                        return BadRequest("只允許上傳 JPG 或 PNG 圖片。");
+
+                    await using var input = request.ImageFile.OpenReadStream();
+                    if (!await HasValidImageSignatureAsync(input, contentType))
+                        return BadRequest("圖片內容與檔案格式不符，已拒絕上傳。");
+
+                    input.Position = 0;
+                    var fileName = $"{Guid.NewGuid():N}{extension}";
+                    var uploadDirectory = Path.Combine(
+                        AppContext.BaseDirectory,
+                        "wwwroot",
+                        "uploads",
+                        "medication");
+                    Directory.CreateDirectory(uploadDirectory);
+
+                    var savePath = Path.Combine(uploadDirectory, fileName);
+                    await using (var stream = new FileStream(
+                        savePath,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None,
+                        81920,
+                        FileOptions.Asynchronous | FileOptions.WriteThrough))
+                    {
+                        await input.CopyToAsync(stream);
                     }
 
-                    // Gán đường dẫn để lưu trong DB
                     imagePath = $"/uploads/medication/{fileName}";
                 }
 
@@ -143,5 +171,24 @@ namespace School_Medical_Management.API.Controllers
             var response = await _medicationRequestService.GetRequestsByStatusIdAsync(statusId);
             return StatusCode(int.Parse(response.Status ?? "200"), response);
         }
+        private static async Task<bool> HasValidImageSignatureAsync(Stream stream, string contentType)
+        {
+            var header = new byte[8];
+            var read = await stream.ReadAsync(header.AsMemory(0, header.Length));
+            if (read < 3) return false;
+
+            if (contentType == "image/jpeg")
+                return header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF;
+
+            if (contentType == "image/png")
+            {
+                if (read < 8) return false;
+                byte[] pngSignature = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+                return header.SequenceEqual(pngSignature);
+            }
+
+            return false;
+        }
+
     }
 }
