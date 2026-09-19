@@ -18,6 +18,34 @@ namespace School_Medical_Management.API.Controllers
             _medicationRequestService = medicationRequestService;
         }
 
+        // 舊有 imagePath 格式維持 /uploads/medication/{fileName}，
+        // 但改由受全域 Authorize 保護的 Controller 提供，不再公開靜態存取。
+        [HttpGet("/uploads/medication/{fileName}")]
+        public IActionResult GetMedicationAttachment([FromRoute] string fileName)
+        {
+            var safeName = Path.GetFileName(fileName);
+            if (!string.Equals(fileName, safeName, StringComparison.Ordinal))
+                return BadRequest();
+
+            var extension = Path.GetExtension(safeName).ToLowerInvariant();
+            var contentType = extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".webp" => "image/webp",
+                _ => null
+            };
+
+            if (contentType == null)
+                return NotFound();
+
+            var fullPath = Path.Combine(AppPaths.UploadDirectory, safeName);
+            if (!System.IO.File.Exists(fullPath))
+                return NotFound();
+
+            return PhysicalFile(fullPath, contentType, enableRangeProcessing: true);
+        }
+
         // ✅ 1. Lấy danh sách đơn thuốc đang chờ duyệt
         [HttpGet("pending")]
         public async Task<IActionResult> GetPendingRequests()
