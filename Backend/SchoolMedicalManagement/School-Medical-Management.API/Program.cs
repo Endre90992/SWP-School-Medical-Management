@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.FileProviders;
 using School_Medical_Management.API;
 using SchoolMedicalManagement.Models.Entity;
 using SchoolMedicalManagement.Repository.Repository;
@@ -19,6 +20,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();
 builder.WebHost.UseUrls(builder.Configuration["LocalServer:Url"] ?? "http://127.0.0.1:5080");
+
+AppPaths.EnsureDirectories();
+builder.Configuration["ConnectionStrings:DefaultConnection"] =
+    $"Data Source={AppPaths.DatabasePath};Cache=Shared;Pooling=True;Default Timeout=5";
 
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey))
@@ -210,6 +215,14 @@ app.MapMethods("/api/health", new[] { "HEAD" }, () => Results.Ok()).AllowAnonymo
 
 app.UseStaticFiles();
 
+// 使用者上傳圖片存放於 LocalAppData，不受單檔 EXE 自解壓目錄影響。
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(AppPaths.UploadDirectory),
+    RequestPath = "/uploads/medication",
+    ServeUnknownFileTypes = false
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -231,9 +244,6 @@ if (File.Exists(spaIndex))
     app.MapFallbackToFile("index.html").AllowAnonymous();
 }
 
-// 確保 SQLite 與備份資料夾只建立在本機程式目錄。
-Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "data"));
-
 // 第一次執行時自動建立本機資料庫與必要基本資料。
 using (var scope = app.Services.CreateScope())
 {
@@ -241,6 +251,25 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
     await LocalDatabaseOptimizer.OptimizeAsync(db);
     await LocalDbSeeder.SeedAsync(db, builder.Configuration);
+}
+
+if (builder.Configuration.GetValue("LocalServer:OpenBrowserOnStart", false))
+{
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = builder.Configuration["LocalServer:Url"] ?? "http://127.0.0.1:5080",
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // 無預設瀏覽器時不影響本機服務啟動。
+        }
+    });
 }
 
 app.Run();
