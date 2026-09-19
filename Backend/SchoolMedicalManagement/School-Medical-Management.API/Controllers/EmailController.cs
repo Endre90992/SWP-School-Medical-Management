@@ -1,42 +1,27 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SchoolMedicalManagement.Models.Request;
-using SchoolMedicalManagement.Service.Interface;
-using System;
-using System.Threading.Tasks;
 
 namespace School_Medical_Management.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Nurse,Manager")]
     public class EmailController : ControllerBase
     {
-        private readonly IEmailService _emailService;
-
-        public EmailController(IEmailService emailService)
-        {
-            _emailService = emailService;
-        }
-
         [HttpPost("send-by-userid")]
-        public async Task<IActionResult> SendEmailByUserId([FromBody] SendEmailByUserIdRequest request)
-        {
-            if (request == null || request.UserId == Guid.Empty || string.IsNullOrEmpty(request.Subject) || string.IsNullOrEmpty(request.Body))
+        public IActionResult SendEmailByUserId()
+            => StatusCode(StatusCodes.Status410Gone, new
             {
-                return BadRequest(new { Status = "400", Message = "userId, subject và body là bắt buộc." });
-            }
-            var response = await _emailService.SendEmailByUserIdAsync(request.UserId, request.Subject, request.Body);
-            return StatusCode(int.Parse(response.Status ?? "200"), response);
-        }
+                status = "410",
+                message = "EduHealth Local TW 為離線版，已停用 Email 功能。"
+            });
 
         [HttpPost("send-by-email")]
-        public async Task<IActionResult> SendEmailByEmail([FromBody] SendEmailByEmailRequest request)
-        {
-            if (request == null || string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Subject) || string.IsNullOrEmpty(request.Body))
+        public IActionResult SendEmailByEmail()
+            => StatusCode(StatusCodes.Status410Gone, new
             {
-                return BadRequest(new { Status = "400", Message = "email, subject và body là bắt buộc." });
-            }
-            var response = await _emailService.SendEmailAsync(request.Email, request.Subject, request.Body);
-            return StatusCode(int.Parse(response.Status ?? "200"), response);
-        }
+                status = "410",
+                message = "EduHealth Local TW 為離線版，已停用 Email 功能。"
+            });
     }
-} 
+}
