@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
 using School_Medical_Management.API;
 using SchoolMedicalManagement.Models.Entity;
@@ -143,11 +142,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization(options =>
 {
-    // 單機健康中心版本預設只允許護理師／管理者存取 API。
-    // 若未來真的要啟用家長入口，應為各 Parent endpoint 明確加上 ownership policy。
+    // 預設所有 API 皆需登入；角色與資料所有權由各控制器明確限制。
+    // 這可保留既有家長功能，同時避免用全域角色政策誤擋 Parent 流程。
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
-        .RequireRole("Nurse", "Manager")
         .Build();
 });
 
@@ -221,17 +219,6 @@ app.MapMethods("/api/health", new[] { "HEAD" }, () => Results.Ok()).AllowAnonymo
 
 app.UseStaticFiles();
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(LocalStoragePaths.MedicationUploadsDirectory),
-    RequestPath = "/uploads/medication",
-    OnPrepareResponse = context =>
-    {
-        context.Context.Response.Headers["Cache-Control"] = "no-store, max-age=0";
-        context.Context.Response.Headers["Pragma"] = "no-cache";
-        context.Context.Response.Headers["X-Content-Type-Options"] = "nosniff";
-    }
-});
 
 if (app.Environment.IsDevelopment())
 {
