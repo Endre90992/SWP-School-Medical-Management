@@ -21,13 +21,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 
 var embeddedWebRoot = PrepareEmbeddedFrontend();
-
-var builderOptions = new WebApplicationOptions
-{
-    Args = args,
-    WebRootPath = string.IsNullOrWhiteSpace(embeddedWebRoot) ? null : embeddedWebRoot
-};
-var builder = WebApplication.CreateBuilder(builderOptions);
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();
 builder.WebHost.UseUrls(builder.Configuration["LocalServer:Url"] ?? "http://127.0.0.1:5080");
@@ -255,6 +249,11 @@ var publicWebProviders = new List<IFileProvider>
     app.Environment.WebRootFileProvider
 };
 
+if (!string.IsNullOrWhiteSpace(embeddedWebRoot) && Directory.Exists(embeddedWebRoot))
+{
+    publicWebProviders.Add(new PhysicalFileProvider(embeddedWebRoot));
+}
+
 // IncludeAllContentForSelfExtract places bundled content beside the extracted
 // managed assembly. Assembly.Location points at that extraction directory,
 // while mutable data continues to use Environment.ProcessPath via
@@ -269,16 +268,6 @@ if (!string.IsNullOrWhiteSpace(assemblyLocation))
         if (Directory.Exists(extractedWebRoot))
             publicWebProviders.Add(new PhysicalFileProvider(extractedWebRoot));
     }
-}
-
-try
-{
-    publicWebProviders.Add(
-        new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot"));
-}
-catch (InvalidOperationException)
-{
-    // Physical wwwroot and the single-file extraction provider remain usable.
 }
 
 IFileProvider publicWebFiles = publicWebProviders.Count == 1
