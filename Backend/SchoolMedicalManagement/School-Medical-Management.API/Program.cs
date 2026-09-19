@@ -249,17 +249,40 @@ app.MapGet("/api/health", () => Results.Ok(new
 })).AllowAnonymous();
 app.MapMethods("/api/health", new[] { "HEAD" }, () => Results.Ok()).AllowAnonymous();
 
-IFileProvider publicWebFiles = app.Environment.WebRootFileProvider;
+var publicWebProviders = new List<IFileProvider>
+{
+    app.Environment.WebRootFileProvider
+};
+
+// IncludeAllContentForSelfExtract places bundled content beside the extracted
+// managed assembly. Assembly.Location points at that extraction directory,
+// while mutable data continues to use Environment.ProcessPath via
+// LocalStoragePaths so the database remains beside the real EXE.
+var assemblyLocation = typeof(Program).Assembly.Location;
+if (!string.IsNullOrWhiteSpace(assemblyLocation))
+{
+    var extractedDirectory = Path.GetDirectoryName(assemblyLocation);
+    if (!string.IsNullOrWhiteSpace(extractedDirectory))
+    {
+        var extractedWebRoot = Path.Combine(extractedDirectory, "wwwroot");
+        if (Directory.Exists(extractedWebRoot))
+            publicWebProviders.Add(new PhysicalFileProvider(extractedWebRoot));
+    }
+}
+
 try
 {
-    var embeddedWebFiles = new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot");
-    publicWebFiles = new CompositeFileProvider(publicWebFiles, embeddedWebFiles);
+    publicWebProviders.Add(
+        new ManifestEmbeddedFileProvider(typeof(Program).Assembly, "wwwroot"));
 }
 catch (InvalidOperationException)
 {
-    // Development builds may not contain the embedded manifest; physical
-    // wwwroot remains available in that case.
+    // Physical wwwroot and the single-file extraction provider remain usable.
 }
+
+IFileProvider publicWebFiles = publicWebProviders.Count == 1
+    ? publicWebProviders[0]
+    : new CompositeFileProvider(publicWebProviders);
 
 app.UseStaticFiles(new StaticFileOptions
 {
