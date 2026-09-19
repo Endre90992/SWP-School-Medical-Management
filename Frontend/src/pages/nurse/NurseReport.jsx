@@ -91,29 +91,45 @@ const NurseReport = () => {
   ];
 
   const exportToExcel = async () => {
-    const XLSX = await import("xlsx");
-    const wb = XLSX.utils.book_new();
+    const { default: ExcelJS } = await import("exceljs");
+    const workbook = new ExcelJS.Workbook();
 
-    const overviewData = [
+    const overviewSheet = workbook.addWorksheet("總覽");
+    overviewSheet.addRows([
       ["類別", "數量"],
       ["預防接種活動", stats.vaccination.totalCampaigns],
       ["傷病紀錄", stats.medical.totalMedicalEvents],
       ["用藥申請", stats.medication.totalMedicationRequests],
       ["健康檢查活動", stats.health.totalHealthCheckCampaigns],
+    ]);
+
+    const medicationSheet = workbook.addWorksheet("近期用藥");
+    medicationSheet.columns = [
+      { header: "學生", key: "studentName", width: 18 },
+      { header: "藥物", key: "medicationName", width: 22 },
+      { header: "狀態", key: "status", width: 14 },
+      { header: "時間", key: "requestDate", width: 22 },
     ];
-    const overviewSheet = XLSX.utils.aoa_to_sheet(overviewData);
-    XLSX.utils.book_append_sheet(wb, overviewSheet, "總覽");
 
-    const meds = stats.medication.recentMedicationRequests.map((item) => ({
-      學生: item.studentName,
-      藥物: item.medicationName,
-      狀態: item.status,
-      時間: new Date(item.requestDate).toLocaleString("zh-TW"),
-    }));
-    const medsSheet = XLSX.utils.json_to_sheet(meds);
-    XLSX.utils.book_append_sheet(wb, medsSheet, "近期用藥");
+    stats.medication.recentMedicationRequests.forEach((item) => {
+      medicationSheet.addRow({
+        studentName: item.studentName,
+        medicationName: item.medicationName,
+        status: item.status,
+        requestDate: new Date(item.requestDate).toLocaleString("zh-TW"),
+      });
+    });
 
-    XLSX.writeFile(wb, "健康中心報表.xlsx");
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "健康中心報表.xlsx";
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   const exportToPDF = async () => {
