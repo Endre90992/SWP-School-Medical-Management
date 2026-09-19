@@ -292,6 +292,13 @@ const CampaignDetail = () => {
     URL.revokeObjectURL(url);
   };
 
+  if (loading || !campaign || modalLoading)
+    return (
+      <div className={style.loadingOverlay}>
+        <div className={style.spinner}></div>
+      </div>
+    );
+
   const totalAgreed = consents.filter(
     (c) => c.consentStatusName === "同意"
   ).length;
