@@ -1,6 +1,6 @@
-﻿using Azure;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using School_Medical_Management.API;
 using SchoolMedicalManagement.Models.Request;
 using SchoolMedicalManagement.Models.Response;
 using SchoolMedicalManagement.Service.Interface;
