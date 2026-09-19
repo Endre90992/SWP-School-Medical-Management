@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import { FileSpreadsheet } from "lucide-react";
 import {
   Bar,
@@ -86,18 +84,37 @@ const MedicalSupplies = () => {
     }
   };
 
-  const handleExportExcel = () => {
-    const rows = filteredSupplies.map((item) => ({
-      物資名稱: item.name,
-      數量: item.quantity,
-      單位: item.unit,
-      有效期限: item.expiryDate,
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "醫療物資");
-    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "醫療物資清單.xlsx");
+  const handleExportExcel = async () => {
+    const { default: ExcelJS } = await import("exceljs");
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("醫療物資");
+
+    worksheet.columns = [
+      { header: "物資名稱", key: "name", width: 24 },
+      { header: "數量", key: "quantity", width: 12 },
+      { header: "單位", key: "unit", width: 12 },
+      { header: "有效期限", key: "expiryDate", width: 18 },
+    ];
+
+    filteredSupplies.forEach((item) => {
+      worksheet.addRow({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        expiryDate: item.expiryDate,
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "醫療物資清單.xlsx";
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
