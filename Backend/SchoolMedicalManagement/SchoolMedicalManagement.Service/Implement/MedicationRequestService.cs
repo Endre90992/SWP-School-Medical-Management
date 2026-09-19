@@ -42,6 +42,13 @@ namespace SchoolMedicalManagement.Service.Implement
             };
         }
 
+        private static string? GetAttachmentPath(MedicationRequest request)
+        {
+            return string.IsNullOrWhiteSpace(request.ImagePath)
+                ? null
+                : $"/api/MedicationRequest/{request.RequestId}/attachment";
+        }
+
 
         public async Task<BaseResponse> GetPendingRequestsAsync()
         {
@@ -55,7 +62,7 @@ namespace SchoolMedicalManagement.Service.Implement
                 Dosage = r.Dosage,
                 Instructions = r.Instructions,
                 Status = GetStatusString(r.Status.StatusId),
-                ImagePath = r.ImagePath,
+                ImagePath = GetAttachmentPath(r),
                 ReceivedByName = r.ReceivedByNavigation?.FullName,
                 RequestDate = r.RequestDate
             }).ToList();
@@ -107,7 +114,7 @@ namespace SchoolMedicalManagement.Service.Implement
                         Instructions = updatedEntity.Instructions,
                         Status = GetStatusString(updatedEntity.StatusId), // ✅ Sử dụng StatusId thay vì Status.StatusId
                         RequestDate = updatedEntity.RequestDate,
-                        ImagePath = updatedEntity.ImagePath,
+                        ImagePath = GetAttachmentPath(updatedEntity),
                         ReceivedByName = updatedEntity.ReceivedByNavigation?.FullName // Thông tin y tá đã duyệt
                     }
                 };
@@ -170,7 +177,7 @@ namespace SchoolMedicalManagement.Service.Implement
                     Instructions = createdRequest.Instructions,
                     Status = GetStatusString(PendingStatus),
                     RequestDate = createdRequest.RequestDate,
-                    ImagePath = createdRequest.ImagePath
+                    ImagePath = GetAttachmentPath(createdRequest)
                 }
             };
         }
@@ -187,7 +194,7 @@ namespace SchoolMedicalManagement.Service.Implement
                 Dosage = item.Dosage,
                 Instructions = item.Instructions,
                 Status = GetStatusString(item.Status.StatusId),
-                ImagePath = item.ImagePath,
+                ImagePath = GetAttachmentPath(item),
                 ReceivedByName = item.ReceivedByNavigation?.FullName,
                 RequestDate = item.RequestDate
             }).ToList();
@@ -225,7 +232,7 @@ namespace SchoolMedicalManagement.Service.Implement
                     Dosage = response.Dosage,
                     Instructions = response.Instructions,
                     Status = GetStatusString(response.Status.StatusId),
-                    ImagePath = response.ImagePath,
+                    ImagePath = GetAttachmentPath(response),
                     ReceivedByName = response.ReceivedByNavigation?.FullName,
                     RequestDate = response.RequestDate
                 }
@@ -244,7 +251,7 @@ namespace SchoolMedicalManagement.Service.Implement
                 Dosage = r.Dosage,
                 Instructions = r.Instructions,
                 Status = GetStatusString(r.Status.StatusId),
-                ImagePath = r.ImagePath,
+                ImagePath = GetAttachmentPath(r),
                 ReceivedByName = r.ReceivedByNavigation?.FullName,
                 RequestDate = r.RequestDate
             }).ToList();
@@ -283,7 +290,7 @@ namespace SchoolMedicalManagement.Service.Implement
                     Dosage = request.Dosage,
                     Instructions = request.Instructions,
                     Status = GetStatusString(request.Status.StatusId),
-                    ImagePath = request.ImagePath,
+                    ImagePath = GetAttachmentPath(request),
                     ReceivedByName = request.ReceivedByNavigation?.FullName,
                     RequestDate = request.RequestDate
                 }
@@ -325,7 +332,7 @@ namespace SchoolMedicalManagement.Service.Implement
                 Dosage = r.Dosage,
                 Instructions = r.Instructions,
                 Status = GetStatusString(r.Status.StatusId),
-                ImagePath = r.ImagePath,
+                ImagePath = GetAttachmentPath(r),
                 ReceivedByName = r.ReceivedByNavigation?.FullName,
                 RequestDate = r.RequestDate
             }).ToList();
