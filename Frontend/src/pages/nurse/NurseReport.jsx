@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Sidebar from "../../components/sidebar/Sidebar";
 import style from "../../assets/css/nursedashboard.module.css";
@@ -24,7 +24,6 @@ const NurseReport = () => {
     medication: null,
   });
   const [loading, setLoading] = useState(true);
-  const reportRef = useRef();
 
   useEffect(() => {
     const fetchOverview = async () => {
@@ -90,45 +89,47 @@ const NurseReport = () => {
     },
   ];
 
-  const exportToExcel = async () => {
-    const XLSX = await import("xlsx");
-    const wb = XLSX.utils.book_new();
+  const csvEscape = (value) => {
+    const text = String(value ?? "");
+    return `"${text.replaceAll('"', '""')}"`;
+  };
 
-    const overviewData = [
+  const downloadCsv = (rows, fileName) => {
+    const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportToExcel = () => {
+    const rows = [
       ["類別", "數量"],
       ["預防接種活動", stats.vaccination.totalCampaigns],
       ["傷病紀錄", stats.medical.totalMedicalEvents],
       ["用藥申請", stats.medication.totalMedicationRequests],
       ["健康檢查活動", stats.health.totalHealthCheckCampaigns],
+      [],
+      ["近期用藥"],
+      ["學生", "藥物", "狀態", "時間"],
+      ...stats.medication.recentMedicationRequests.map((item) => [
+        item.studentName,
+        item.medicationName,
+        item.status,
+        new Date(item.requestDate).toLocaleString("zh-TW"),
+      ]),
     ];
-    const overviewSheet = XLSX.utils.aoa_to_sheet(overviewData);
-    XLSX.utils.book_append_sheet(wb, overviewSheet, "總覽");
 
-    const meds = stats.medication.recentMedicationRequests.map((item) => ({
-      學生: item.studentName,
-      藥物: item.medicationName,
-      狀態: item.status,
-      時間: new Date(item.requestDate).toLocaleString("zh-TW"),
-    }));
-    const medsSheet = XLSX.utils.json_to_sheet(meds);
-    XLSX.utils.book_append_sheet(wb, medsSheet, "近期用藥");
-
-    XLSX.writeFile(wb, "健康中心報表.xlsx");
+    downloadCsv(rows, "健康中心報表.csv");
   };
 
-  const exportToPDF = async () => {
-    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-      import("html2canvas"),
-      import("jspdf"),
-    ]);
-
-    const canvas = await html2canvas(reportRef.current);
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
-    const width = pdf.internal.pageSize.getWidth();
-    const height = (canvas.height * width) / canvas.width;
-    pdf.addImage(imgData, "PNG", 0, 0, width, height);
-    pdf.save("健康中心報表.pdf");
+  const exportToPDF = () => {
+    window.print();
   };
 
   return (
@@ -141,11 +142,11 @@ const NurseReport = () => {
         </div>
 
         <div className={style.exportControls}>
-          <button onClick={exportToExcel} className={style.btnExport}>📥 匯出 Excel</button>
-          <button onClick={exportToPDF} className={style.btnExport}>📄 匯出 PDF</button>
+          <button onClick={exportToExcel} className={style.btnExport}>📥 匯出 CSV（Excel 可開啟）</button>
+          <button onClick={exportToPDF} className={style.btnExport}>🖨️ 列印／另存 PDF</button>
         </div>
 
-        <div ref={reportRef}>
+        <div>
           <div className={style.summaryGrid}>
             <div className={style.summaryBox}>
               <h4>預防接種活動</h4>
