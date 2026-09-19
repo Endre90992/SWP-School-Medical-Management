@@ -56,18 +56,33 @@ namespace School_Medical_Management.API.Controllers
                 string? imagePath = null;
                 if (request.ImageFile != null && request.ImageFile.Length > 0)
                 {
-                    var fileName = Guid.NewGuid() + Path.GetExtension(request.ImageFile.FileName);
-                    var savePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "medication", fileName);
+                    const long maxImageBytes = 5 * 1024 * 1024;
+                    if (request.ImageFile.Length > maxImageBytes)
+                        return BadRequest("圖片大小不得超過 5 MB。");
 
-                    // Đảm bảo thư mục tồn tại
-                    Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
+                    var safeExtension = await ValidateMedicationImageAsync(request.ImageFile);
+                    if (safeExtension == null)
+                        return BadRequest("僅允許 JPEG、PNG 或 WebP 圖片。");
 
-                    using (var stream = new FileStream(savePath, FileMode.Create))
+                    // 不採用使用者提供的副檔名，避免上傳 HTML/SVG/腳本等可執行內容。
+                    var fileName = $"{Guid.NewGuid():N}{safeExtension}";
+                    var uploadRoot = Path.Combine(
+                        AppContext.BaseDirectory,
+                        "wwwroot",
+                        "uploads",
+                        "medication");
+                    Directory.CreateDirectory(uploadRoot);
+
+                    var savePath = Path.Combine(uploadRoot, fileName);
+                    await using (var stream = new FileStream(
+                        savePath,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None))
                     {
                         await request.ImageFile.CopyToAsync(stream);
                     }
 
-                    // Gán đường dẫn để lưu trong DB
                     imagePath = $"/uploads/medication/{fileName}";
                 }
 
