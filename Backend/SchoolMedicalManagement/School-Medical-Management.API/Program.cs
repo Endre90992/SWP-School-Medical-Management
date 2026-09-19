@@ -2,6 +2,7 @@ using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -13,6 +14,7 @@ using SchoolMedicalManagement.Service.Interface;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -134,10 +136,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization(options =>
 {
-    // 預設所有 MVC/API 端點都必須登入；只有明確標示 AllowAnonymous 的端點可匿名使用。
+    // 單機健康中心版本預設只允許護理師／管理者存取 API。
+    // 若未來真的要啟用家長入口，應為各 Parent endpoint 明確加上 ownership policy。
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
+        .RequireRole("Nurse", "Manager")
         .Build();
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("login", limiter =>
+    {
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+        limiter.AutoReplenishment = true;
+    });
 });
 
 // 保留既有排程能力，但全部只在本機記憶體執行。
@@ -153,6 +169,26 @@ builder.Services.AddHangfireServer(options =>
 });
 
 var app = builder.Build();
+
+// 基本瀏覽器安全標頭。允許 Ant Design/React 需要的 inline style，但不允許 inline script。
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        context.Response.Headers["X-Frame-Options"] = "DENY";
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+        context.Response.Headers["Content-Security-Policy"] =
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; " +
+            "font-src 'self' data:; connect-src 'self' http://127.0.0.1:5080; object-src 'none'; base-uri 'self'; frame-ancestors 'none';";
+        return Task.CompletedTask;
+    });
+
+    await next();
+});
+
+app.UseRateLimiter();
 
 // 即使日後誤改 Kestrel 綁定位址，也拒絕非本機來源。
 app.Use(async (context, next) =>
@@ -176,7 +212,17 @@ app.MapGet("/api/health", () => Results.Ok(new
 })).AllowAnonymous();
 app.MapMethods("/api/health", new[] { "HEAD" }, () => Results.Ok()).AllowAnonymous();
 
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        if (context.Context.Request.Path.StartsWithSegments("/uploads/medication"))
+        {
+            context.Context.Response.Headers["Cache-Control"] = "no-store, max-age=0";
+            context.Context.Response.Headers["Pragma"] = "no-cache";
+        }
+    }
+});
 
 if (app.Environment.IsDevelopment())
 {
