@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolMedicalManagement.Models.Request;
 using SchoolMedicalManagement.Service.Interface;
@@ -8,6 +9,7 @@ namespace School_Medical_Management.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Nurse,Manager")]
     public class BlogPostController : ControllerBase
     {
         private readonly IBlogPostService _blogPostService;
@@ -35,6 +37,7 @@ namespace School_Medical_Management.API.Controllers
             return StatusCode(int.Parse(response.Status ?? "200"), response);
         }
 
+        [Authorize(Roles = "Manager")]
         [HttpPost]
         public async Task<IActionResult> CreateBlogPost([FromBody] CreateBlogPostRequest request)
         {
@@ -42,6 +45,7 @@ namespace School_Medical_Management.API.Controllers
             return StatusCode(int.Parse(response?.Status ?? "200"), response);
         }
 
+        [Authorize(Roles = "Manager")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateBlogPost([FromRoute] int id, [FromBody] UpdateBlogPostRequest request)
         {
@@ -53,6 +57,7 @@ namespace School_Medical_Management.API.Controllers
             return StatusCode(int.Parse(response.Status ?? "200"), response);
         }
 
+        [Authorize(Roles = "Manager")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBlogPost([FromRoute] int id)
         {
