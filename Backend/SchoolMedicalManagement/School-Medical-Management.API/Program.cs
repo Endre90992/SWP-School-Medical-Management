@@ -17,10 +17,42 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.RateLimiting;
 
-var builder = WebApplication.CreateBuilder(args);
+var processPath = Environment.ProcessPath;
+var processDirectory = !string.IsNullOrWhiteSpace(processPath)
+    ? Path.GetDirectoryName(processPath)
+    : null;
+
+// 單一 EXE 使用 IncludeAllContentForSelfExtract 時，appsettings/wwwroot 會解壓到
+// AppContext.BaseDirectory；資料則必須固定保存在 EXE 旁，不能落到暫存解壓目錄。
+var isBundledExecutable =
+    OperatingSystem.IsWindows() &&
+    !string.IsNullOrWhiteSpace(processPath) &&
+    string.Equals(Path.GetExtension(processPath), ".exe", StringComparison.OrdinalIgnoreCase) &&
+    !string.Equals(Path.GetFileName(processPath), "dotnet.exe", StringComparison.OrdinalIgnoreCase);
+
+var persistentRoot = isBundledExecutable && !string.IsNullOrWhiteSpace(processDirectory)
+    ? processDirectory
+    : Directory.GetCurrentDirectory();
+
+var contentRoot = isBundledExecutable
+    ? AppContext.BaseDirectory
+    : Directory.GetCurrentDirectory();
+
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = contentRoot
+});
 
 builder.Configuration.AddEnvironmentVariables();
 builder.WebHost.UseUrls(builder.Configuration["LocalServer:Url"] ?? "http://127.0.0.1:5080");
+
+var dataDirectory = Path.Combine(persistentRoot, "data");
+Directory.CreateDirectory(dataDirectory);
+var databasePath = Path.Combine(dataDirectory, "eduhealth-local-tw.db");
+builder.Configuration["LocalPaths:DataDirectory"] = dataDirectory;
+builder.Configuration["ConnectionStrings:DefaultConnection"] =
+    $"Data Source={databasePath};Cache=Shared;Pooling=True;Default Timeout=5";
 
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey))
@@ -247,9 +279,6 @@ if (File.Exists(spaIndex))
 {
     app.MapFallbackToFile("index.html").AllowAnonymous();
 }
-
-// 確保 SQLite 與備份資料夾只建立在本機程式目錄。
-Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "data"));
 
 // 第一次執行時自動建立本機資料庫與必要基本資料。
 using (var scope = app.Services.CreateScope())
