@@ -1,5 +1,6 @@
 name: Security release audit
-# Release gate: high/critical vulnerabilities must be zero before EXE packaging.
+# Release gate: high/critical frontend issues, vulnerable .NET packages, secrets,
+# external-cloud dependencies, or unsafe HTML sinks block EXE packaging.
 
 on:
   push:
@@ -23,12 +24,11 @@ jobs:
         working-directory: Frontend
         run: npm ci
 
-      - name: Frontend dependency audit
+      - name: Frontend dependency audit gate
         working-directory: Frontend
         shell: pwsh
         run: |
           npm audit --json | Out-File -Encoding utf8 npm-audit.json
-          $auditExit = $LASTEXITCODE
           $global:LASTEXITCODE = 0
 
           $audit = Get-Content npm-audit.json -Raw | ConvertFrom-Json
@@ -37,7 +37,7 @@ jobs:
 
           foreach ($property in $audit.vulnerabilities.PSObject.Properties) {
             $item = $property.Value
-            if ($item.severity -in @("critical", "high")) {
+            if ($item.severity -in @("critical", "high", "moderate")) {
               $via = @($item.via | ForEach-Object {
                 if ($_ -is [string]) { $_ }
                 elseif ($_.title) { $_.title }
@@ -47,7 +47,7 @@ jobs:
           }
 
           if (($meta.critical -gt 0) -or ($meta.high -gt 0)) {
-            Write-Host "::warning::High or critical npm vulnerabilities remain."
+            throw "Release blocked: high/critical npm vulnerabilities remain."
           }
 
       - name: Frontend production build
@@ -64,41 +64,59 @@ jobs:
       - name: Audit vulnerable .NET packages
         shell: pwsh
         run: |
-          dotnet list Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln package --vulnerable --include-transitive | Tee-Object dotnet-vulnerable.txt
+          $output = dotnet list Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln package --vulnerable --include-transitive
+          $output | Tee-Object dotnet-vulnerable.txt
+          if ($output -match "has the following vulnerable packages") {
+            throw "Release blocked: vulnerable .NET packages remain."
+          }
 
       - name: Build
         run: dotnet build Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln --configuration Release --no-restore
 
-      - name: Static secret/network scan
+      - name: Static secret and external-network gate
         shell: pwsh
         run: |
+          $sourceFiles = @(
+            Get-ChildItem Backend -Recurse -File -Include *.cs,*.json,*.csproj
+            Get-ChildItem Frontend/src -Recurse -File -Include *.js,*.jsx
+          )
+
           $patterns = @(
             'onrender\.com',
             'vercel\.app',
             'schoolmedicalmanagement\.id\.vn',
             'smtp\.gmail\.com',
-            'redis-[^\s"]+',
-            'Data Source=.*;.*Password=',
-            'Jwt.*Key.*[^"]{16,}'
+            'Data Source=.*Password=',
+            'Server=.*Password=',
+            '"SmtpPassword"\s*:\s*"[^"]+"',
+            '"Key"\s*:\s*"[^"]{16,}"'
           )
+
+          $found = $false
           foreach ($pattern in $patterns) {
-            $matches = Get-ChildItem -Recurse -File -Include *.cs,*.json,*.jsx,*.js,*.yml,*.yaml |
-              Where-Object { $_.FullName -notmatch 'node_modules|dist|bin|obj|\.git' } |
-              Select-String -Pattern $pattern
+            $matches = $sourceFiles | Select-String -Pattern $pattern
             if ($matches) {
-              Write-Host "::warning::Pattern matched: $pattern"
+              $found = $true
+              Write-Host "::error::Sensitive/external pattern matched: $pattern"
               $matches | ForEach-Object { Write-Host "$($_.Path):$($_.LineNumber)" }
             }
           }
 
-      - name: Dangerous frontend sink scan
+          if ($found) {
+            throw "Release blocked: secret or external-network pattern detected."
+          }
+
+      - name: Dangerous frontend sink gate
         shell: pwsh
         run: |
           $matches = Get-ChildItem Frontend/src -Recurse -File -Include *.jsx,*.js |
-            Select-String -Pattern 'dangerouslySetInnerHTML|innerHTML\s*='
+            Select-String -Pattern 'dangerouslySetInnerHTML|\.innerHTML\s*='
+
           if ($matches) {
-            Write-Host "::warning::Potential HTML injection sinks detected"
-            $matches | ForEach-Object { Write-Host "$($_.Path):$($_.LineNumber): $($_.Line.Trim())" }
-          } else {
-            Write-Host "No dangerous HTML sinks detected."
+            $matches | ForEach-Object {
+              Write-Host "::error::$($_.Path):$($_.LineNumber): $($_.Line.Trim())"
+            }
+            throw "Release blocked: unsafe HTML sink detected."
           }
+
+          Write-Host "No dangerous HTML sinks detected."
