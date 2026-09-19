@@ -1,0 +1,139 @@
+name: Build hardened Windows EXE
+
+on:
+  push:
+    branches:
+      - security/exe-hardening
+    paths:
+      - ".github/workflows/build-windows-exe.yml"
+      - "Frontend/**"
+      - "Backend/**"
+  workflow_dispatch:
+
+jobs:
+  build-exe:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Enforce runtime npm security gate
+        working-directory: Frontend
+        shell: pwsh
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Build frontend
+        working-directory: Frontend
+        run: npm run build
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore backend
+        run: dotnet restore Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln
+
+      - name: Enforce NuGet security gate
+        shell: pwsh
+        run: |
+          $output = dotnet list Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln package --vulnerable --include-transitive
+          $output | Write-Host
+          if (($output -join [Environment]::NewLine) -match "has the following vulnerable packages") {
+            throw "NuGet vulnerability gate failed."
+          }
+
+      - name: Publish self-contained single-file Windows EXE
+        shell: pwsh
+        run: |
+          dotnet publish Backend/SchoolMedicalManagement/School-Medical-Management.API/SchoolMedicalManagement.API.csproj --configuration Release --runtime win-x64 --self-contained true --output exe-publish -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -p:PublishTrimmed=false -p:DebugType=None -p:DebugSymbols=false
+          $source = "exe-publish/SchoolMedicalManagement.API.exe"
+          if (-not (Test-Path $source)) {
+            throw "Single-file executable was not produced."
+          }
+          Move-Item $source "exe-publish/EduHealth-Local-TW.exe" -Force
+
+      - name: Smoke test the actual EXE
+        shell: pwsh
+        env:
+          LocalServer__OpenBrowserOnStart: "false"
+        run: |
+          $appDataRoot = Join-Path $env:LOCALAPPDATA "EduHealth-Local-TW"
+          if (Test-Path $appDataRoot) { Remove-Item $appDataRoot -Recurse -Force }
+
+          $exe = Resolve-Path "exe-publish/EduHealth-Local-TW.exe"
+          $proc = Start-Process $exe -PassThru
+          try {
+            $healthy = $false
+            for ($i = 0; $i -lt 40; $i++) {
+              Start-Sleep -Seconds 1
+              try {
+                $health = Invoke-WebRequest -Uri "http://127.0.0.1:5080/api/health" -UseBasicParsing -TimeoutSec 2
+                if ($health.StatusCode -eq 200) { $healthy = $true; break }
+              } catch {}
+            }
+            if (-not $healthy) { throw "EXE did not become healthy." }
+
+            $credentialFile = Join-Path $appDataRoot "data\初始登入資訊.txt"
+            if (-not (Test-Path $credentialFile)) { throw "Initial credentials were not created." }
+            $credentialText = Get-Content $credentialFile -Raw
+            $username = [regex]::Match($credentialText, "帳號：([^\r\n]+)").Groups[1].Value.Trim()
+            $password = [regex]::Match($credentialText, "一次性密碼：([^\r\n]+)").Groups[1].Value.Trim()
+            if (-not $username -or -not $password) { throw "Initial credentials could not be parsed." }
+
+            $loginBody = @{ username = $username; password = $password } | ConvertTo-Json
+            $login = Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/User/login" -Method Post -ContentType "application/json" -Body $loginBody -TimeoutSec 5
+            $token = $login.data.token
+            if (-not $token) { throw "EXE login did not return JWT." }
+            $headers = @{ Authorization = "Bearer $token" }
+
+            $dashboard = Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/Dashboard/overview" -Headers $headers -TimeoutSec 5
+            if ($dashboard.status -ne "200") { throw "Dashboard API smoke test failed." }
+            Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/Student" -Headers $headers -TimeoutSec 5 | Out-Null
+            Invoke-RestMethod -Uri "http://127.0.0.1:5080/api/MedicalEvent" -Headers $headers -TimeoutSec 5 | Out-Null
+
+            $spa = Invoke-WebRequest -Uri "http://127.0.0.1:5080/" -UseBasicParsing -TimeoutSec 5
+            if ($spa.StatusCode -ne 200 -or $spa.Content -notmatch '<div id="root"') {
+              throw "Bundled React SPA smoke test failed."
+            }
+
+            $unauthorized = $false
+            try {
+              Invoke-WebRequest -Uri "http://127.0.0.1:5080/api/MedicationRequest/all" -UseBasicParsing -TimeoutSec 5 | Out-Null
+            } catch {
+              if ($_.Exception.Response.StatusCode.value__ -eq 401) { $unauthorized = $true }
+            }
+            if (-not $unauthorized) { throw "Protected API unexpectedly allowed unauthenticated access." }
+          }
+          finally {
+            if ($proc -and -not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
+
+      - name: Calculate SHA-256
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash "exe-publish/EduHealth-Local-TW.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -Path "exe-publish/EduHealth-Local-TW.sha256.txt" -Value "$hash  EduHealth-Local-TW.exe"
+          Write-Host "SHA256: $hash"
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EduHealth-Local-TW-Windows-x64
+          path: |
+            exe-publish/EduHealth-Local-TW.exe
+            exe-publish/EduHealth-Local-TW.sha256.txt
+          if-no-files-found: error
+          retention-days: 30
