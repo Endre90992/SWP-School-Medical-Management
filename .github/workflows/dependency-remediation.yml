@@ -1,0 +1,70 @@
+name: Dependency remediation
+
+on:
+  push:
+    branches:
+      - "release/windows-single-exe"
+    paths:
+      - ".github/workflows/dependency-remediation.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/windows-single-exe
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Update frontend dependencies
+        working-directory: Frontend
+        shell: pwsh
+        run: |
+          npm uninstall xlsx
+
+          $candidates = @(
+            "aos",
+            "diacritics",
+            "file-saver",
+            "react-calendar",
+            "react-icons",
+            "react-joyride"
+          )
+
+          foreach ($package in $candidates) {
+            $references = Get-ChildItem src -Recurse -File -Include *.js,*.jsx |
+              Select-String -SimpleMatch $package
+            if (-not $references) {
+              Write-Host "Removing unused dependency: $package"
+              npm uninstall $package
+            } else {
+              Write-Host "Keeping referenced dependency: $package"
+            }
+          }
+
+          npm install exceljs@latest jspdf@latest
+          npm update axios react-router-dom vite
+          npm audit fix
+
+      - name: Verify frontend build
+        working-directory: Frontend
+        run: npm run build
+
+      - name: Commit dependency changes
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Frontend/package.json Frontend/package-lock.json
+          if (git diff --cached --quiet) {
+            Write-Host "No dependency changes to commit."
+          } else {
+            git commit -m "security: remediate frontend dependency vulnerabilities"
+            git push origin HEAD:release/windows-single-exe
+          }
