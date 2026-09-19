@@ -1,0 +1,35 @@
+name: Security audit
+
+on:
+  push:
+    branches:
+      - "security/**"
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Frontend dependency audit
+        working-directory: Frontend
+        shell: pwsh
+        run: |
+          npm ci
+          npm audit --json | Out-File -Encoding utf8 npm-audit.json
+          Get-Content npm-audit.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Backend vulnerability audit
+        shell: pwsh
+        run: |
+          dotnet restore Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln
+          dotnet list Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln package --vulnerable --include-transitive
