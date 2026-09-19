@@ -44,7 +44,9 @@ jobs:
               }
             }
           }
-          exit 0
+          if ($audit.metadata.vulnerabilities.critical -gt 0 -or $audit.metadata.vulnerabilities.high -gt 0) {
+            throw "High/Critical frontend dependency vulnerabilities remain."
+          }
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -56,4 +58,7 @@ jobs:
       - name: .NET vulnerable package audit
         shell: pwsh
         run: |
-          dotnet list Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln package --vulnerable --include-transitive
+          $output = dotnet list Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln package --vulnerable --include-transitive
+          $output | Write-Host
+          if ($LASTEXITCODE -ne 0) { throw ".NET vulnerability audit command failed." }
+          if (($output -join "\n") -match "\b(High|Critical)\b") { throw "High/Critical .NET dependency vulnerabilities remain." }
