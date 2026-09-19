@@ -6,6 +6,7 @@ import { Paperclip } from "lucide-react";
 import clsx from "clsx";
 import Notification from "../../components/Notification";
 import { notifySuccess, notifyError } from "../../utils/notification";
+import AuthenticatedMedicationImage from "../../components/AuthenticatedMedicationImage";
 
 const MedicationHandle = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -248,17 +249,11 @@ const MedicationHandle = () => {
         <div>
           <b></b>{" "}
           {req.imagePath ? (
-            <img
-              src={`http://127.0.0.1:5080${req.imagePath}`}
-              alt="藥袋／藥品照片"
+            <AuthenticatedMedicationImage
+              requestId={req.requestID}
               className={style.miniImage}
-              onClick={() =>
-                setImageModal({
-                  open: true,
-                  url: `http://127.0.0.1:5080${req.imagePath}`,
-                })
-              }
               style={{ cursor: "pointer" }}
+              onClick={(url) => setImageModal({ open: true, url })}
             />
           ) : (
             <span>-</span>
