@@ -5,12 +5,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
 using School_Medical_Management.API;
 using SchoolMedicalManagement.Models.Entity;
 using SchoolMedicalManagement.Repository.Repository;
 using SchoolMedicalManagement.Service.Implement;
 using SchoolMedicalManagement.Service.Interface;
+using System.Diagnostics;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -20,6 +22,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();
 builder.WebHost.UseUrls(builder.Configuration["LocalServer:Url"] ?? "http://127.0.0.1:5080");
+
+LocalStoragePaths.EnsureDirectories();
+builder.Configuration["LocalStorage:InitialCredentialPath"] = LocalStoragePaths.InitialCredentialPath;
 
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey))
@@ -86,8 +91,10 @@ builder.Services.AddCors(options =>
 });
 
 // 單機版使用 SQLite 單一檔案資料庫，不需安裝 SQL Server，也不會連外。
+var sqliteConnectionString =
+    $"Data Source={LocalStoragePaths.DatabasePath};Cache=Shared;Pooling=True;Default Timeout=5";
 builder.Services.AddDbContext<SwpEduHealV5Context>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite(sqliteConnectionString));
 
 // 離線模式使用記憶體快取，不連 Redis Cloud。
 builder.Services.AddDistributedMemoryCache();
@@ -212,15 +219,17 @@ app.MapGet("/api/health", () => Results.Ok(new
 })).AllowAnonymous();
 app.MapMethods("/api/health", new[] { "HEAD" }, () => Results.Ok()).AllowAnonymous();
 
+app.UseStaticFiles();
+
 app.UseStaticFiles(new StaticFileOptions
 {
+    FileProvider = new PhysicalFileProvider(LocalStoragePaths.MedicationUploadsDirectory),
+    RequestPath = "/uploads/medication",
     OnPrepareResponse = context =>
     {
-        if (context.Context.Request.Path.StartsWithSegments("/uploads/medication"))
-        {
-            context.Context.Response.Headers["Cache-Control"] = "no-store, max-age=0";
-            context.Context.Response.Headers["Pragma"] = "no-cache";
-        }
+        context.Context.Response.Headers["Cache-Control"] = "no-store, max-age=0";
+        context.Context.Response.Headers["Pragma"] = "no-cache";
+        context.Context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     }
 });
 
@@ -244,9 +253,6 @@ if (File.Exists(spaIndex))
     app.MapFallbackToFile("index.html").AllowAnonymous();
 }
 
-// 確保 SQLite 與備份資料夾只建立在本機程式目錄。
-Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "data"));
-
 // 第一次執行時自動建立本機資料庫與必要基本資料。
 using (var scope = app.Services.CreateScope())
 {
@@ -254,6 +260,29 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
     await LocalDatabaseOptimizer.OptimizeAsync(db);
     await LocalDbSeeder.SeedAsync(db, builder.Configuration);
+}
+
+var openBrowser =
+    !bool.TryParse(builder.Configuration["LocalServer:OpenBrowser"], out var configuredOpenBrowser) ||
+    configuredOpenBrowser;
+
+if (openBrowser)
+{
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(
+                builder.Configuration["LocalServer:Url"] ?? "http://127.0.0.1:5080")
+            {
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // 瀏覽器無法自動開啟時不影響服務本身。
+        }
+    });
 }
 
 app.Run();
