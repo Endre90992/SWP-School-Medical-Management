@@ -118,7 +118,8 @@ namespace School_Medical_Management.API
 
                 if (generatedPassword)
                 {
-                    var dataDir = Path.Combine(AppContext.BaseDirectory, "data");
+                    var dataDir = configuration["LocalPaths:DataDirectory"]
+                        ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
                     Directory.CreateDirectory(dataDir);
                     var credentialPath = Path.Combine(dataDir, "初始登入資訊.txt");
                     await File.WriteAllTextAsync(
