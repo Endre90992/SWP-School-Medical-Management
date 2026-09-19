@@ -4,7 +4,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>School_Medical_Management.API</RootNamespace>
+    <AssemblyName>EduHealth-Local-TW</AssemblyName>
     <SpaRoot>..\..\..\Frontend\</SpaRoot>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <PublishTrimmed>false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <OutputType Condition="'$(Configuration)' == 'Release' and '$(RuntimeIdentifier)' == 'win-x64'">WinExe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,15 +30,24 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
-  <Target Name="BuildFrontendForPublish" BeforeTargets="ComputeFilesToPublish" Condition="'$(Configuration)' == 'Release'">
+  <ItemGroup>
+    <Content Update="appsettings.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+    <Content Update="appsettings.Development.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
+  <!--
+    Release 建置先產生 Vite dist，再將所有檔案直接嵌入 .NET assembly。
+    因此 self-contained single-file publish 不需要外接 wwwroot。
+  -->
+  <Target Name="BuildFrontendForEmbedding"
+          BeforeTargets="PrepareResources"
+          Condition="'$(Configuration)' == 'Release'">
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
     <ItemGroup>
-      <FrontendDist Include="$(SpaRoot)dist\**\*" />
-      <ResolvedFileToPublish Include="@(FrontendDist->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
-        <RelativePath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
-        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      </ResolvedFileToPublish>
+      <EmbeddedResource Include="$(SpaRoot)dist\**\*">
+        <LogicalName>wwwroot/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
     </ItemGroup>
   </Target>
 </Project>
