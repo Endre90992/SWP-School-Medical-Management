@@ -66,14 +66,8 @@ namespace School_Medical_Management.API.Controllers
 
                     // 不採用使用者提供的副檔名，避免上傳 HTML/SVG/腳本等可執行內容。
                     var fileName = $"{Guid.NewGuid():N}{safeExtension}";
-                    var uploadRoot = Path.Combine(
-                        AppContext.BaseDirectory,
-                        "wwwroot",
-                        "uploads",
-                        "medication");
-                    Directory.CreateDirectory(uploadRoot);
-
-                    var savePath = Path.Combine(uploadRoot, fileName);
+                    AppPaths.EnsureDirectories();
+                    var savePath = Path.Combine(AppPaths.UploadDirectory, fileName);
                     await using (var stream = new FileStream(
                         savePath,
                         FileMode.CreateNew,
