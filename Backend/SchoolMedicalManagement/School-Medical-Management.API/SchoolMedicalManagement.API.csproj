@@ -28,10 +28,11 @@
   </ItemGroup>
 
   <Target Name="BuildFrontendForSingleFile"
-          BeforeTargets="PrepareResources"
+          BeforeTargets="AssignTargetPaths"
           Condition="'$(Configuration)' == 'Release' and '$(PublishSingleFile)' == 'true'">
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+    <MakeDir Directories="$(IntermediateOutputPath)" />
     <ZipDirectory
       SourceDirectory="$(SpaRoot)dist"
       DestinationFile="$(IntermediateOutputPath)eduhealth-frontend.zip"
