@@ -105,23 +105,17 @@ const SendMedicine = () => {
 
     // Kiểm tra file
     for (let file of files) {
-      const allowedTypes = [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "image/png",
-        "image/jpeg",
-      ];
-      const maxSizeMB = 10;
+      const allowedTypes = ["image/png", "image/jpeg"];
+      const maxSizeMB = 5;
       if (!allowedTypes.includes(file.type)) {
-        return toast.error("檔案格式不支援；請上傳 PDF、DOC、DOCX、PNG 或 JPG。", {
+        return toast.error("只允許上傳 JPG 或 PNG 藥袋／藥品照片。", {
           position: "top-center",
           autoClose: 3000,
           theme: "colored",
         });
       }
       if (file.size > maxSizeMB * 1024 * 1024) {
-        return toast.error("檔案不可超過 10MB。", {
+        return toast.error("圖片不可超過 5MB。", {
           position: "top-center",
           autoClose: 3000,
           theme: "colored",
@@ -136,9 +130,9 @@ const SendMedicine = () => {
       formData.append("medicationName", trimmedTitle);
       formData.append("dosage", trimmedUsage);
       formData.append("instructions", trimmedNote);
-      files.forEach((file) => {
-        formData.append("imageFile", file);
-      });
+      if (files[0]) {
+        formData.append("imageFile", files[0]);
+      }
 
       await axios.post(
         `http://127.0.0.1:5080/api/MedicationRequest/create?parentId=${parentId}`,
@@ -207,6 +201,45 @@ const SendMedicine = () => {
     }
   };
 
+
+  const openProtectedAttachment = async (requestId) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("登入資訊已失效，請重新登入。", {
+        position: "top-center",
+        autoClose: 2500,
+        theme: "colored",
+      });
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        `http://127.0.0.1:5080/api/MedicationRequest/${requestId}/attachment`,
+        {
+          responseType: "blob",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const objectUrl = URL.createObjectURL(response.data);
+      const previewWindow = window.open(objectUrl, "_blank", "noopener,noreferrer");
+      if (!previewWindow) {
+        const anchor = document.createElement("a");
+        anchor.href = objectUrl;
+        anchor.target = "_blank";
+        anchor.rel = "noopener noreferrer";
+        anchor.click();
+      }
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch (error) {
+      console.error("無法開啟用藥附件：", error);
+      toast.error("無法開啟附件，請重新登入後再試。", {
+        position: "top-center",
+        autoClose: 2500,
+        theme: "colored",
+      });
+    }
+  };
 
   const openConfirmModal = (requestId) => {
     setCancelingRequestId(requestId);
@@ -294,7 +327,7 @@ const SendMedicine = () => {
       }
       
       const res = await axios.get(
-        "http://127.0.0.1:5080/api/MedicationRequest/all"
+        `http://127.0.0.1:5080/api/MedicationRequest/parent/${parentId}`
       );
       // Sửa ở đây: lấy đúng mảng data
       const all = Array.isArray(res.data) ? res.data : res.data.data || [];
@@ -580,16 +613,15 @@ const SendMedicine = () => {
                   <label htmlFor="file-upload" style={{ cursor: "pointer" }}>
                     {!files.length > 0 && (
                       <>
-                        <p className={styles.uploadText}>上傳藥袋、處方或相關文件</p>
-                        <p>PDF, DOC, JPG, PNG - 上限 10MB</p>
+                        <p className={styles.uploadText}>上傳藥袋／藥品照片</p>
+                        <p>JPG、PNG - 上限 5MB</p>
                       </>
                     )}
                     <input
                       id="file-upload"
                       type="file"
                       style={{ display: "none" }}
-                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                      multiple
+                      accept=".png,.jpg,.jpeg,image/png,image/jpeg"
                       onChange={handleFileChange}
                       ref={fileInputRef}
                     />
@@ -664,7 +696,20 @@ const SendMedicine = () => {
                         <p>申請日期： {new Date(item.requestDate).toLocaleDateString("zh-TW")}</p>
                         {item.imagePath && (
                           <p>
-                            <a href={`http://127.0.0.1:5080${item.imagePath}`} target="_blank" rel="noopener noreferrer">查看附件</a>
+                            <button
+                              type="button"
+                              onClick={() => openProtectedAttachment(item.requestID)}
+                              style={{
+                                background: "none",
+                                border: 0,
+                                padding: 0,
+                                color: "#2563eb",
+                                textDecoration: "underline",
+                                cursor: "pointer",
+                              }}
+                            >
+                              查看附件
+                            </button>
                           </p>
                         )}
                       </div>
@@ -720,7 +765,20 @@ const SendMedicine = () => {
                              <p>申請日期： {new Date(item.requestDate).toLocaleDateString("zh-TW")}</p>
                             {item.imagePath && (
                               <p>
-                                <a href={`http://127.0.0.1:5080${item.imagePath}`} target="_blank" rel="noopener noreferrer">查看附件</a>
+                                <button
+                              type="button"
+                              onClick={() => openProtectedAttachment(item.requestID)}
+                              style={{
+                                background: "none",
+                                border: 0,
+                                padding: 0,
+                                color: "#2563eb",
+                                textDecoration: "underline",
+                                cursor: "pointer",
+                              }}
+                            >
+                              查看附件
+                            </button>
                               </p>
                             )}
                           </div>

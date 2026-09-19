@@ -411,3 +411,5 @@ FodyWeavers.xsd
 **/data/*.db-wal
 **/data/初始登入資訊.txt
 backups/
+# Runtime-only local medication attachments
+Backend/SchoolMedicalManagement/School-Medical-Management.API/wwwroot/uploads/medication/

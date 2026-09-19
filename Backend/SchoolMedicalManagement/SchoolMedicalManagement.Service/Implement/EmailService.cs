@@ -24,7 +24,7 @@ namespace SchoolMedicalManagement.Service.Implement
         public EmailService(IConfiguration configuration, UserRepository userRepository)
         {
             _configuration = configuration;
-            _offlineMode = _configuration.GetValue<bool>("OfflineMode");
+            _offlineMode = bool.TryParse(_configuration["OfflineMode"], out var offlineMode) && offlineMode;
             _smtpServer = _configuration["EmailSettings:SmtpServer"] ?? "127.0.0.1";
             _smtpPort = int.TryParse(_configuration["EmailSettings:SmtpPort"], out var configuredPort) ? configuredPort : 25;
             _smtpUsername = _configuration["EmailSettings:SmtpUsername"];

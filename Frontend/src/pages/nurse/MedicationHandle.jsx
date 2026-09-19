@@ -7,6 +7,58 @@ import clsx from "clsx";
 import Notification from "../../components/Notification";
 import { notifySuccess, notifyError } from "../../utils/notification";
 
+const ProtectedMedicationImage = ({ requestId, className, onOpen }) => {
+  const [src, setSrc] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let objectUrl = "";
+
+    const load = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const response = await axios.get(
+          `http://127.0.0.1:5080/api/MedicationRequest/${requestId}/attachment`,
+          {
+            responseType: "blob",
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+          }
+        );
+        objectUrl = URL.createObjectURL(response.data);
+        setSrc(objectUrl);
+      } catch (error) {
+        if (error.code !== "ERR_CANCELED" && error.name !== "CanceledError") {
+          console.error("無法載入用藥附件：", error);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [requestId]);
+
+  if (!src) {
+    return <Paperclip size={20} aria-label="附件載入中" />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt="藥袋／藥品照片"
+      className={className}
+      onClick={() => onOpen(src)}
+      style={{ cursor: "pointer" }}
+    />
+  );
+};
+
 const MedicationHandle = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [approvedRequests, setApprovedRequests] = useState([]);
@@ -248,17 +300,10 @@ const MedicationHandle = () => {
         <div>
           <b></b>{" "}
           {req.imagePath ? (
-            <img
-              src={`http://127.0.0.1:5080${req.imagePath}`}
-              alt="藥袋／藥品照片"
+            <ProtectedMedicationImage
+              requestId={req.requestID}
               className={style.miniImage}
-              onClick={() =>
-                setImageModal({
-                  open: true,
-                  url: `http://127.0.0.1:5080${req.imagePath}`,
-                })
-              }
-              style={{ cursor: "pointer" }}
+              onOpen={(url) => setImageModal({ open: true, url })}
             />
           ) : (
             <span>-</span>

@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import { FileSpreadsheet } from "lucide-react";
 import {
   Bar,
@@ -87,17 +85,27 @@ const MedicalSupplies = () => {
   };
 
   const handleExportExcel = () => {
-    const rows = filteredSupplies.map((item) => ({
-      物資名稱: item.name,
-      數量: item.quantity,
-      單位: item.unit,
-      有效期限: item.expiryDate,
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "醫療物資");
-    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "醫療物資清單.xlsx");
+    const escapeCsv = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const rows = [
+      ["名稱", "庫存數量", "單位", "有效期限"],
+      ...filteredSupplies.map((item) => [
+        item.name,
+        item.quantity,
+        item.unit,
+        item.expiryDate ? new Date(item.expiryDate).toLocaleDateString("zh-TW") : "",
+      ]),
+    ];
+
+    const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "醫療物資清單.csv";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -116,7 +124,7 @@ const MedicalSupplies = () => {
               className={style.searchInput}
             />
             <button className={style.exportBtn} onClick={handleExportExcel}>
-              <FileSpreadsheet size={18} style={{ marginRight: 6 }} />匯出 Excel
+              <FileSpreadsheet size={18} style={{ marginRight: 6 }} />匯出 CSV（Excel 可開啟）
             </button>
             <button
               className={style.addButton}

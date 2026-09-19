@@ -5,7 +5,6 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
-using Azure.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SchoolMedicalManagement.Models.Entity;
@@ -42,6 +41,16 @@ namespace SchoolMedicalManagement.Service.Implement
         // First login change password
         public async Task<BaseResponse> ChangePasswordAfterFirstLogin(Guid id, ChangePasswordUserRequest Request)
         {
+            if (string.IsNullOrWhiteSpace(Request.NewPassword) || Request.NewPassword.Length < 10)
+            {
+                return new BaseResponse
+                {
+                    Status = StatusCodes.Status400BadRequest.ToString(),
+                    Message = "新密碼至少需要 10 個字元。",
+                    Data = null
+                };
+            }
+
             var user = await _userRepository.GetUserById(id);
             if (user == null || user.IsFirstLogin == false)
                 return new BaseResponse
@@ -57,7 +66,9 @@ namespace SchoolMedicalManagement.Service.Implement
             await _userRepository.UpdateAsync(user);
 
             // 初次密碼修改完成後刪除一次性登入資訊，避免明碼長期留在磁碟。
-            var initialCredentialPath = Path.Combine(AppContext.BaseDirectory, "data", "初始登入資訊.txt");
+            var initialCredentialPath =
+                _config["LocalStorage:InitialCredentialPath"]
+                ?? Path.Combine(AppContext.BaseDirectory, "data", "初始登入資訊.txt");
             if (File.Exists(initialCredentialPath))
             {
                 File.Delete(initialCredentialPath);
