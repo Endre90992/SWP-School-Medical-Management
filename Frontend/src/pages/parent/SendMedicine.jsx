@@ -7,6 +7,7 @@ import { FiInfo, FiEdit, FiClipboard } from "react-icons/fi";
 import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { openMedicationImage } from "../../utils/medicationImage";
 
 const SendMedicine = () => {
   const [title, setTitle] = useState("");
@@ -660,11 +661,11 @@ const SendMedicine = () => {
                       <div className={styles.medicationDetails}>
                         <strong>{item.medicationName}</strong>
                         <p>劑量: {item.dosage}</p>
-                        <p>備註： {item.instructions || '否 có'}</p>
+                        <p>備註： {item.instructions || '無'}</p>
                         <p>申請日期： {new Date(item.requestDate).toLocaleDateString("zh-TW")}</p>
                         {item.imagePath && (
                           <p>
-                            <a href={`http://127.0.0.1:5080${item.imagePath}`} target="_blank" rel="noopener noreferrer">查看附件</a>
+                            <button type="button" onClick={() => openMedicationImage(item.requestID).catch(() => toast.error("附件讀取失敗。"))}>查看附件</button>
                           </p>
                         )}
                       </div>
@@ -716,11 +717,11 @@ const SendMedicine = () => {
                           <div className={styles.medicationDetails}>
                             <strong>{item.medicationName}</strong>
                             <p>劑量: {item.dosage}</p>
-                            <p>備註： {item.instructions || '否 có'}</p>
+                            <p>備註： {item.instructions || '無'}</p>
                              <p>申請日期： {new Date(item.requestDate).toLocaleDateString("zh-TW")}</p>
                             {item.imagePath && (
                               <p>
-                                <a href={`http://127.0.0.1:5080${item.imagePath}`} target="_blank" rel="noopener noreferrer">查看附件</a>
+                                <button type="button" onClick={() => openMedicationImage(item.requestID).catch(() => toast.error("附件讀取失敗。"))}>查看附件</button>
                               </p>
                             )}
                           </div>
