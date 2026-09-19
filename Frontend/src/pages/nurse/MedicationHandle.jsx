@@ -6,6 +6,7 @@ import { Paperclip } from "lucide-react";
 import clsx from "clsx";
 import Notification from "../../components/Notification";
 import { notifySuccess, notifyError } from "../../utils/notification";
+import ProtectedImage from "../../components/ProtectedImage";
 
 const MedicationHandle = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -22,7 +23,7 @@ const MedicationHandle = () => {
   const [scheduledRequests, setScheduledRequests] = useState([]);
   const [scheduledPage, setScheduledPage] = useState(1);
   const [lastActionMap, setLastActionMap] = useState({});
-  const [imageModal, setImageModal] = useState({ open: false, url: "" });
+  const [imageModal, setImageModal] = useState({ open: false, path: "" });
   const [searchName, setSearchName] = useState("");
 
   // Lấy token và set header mặc định cho axios
@@ -248,14 +249,14 @@ const MedicationHandle = () => {
         <div>
           <b></b>{" "}
           {req.imagePath ? (
-            <img
-              src={`http://127.0.0.1:5080${req.imagePath}`}
+            <ProtectedImage
+              path={req.imagePath}
               alt="藥袋／藥品照片"
               className={style.miniImage}
               onClick={() =>
                 setImageModal({
                   open: true,
-                  url: `http://127.0.0.1:5080${req.imagePath}`,
+                  path: req.imagePath,
                 })
               }
               style={{ cursor: "pointer" }}
@@ -476,20 +477,20 @@ const MedicationHandle = () => {
       {imageModal.open && (
         <div
           className={style.imageModalOverlay}
-          onClick={() => setImageModal({ open: false, url: "" })}
+          onClick={() => setImageModal({ open: false, path: "" })}
         >
           <div
             className={style.imageModalContent}
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={imageModal.url}
+            <ProtectedImage
+              path={imageModal.path}
               alt="藥袋／藥品照片"
               className={style.bigImage}
             />
             <button
               className={style.closeModalBtn}
-              onClick={() => setImageModal({ open: false, url: "" })}
+              onClick={() => setImageModal({ open: false, path: "" })}
             >
               關閉
             </button>
