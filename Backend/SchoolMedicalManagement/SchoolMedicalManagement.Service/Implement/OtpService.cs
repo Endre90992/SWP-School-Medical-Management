@@ -19,7 +19,7 @@ namespace SchoolMedicalManagement.Service.Implement
         {
             _cache = cache;
             _configuration = configuration;
-            _otpExpirationMinutes = _configuration.GetValue<int>("Redis:OtpExpirationMinutes");
+            _otpExpirationMinutes = int.TryParse(_configuration["Redis:OtpExpirationMinutes"], out var minutes) ? minutes : 5;
         }
 
         // Tạo OTP ngẫu nhiên 6 số và lưu vào Redis
