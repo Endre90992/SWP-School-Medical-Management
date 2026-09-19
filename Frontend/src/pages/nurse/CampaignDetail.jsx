@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import style from "../../assets/css/CampaignDetail.module.css";
-import * as XLSX from "xlsx";
 import {
   PieChart,
   Pie,
@@ -238,50 +237,49 @@ const CampaignDetail = () => {
     }
   };
 
-  const exportToExcel = () => {
-    const agreed = consents.filter((c) => c.consentStatusName === "同意");
-    const rejected = consents.filter((c) => c.consentStatusName === "不同意");
-    const pending = consents.filter(
-      (c) => c.consentStatusName === "待回覆"
-    );
+  const exportToExcel = async () => {
+    const { default: ExcelJS } = await import("exceljs");
 
-    // Sheet 1: 摘要
-    const summarySheet = [
+    const agreed = consents.filter((item) => item.consentStatusName === "同意");
+    const rejected = consents.filter((item) => item.consentStatusName === "不同意");
+    const pending = consents.filter((item) => item.consentStatusName === "待回覆");
+
+    const workbook = new ExcelJS.Workbook();
+
+    const summarySheet = workbook.addWorksheet("摘要");
+    summarySheet.addRows([
       ["活動名稱", campaign.vaccineName],
       ["接種日期", campaign.date],
       ["回覆總數", consents.length],
       ["同意人數", agreed.length],
       ["不同意人數", rejected.length],
       ["尚未回覆", pending.length],
-    ];
-
-    // Sheet 2: Chi tiết
-    const detailHeader = [
-      "STT",
-      "學生",
-      "家長／聯絡人",
-      "狀態",
-      "回覆日期",
-    ];
-    const detailRows = consents.map((c, idx) => [
-      idx + 1,
-      c.studentName,
-      c.parentName,
-      c.consentStatusName,
-      c.consentDate ? new Date(c.consentDate).toLocaleDateString("zh-TW") : "",
     ]);
 
-    const wb = XLSX.utils.book_new();
-    const summaryWs = XLSX.utils.aoa_to_sheet(summarySheet);
-    const detailWs = XLSX.utils.aoa_to_sheet([detailHeader, ...detailRows]);
+    const detailSheet = workbook.addWorksheet("回覆明細");
+    detailSheet.addRow(["序號", "學生", "家長／聯絡人", "狀態", "回覆日期"]);
+    consents.forEach((item, index) => {
+      detailSheet.addRow([
+        index + 1,
+        item.studentName,
+        item.parentName,
+        item.consentStatusName,
+        item.consentDate
+          ? new Date(item.consentDate).toLocaleDateString("zh-TW")
+          : "",
+      ]);
+    });
 
-    XLSX.utils.book_append_sheet(wb, summaryWs, "摘要");
-    XLSX.utils.book_append_sheet(wb, detailWs, "回覆明細");
-
-    XLSX.writeFile(
-      wb,
-      `BaoCao_TiemChung_${campaign.vaccineName.replace(/\s/g, "_")}.xlsx`
-    );
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `預防接種_${campaign.vaccineName.replace(/\s/g, "_")}.xlsx`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   if (loading || !campaign || modalLoading)
