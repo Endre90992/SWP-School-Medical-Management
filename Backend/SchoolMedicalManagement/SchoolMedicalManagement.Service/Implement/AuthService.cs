@@ -42,6 +42,16 @@ namespace SchoolMedicalManagement.Service.Implement
         // First login change password
         public async Task<BaseResponse> ChangePasswordAfterFirstLogin(Guid id, ChangePasswordUserRequest Request)
         {
+            if (string.IsNullOrWhiteSpace(Request.NewPassword) || Request.NewPassword.Length < 10)
+            {
+                return new BaseResponse
+                {
+                    Status = StatusCodes.Status400BadRequest.ToString(),
+                    Message = "新密碼至少需要 10 個字元。",
+                    Data = null
+                };
+            }
+
             var user = await _userRepository.GetUserById(id);
             if (user == null || user.IsFirstLogin == false)
                 return new BaseResponse
