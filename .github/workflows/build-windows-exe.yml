@@ -10,6 +10,9 @@ on:
       - "Backend/**"
   workflow_dispatch:
 
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
 jobs:
   build-exe:
     runs-on: windows-latest
