@@ -20,20 +20,61 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Single-file publish with IncludeAllContentForSelfExtract can place content
-// files in the bundle extraction directory while AppContext.BaseDirectory
-// still points to the physical EXE folder. Probe both locations.
-var executingAssemblyDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-var webRootCandidates = new[]
+// Single-file publish with IncludeAllContentForSelfExtract extracts content
+// before managed startup. On Windows the runtime uses DOTNET_BUNDLE_EXTRACT_BASE_DIR
+// when set, otherwise %TEMP%\\.net. Assembly.Location is intentionally empty for
+// bundled assemblies, so probe the runtime extraction layout explicitly.
+var webRootCandidates = new List<string>
 {
-    Path.Combine(AppContext.BaseDirectory, "wwwroot"),
-    string.IsNullOrWhiteSpace(executingAssemblyDirectory)
-        ? string.Empty
-        : Path.Combine(executingAssemblyDirectory, "wwwroot")
+    Path.Combine(AppContext.BaseDirectory, "wwwroot")
 };
 
+try
+{
+    var configuredExtractBase = Environment.GetEnvironmentVariable("DOTNET_BUNDLE_EXTRACT_BASE_DIR");
+    var extractBase = string.IsNullOrWhiteSpace(configuredExtractBase)
+        ? Path.Combine(Path.GetTempPath(), ".net")
+        : configuredExtractBase;
+
+    var bundleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    var assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
+    if (!string.IsNullOrWhiteSpace(assemblyName))
+        bundleNames.Add(assemblyName);
+
+    var processPath = Environment.ProcessPath;
+    if (!string.IsNullOrWhiteSpace(processPath))
+        bundleNames.Add(Path.GetFileNameWithoutExtension(processPath));
+
+    foreach (var bundleName in bundleNames)
+    {
+        var appExtractRoot = Path.Combine(extractBase, bundleName);
+        if (!Directory.Exists(appExtractRoot))
+            continue;
+
+        foreach (var extractedVersionDir in Directory
+                     .EnumerateDirectories(appExtractRoot)
+                     .OrderByDescending(Directory.GetLastWriteTimeUtc))
+        {
+            var candidate = Path.Combine(extractedVersionDir, "wwwroot");
+            if (File.Exists(Path.Combine(candidate, "index.html")))
+            {
+                webRootCandidates.Add(candidate);
+                break;
+            }
+        }
+    }
+}
+catch (IOException)
+{
+    // If extraction probing fails, ASP.NET falls back to the normal web root.
+}
+catch (UnauthorizedAccessException)
+{
+    // Same fallback for locked-down environments.
+}
+
 var bundledWebRoot = webRootCandidates
-    .FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) && Directory.Exists(path));
+    .FirstOrDefault(path => Directory.Exists(path) && File.Exists(Path.Combine(path, "index.html")));
 
 if (!string.IsNullOrWhiteSpace(bundledWebRoot))
 {
