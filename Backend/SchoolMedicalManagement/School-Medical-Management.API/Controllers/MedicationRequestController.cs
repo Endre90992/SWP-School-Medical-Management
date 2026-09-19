@@ -17,13 +17,17 @@ namespace School_Medical_Management.API.Controllers
 
         private readonly IMedicationRequestService _medicationRequestService;
         private readonly MedicationRequestRepository _medicationRequestRepository;
+        private readonly string _dataDirectory;
 
         public MedicationRequestController(
             IMedicationRequestService medicationRequestService,
-            MedicationRequestRepository medicationRequestRepository)
+            MedicationRequestRepository medicationRequestRepository,
+            IConfiguration configuration)
         {
             _medicationRequestService = medicationRequestService;
             _medicationRequestRepository = medicationRequestRepository;
+            _dataDirectory = configuration["LocalPaths:DataDirectory"]
+                ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
         }
 
         [Authorize(Roles = "Nurse,Manager")]
@@ -86,8 +90,7 @@ namespace School_Medical_Management.API.Controllers
 
                     storedFileName = $"{Guid.NewGuid():N}{extension}";
                     var attachmentDir = Path.Combine(
-                        AppContext.BaseDirectory,
-                        "data",
+                        _dataDirectory,
                         "attachments",
                         "medication");
                     Directory.CreateDirectory(attachmentDir);
@@ -198,8 +201,7 @@ namespace School_Medical_Management.API.Controllers
                 return NotFound();
 
             var filePath = Path.Combine(
-                AppContext.BaseDirectory,
-                "data",
+                _dataDirectory,
                 "attachments",
                 "medication",
                 fileName);
