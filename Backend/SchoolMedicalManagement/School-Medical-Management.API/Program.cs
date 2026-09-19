@@ -63,6 +63,29 @@ try
             }
         }
     }
+
+    // The extraction folder name can differ from the physical EXE name after
+    // the published apphost is renamed. Identify our bundle by the extracted
+    // managed entry assembly instead of relying only on directory naming.
+    if (!string.IsNullOrWhiteSpace(assemblyName) && Directory.Exists(extractBase))
+    {
+        var entryAssemblyFileName = assemblyName + ".dll";
+        foreach (var entryAssemblyPath in Directory
+                     .EnumerateFiles(extractBase, entryAssemblyFileName, SearchOption.AllDirectories)
+                     .OrderByDescending(File.GetLastWriteTimeUtc))
+        {
+            var extractedVersionDir = Path.GetDirectoryName(entryAssemblyPath);
+            if (string.IsNullOrWhiteSpace(extractedVersionDir))
+                continue;
+
+            var candidate = Path.Combine(extractedVersionDir, "wwwroot");
+            if (File.Exists(Path.Combine(candidate, "index.html")))
+            {
+                webRootCandidates.Add(candidate);
+                break;
+            }
+        }
+    }
 }
 catch (IOException)
 {
