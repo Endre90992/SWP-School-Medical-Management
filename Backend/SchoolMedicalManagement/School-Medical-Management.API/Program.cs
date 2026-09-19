@@ -22,11 +22,12 @@ using System.Threading.RateLimiting;
 
 var embeddedWebRoot = PrepareEmbeddedFrontend();
 
-var builder = WebApplication.CreateBuilder(args);
-if (!string.IsNullOrWhiteSpace(embeddedWebRoot))
+var builderOptions = new WebApplicationOptions
 {
-    builder.WebHost.UseWebRoot(embeddedWebRoot);
-}
+    Args = args,
+    WebRootPath = string.IsNullOrWhiteSpace(embeddedWebRoot) ? null : embeddedWebRoot
+};
+var builder = WebApplication.CreateBuilder(builderOptions);
 
 builder.Configuration.AddEnvironmentVariables();
 builder.WebHost.UseUrls(builder.Configuration["LocalServer:Url"] ?? "http://127.0.0.1:5080");
