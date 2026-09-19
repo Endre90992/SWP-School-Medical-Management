@@ -1,11 +1,15 @@
 name: Dependency remediation
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - "release/windows-single-exe"
     paths:
       - ".github/workflows/dependency-remediation.yml"
+      - "Frontend/src/**"
+      - "Frontend/package.json"
+      - "Frontend/package-lock.json"
 
 permissions:
   contents: write
