@@ -1,4 +1,5 @@
 name: Security release audit
+# Release gate: high/critical vulnerabilities must be zero before EXE packaging.
 
 on:
   push:
