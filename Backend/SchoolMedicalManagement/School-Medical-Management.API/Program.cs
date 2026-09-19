@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.FileProviders;
 using School_Medical_Management.API;
 using SchoolMedicalManagement.Models.Entity;
 using SchoolMedicalManagement.Repository.Repository;
@@ -216,12 +215,6 @@ app.MapMethods("/api/health", new[] { "HEAD" }, () => Results.Ok()).AllowAnonymo
 app.UseStaticFiles();
 
 // 使用者上傳圖片存放於 LocalAppData，不受單檔 EXE 自解壓目錄影響。
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(AppPaths.UploadDirectory),
-    RequestPath = "/uploads/medication",
-    ServeUnknownFileTypes = false
-});
 
 if (app.Environment.IsDevelopment())
 {
