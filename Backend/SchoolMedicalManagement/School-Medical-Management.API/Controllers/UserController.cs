@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SchoolMedicalManagement.Models.Request;
 using SchoolMedicalManagement.Service.Interface;
 using System.Security.Claims;
@@ -20,6 +21,7 @@ namespace School_Medical_Management.API.Controllers
         }
 
         [AllowAnonymous]
+        [EnableRateLimiting("LoginLimit")]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginUserRequest loginRequest)
         {
