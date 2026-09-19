@@ -57,6 +57,11 @@ jobs:
       - name: Smoke test published local edition
         shell: pwsh
         run: |
+          $appDataRoot = Join-Path $env:LOCALAPPDATA "EduHealth-Local-TW"
+          if (Test-Path $appDataRoot) {
+            Remove-Item $appDataRoot -Recurse -Force
+          }
+
           $proc = Start-Process dotnet -ArgumentList "SchoolMedicalManagement.API.dll" -WorkingDirectory "publish" -PassThru
           try {
             $healthy = $false
@@ -76,7 +81,7 @@ jobs:
               throw "Published EduHealth Local TW did not become healthy."
             }
 
-            $credentialFile = "publish/data/初始登入資訊.txt"
+            $credentialFile = Join-Path $env:LOCALAPPDATA "EduHealth-Local-TW\data\初始登入資訊.txt"
             if (-not (Test-Path $credentialFile)) {
               throw "First-run credential file was not created."
             }
