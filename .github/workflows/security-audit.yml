@@ -17,19 +17,44 @@ jobs:
           node-version: "20"
 
       - name: Frontend dependency audit
+        id: npm_audit
         working-directory: Frontend
         shell: pwsh
         run: |
           npm ci
           npm audit --json | Out-File -Encoding utf8 npm-audit.json
-          Get-Content npm-audit.json
+          $audit = Get-Content npm-audit.json -Raw | ConvertFrom-Json
+          $counts = $audit.metadata.vulnerabilities
+          Write-Host "npm vulnerabilities: low=$($counts.low), moderate=$($counts.moderate), high=$($counts.high), critical=$($counts.critical)"
+          "npm_high=$($counts.high)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "npm_critical=$($counts.critical)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        continue-on-error: true
 
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
 
       - name: Backend vulnerability audit
+        id: nuget_audit
         shell: pwsh
         run: |
           dotnet restore Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln
-          dotnet list Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln package --vulnerable --include-transitive
+          $output = dotnet list Backend/SchoolMedicalManagement/SchoolMedicalManagement.sln package --vulnerable --include-transitive
+          $output | Write-Host
+          $hasVulnerable = ($output -join "`n") -match "has the following vulnerable packages"
+          "nuget_vulnerable=$($hasVulnerable.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Enforce packaging security gate
+        shell: pwsh
+        run: |
+          $npmHigh = [int]"${{ steps.npm_audit.outputs.npm_high }}"
+          $npmCritical = [int]"${{ steps.npm_audit.outputs.npm_critical }}"
+          $nugetVulnerable = "${{ steps.nuget_audit.outputs.nuget_vulnerable }}"
+
+          if ($npmHigh -gt 0 -or $npmCritical -gt 0) {
+            throw "Frontend still has high/critical dependency vulnerabilities."
+          }
+
+          if ($nugetVulnerable -eq "true") {
+            throw "Backend still has vulnerable NuGet packages."
+          }
