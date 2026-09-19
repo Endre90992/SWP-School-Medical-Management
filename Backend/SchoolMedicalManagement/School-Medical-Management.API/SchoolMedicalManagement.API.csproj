@@ -4,6 +4,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>School_Medical_Management.API</RootNamespace>
+    <AssemblyName>EduHealth-Local-TW</AssemblyName>
+    <Product>EduHealth Local TW</Product>
     <SpaRoot>..\..\..\Frontend\</SpaRoot>
   </PropertyGroup>
 
