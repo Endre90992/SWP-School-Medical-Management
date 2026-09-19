@@ -12,96 +12,19 @@ using SchoolMedicalManagement.Repository.Repository;
 using SchoolMedicalManagement.Service.Implement;
 using SchoolMedicalManagement.Service.Interface;
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.RateLimiting;
 
+var embeddedWebRoot = PrepareEmbeddedFrontend();
+
 var builder = WebApplication.CreateBuilder(args);
-
-// Single-file publish with IncludeAllContentForSelfExtract extracts content
-// before managed startup. On Windows the runtime uses DOTNET_BUNDLE_EXTRACT_BASE_DIR
-// when set, otherwise %TEMP%\\.net. Assembly.Location is intentionally empty for
-// bundled assemblies, so probe the runtime extraction layout explicitly.
-var webRootCandidates = new List<string>
+if (!string.IsNullOrWhiteSpace(embeddedWebRoot))
 {
-    Path.Combine(AppContext.BaseDirectory, "wwwroot")
-};
-
-try
-{
-    var configuredExtractBase = Environment.GetEnvironmentVariable("DOTNET_BUNDLE_EXTRACT_BASE_DIR");
-    var extractBase = string.IsNullOrWhiteSpace(configuredExtractBase)
-        ? Path.Combine(Path.GetTempPath(), ".net")
-        : configuredExtractBase;
-
-    var bundleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    var assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
-    if (!string.IsNullOrWhiteSpace(assemblyName))
-        bundleNames.Add(assemblyName);
-
-    var processPath = Environment.ProcessPath;
-    if (!string.IsNullOrWhiteSpace(processPath))
-        bundleNames.Add(Path.GetFileNameWithoutExtension(processPath));
-
-    foreach (var bundleName in bundleNames)
-    {
-        var appExtractRoot = Path.Combine(extractBase, bundleName);
-        if (!Directory.Exists(appExtractRoot))
-            continue;
-
-        foreach (var extractedVersionDir in Directory
-                     .EnumerateDirectories(appExtractRoot)
-                     .OrderByDescending(Directory.GetLastWriteTimeUtc))
-        {
-            var candidate = Path.Combine(extractedVersionDir, "wwwroot");
-            if (File.Exists(Path.Combine(candidate, "index.html")))
-            {
-                webRootCandidates.Add(candidate);
-                break;
-            }
-        }
-    }
-
-    // The extraction folder name can differ from the physical EXE name after
-    // the published apphost is renamed. Identify our bundle by the extracted
-    // managed entry assembly instead of relying only on directory naming.
-    if (!string.IsNullOrWhiteSpace(assemblyName) && Directory.Exists(extractBase))
-    {
-        var entryAssemblyFileName = assemblyName + ".dll";
-        foreach (var entryAssemblyPath in Directory
-                     .EnumerateFiles(extractBase, entryAssemblyFileName, SearchOption.AllDirectories)
-                     .OrderByDescending(File.GetLastWriteTimeUtc))
-        {
-            var extractedVersionDir = Path.GetDirectoryName(entryAssemblyPath);
-            if (string.IsNullOrWhiteSpace(extractedVersionDir))
-                continue;
-
-            var candidate = Path.Combine(extractedVersionDir, "wwwroot");
-            if (File.Exists(Path.Combine(candidate, "index.html")))
-            {
-                webRootCandidates.Add(candidate);
-                break;
-            }
-        }
-    }
-}
-catch (IOException)
-{
-    // If extraction probing fails, ASP.NET falls back to the normal web root.
-}
-catch (UnauthorizedAccessException)
-{
-    // Same fallback for locked-down environments.
-}
-
-var bundledWebRoot = webRootCandidates
-    .FirstOrDefault(path => Directory.Exists(path) && File.Exists(Path.Combine(path, "index.html")));
-
-if (!string.IsNullOrWhiteSpace(bundledWebRoot))
-{
-    builder.WebHost.UseWebRoot(bundledWebRoot);
+    builder.WebHost.UseWebRoot(embeddedWebRoot);
 }
 
 builder.Configuration.AddEnvironmentVariables();
@@ -381,3 +304,71 @@ if (openBrowser)
 }
 
 app.Run();
+
+
+static string? PrepareEmbeddedFrontend()
+{
+    const string resourceName = "EduHealth.Frontend.zip";
+    var assembly = Assembly.GetExecutingAssembly();
+    using var resource = assembly.GetManifestResourceStream(resourceName);
+    if (resource == null)
+        return null;
+
+    using var buffer = new MemoryStream();
+    resource.CopyTo(buffer);
+    var bytes = buffer.ToArray();
+    var hash = Convert.ToHexString(SHA256.HashData(bytes))[..16];
+
+    var root = Path.Combine(Path.GetTempPath(), "EduHealth-Local-TW", "web", hash);
+    var indexPath = Path.Combine(root, "index.html");
+    if (File.Exists(indexPath))
+        return root;
+
+    var tempRoot = root + ".tmp-" + Guid.NewGuid().ToString("N");
+    Directory.CreateDirectory(tempRoot);
+
+    try
+    {
+        using var zipBuffer = new MemoryStream(bytes, writable: false);
+        using var archive = new ZipArchive(zipBuffer, ZipArchiveMode.Read, leaveOpen: false);
+
+        var destinationRoot = Path.GetFullPath(tempRoot) + Path.DirectorySeparatorChar;
+        foreach (var entry in archive.Entries)
+        {
+            var destinationPath = Path.GetFullPath(Path.Combine(tempRoot, entry.FullName));
+            if (!destinationPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Embedded frontend archive contains an invalid path.");
+
+            if (string.IsNullOrEmpty(entry.Name))
+            {
+                Directory.CreateDirectory(destinationPath);
+                continue;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            entry.ExtractToFile(destinationPath, overwrite: true);
+        }
+
+        if (!File.Exists(Path.Combine(tempRoot, "index.html")))
+            throw new InvalidDataException("Embedded frontend is missing index.html.");
+
+        Directory.CreateDirectory(Path.GetDirectoryName(root)!);
+        try
+        {
+            Directory.Move(tempRoot, root);
+        }
+        catch (IOException) when (Directory.Exists(root))
+        {
+            // Another process may have populated the same immutable hash cache.
+            Directory.Delete(tempRoot, recursive: true);
+        }
+
+        return File.Exists(indexPath) ? root : null;
+    }
+    catch
+    {
+        if (Directory.Exists(tempRoot))
+            Directory.Delete(tempRoot, recursive: true);
+        throw;
+    }
+}
