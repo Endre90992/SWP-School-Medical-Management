@@ -88,7 +88,7 @@ const MedicalSupplies = () => {
     const escapeCsv = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
     const rows = [
       ["名稱", "庫存數量", "單位", "有效期限"],
-      ...supplies.map((item) => [
+      ...filteredSupplies.map((item) => [
         item.name,
         item.quantity,
         item.unit,
